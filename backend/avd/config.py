@@ -121,6 +121,8 @@ class Settings(BaseSettings):
 
     fixtures_dir: Path = REPO_ROOT / "data" / "fixtures"
     media_cache_dir: Path = REPO_ROOT / "backend" / ".media_cache"
+    # Pinned-commit cache of licensed dataset source files (not committed; re-fetchable).
+    dataset_cache_dir: Path = REPO_ROOT / "backend" / ".dataset_cache"
     # Directory of licensed reference documents enabling Stage-C retrieval fact checking.
     reference_corpus_dir: Path | None = None
 

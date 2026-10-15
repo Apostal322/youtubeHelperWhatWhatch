@@ -6,9 +6,13 @@ import argparse
 import json
 import sys
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 from avd.config import REPO_ROOT, get_settings
 from avd.logging import configure_logging
+
+if TYPE_CHECKING:
+    from avd.datasets.fetch import SourceFetcher
 
 
 def _migrate() -> None:
@@ -174,6 +178,58 @@ def cmd_llm_smoke(args: argparse.Namespace) -> None:
     sys.exit(smoke_main(args))
 
 
+def _fetcher(args: argparse.Namespace) -> SourceFetcher:
+    from avd.datasets.fetch import SourceFetcher
+
+    return SourceFetcher(Path(args.cache_dir or get_settings().dataset_cache_dir), offline=args.offline)
+
+
+def cmd_dataset_build_pilot(args: argparse.Namespace) -> None:
+    from avd.datasets.pilot import build_manifest
+
+    clones = dict(c.split("=", 1) for c in args.clone)
+    missing = {"changelog", "talkpython"} - clones.keys()
+    if missing:
+        sys.exit(f"--clone needed for: {', '.join(sorted(missing))} (git clone --filter=blob:none <repo>)")
+    manifest = build_manifest(
+        {k: Path(v) for k, v in clones.items()}, _fetcher(args), seed=args.seed, progress=print
+    )
+    out = Path(args.out)
+    out.mkdir(parents=True, exist_ok=True)
+    (out / "manifest.json").write_text(
+        json.dumps(manifest, indent=2, ensure_ascii=False) + "\n", encoding="utf-8"
+    )
+    splits: dict[str, int] = {}
+    for it in manifest["items"]:
+        splits[it["split"]] = splits.get(it["split"], 0) + 1
+    print(
+        json.dumps(
+            {"items": len(manifest["items"]), "splits": splits, "items_sha256": manifest["items_sha256"]}
+        )
+    )
+
+
+def cmd_dataset_import(args: argparse.Namespace) -> None:
+    from avd.datasets.importer import import_manifest
+    from avd.db.session import session_scope
+    from avd.services import enqueue_stage_a
+
+    with session_scope() as s:
+        result = import_manifest(s, Path(args.manifest), _fetcher(args))
+        if args.evaluate:
+            for vid in result["video_ids"]:
+                enqueue_stage_a(s, vid, force=True)
+    print(json.dumps({k: v for k, v in result.items() if k != "video_ids"}))
+
+
+def cmd_dataset_revoke(args: argparse.Namespace) -> None:
+    from avd.datasets.importer import revoke_video_sources
+    from avd.db.session import session_scope
+
+    with session_scope() as s:
+        print(json.dumps(revoke_video_sources(s, args.video_id, args.reason)))
+
+
 def cmd_bench(args: argparse.Namespace) -> None:
     from avd.bench.harness import main as bench_main
 
@@ -215,6 +271,31 @@ def main(argv: list[str] | None = None) -> None:
     ls.add_argument("--transcript", default=None, help="evaluate this VTT/SRT/JSON transcript instead")
     ls.add_argument("--max-cost", type=float, default=None, help="explicit spend cap in USD")
     ls.set_defaults(fn=cmd_llm_smoke)
+    ds = sub.add_parser("dataset", help="licensed real-world datasets").add_subparsers(
+        dest="dataset_cmd", required=True
+    )
+    bp = ds.add_parser("build-pilot", help="select items and write a manifest (needs local clones)")
+    bp.add_argument(
+        "--clone", action="append", default=[], help="source=DIR of a clone with the pinned commit"
+    )
+    bp.add_argument("--out", default=str(REPO_ROOT / "benchmarks" / "datasets" / "real_pilot_v1"))
+    bp.add_argument("--seed", type=int, default=20261015)
+    bp.set_defaults(fn=cmd_dataset_build_pilot)
+    di = ds.add_parser("import", help="verify and import a manifest into the database")
+    di.add_argument(
+        "manifest",
+        nargs="?",
+        default=str(REPO_ROOT / "benchmarks" / "datasets" / "real_pilot_v1" / "manifest.json"),
+    )
+    di.add_argument("--evaluate", action="store_true", help="queue Stage A for imported items")
+    di.set_defaults(fn=cmd_dataset_import)
+    for sp in (bp, di):
+        sp.add_argument("--cache-dir", default=None)
+        sp.add_argument("--offline", action="store_true", help="use only the local cache")
+    rv = ds.add_parser("revoke", help="revoke a video's content sources and withdraw its evaluations")
+    rv.add_argument("video_id")
+    rv.add_argument("--reason", required=True)
+    rv.set_defaults(fn=cmd_dataset_revoke)
     b = sub.add_parser("bench", help="run the evaluation benchmark harness")
     b.add_argument("--dataset", default=str(REPO_ROOT / "benchmarks" / "datasets" / "synthetic_v1"))
     b.add_argument("--fixtures", default=str(REPO_ROOT / "data" / "fixtures"))

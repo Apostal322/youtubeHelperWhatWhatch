@@ -247,7 +247,8 @@ class NormalizationReport:
 
 def normalize_transcript(t: Transcript) -> tuple[Transcript, NormalizationReport]:
     """Ingestion-time normalisation: whitespace, empty segments, rolling-caption duplicates,
-    out-of-order cues and overlaps (start clipped to the previous end)."""
+    out-of-order cues and overlaps (start clipped to the previous end). Segments that share the
+    identical source span (anchor-granularity timing) are kept as they are."""
     rep = NormalizationReport()
     segs = list(t.segments)
     if any(b.start < a.start for a, b in pairwise(segs)):
@@ -265,7 +266,7 @@ def normalize_transcript(t: Transcript) -> tuple[Transcript, NormalizationReport
             out[-1] = TranscriptSegment(start=prev.start, end=max(prev.end, s.end), text=prev.text)
             continue
         start = s.start
-        if out and start < out[-1].end:
+        if out and start < out[-1].end and not _same_span(out[-1], s):
             start = out[-1].end
             rep.fixed_overlaps += 1
         out.append(TranscriptSegment(start=start, end=max(start, s.end), text=text))
@@ -287,6 +288,9 @@ class TranscriptReport:
     overlapping: int
     non_monotonic: int
     empty_segments: int
+    # Consecutive segments carrying the identical source span (anchor-granularity timestamps,
+    # e.g. paragraph segments between sparse source timestamps). Not an overlap.
+    shared_span_segments: int = 0
     issues: list[str] = field(default_factory=list)
 
     def as_dict(self) -> dict[str, object]:
@@ -303,6 +307,7 @@ class TranscriptReport:
             "overlapping": self.overlapping,
             "non_monotonic": self.non_monotonic,
             "empty_segments": self.empty_segments,
+            "shared_span_segments": self.shared_span_segments,
             "issues": self.issues,
         }
 
@@ -322,9 +327,10 @@ def validate_transcript(t: Transcript) -> TranscriptReport:
         declared_language=declared,
         language_mismatch=mismatch,
         gaps_over_30s=sum(1 for a, b in pairs if b.start - a.end > 30),
-        overlapping=sum(1 for a, b in pairs if b.start < a.end - 0.01),
+        overlapping=sum(1 for a, b in pairs if b.start < a.end - 0.01 and not _same_span(a, b)),
         non_monotonic=sum(1 for a, b in pairs if b.start < a.start),
         empty_segments=sum(1 for s in segs if not s.text.strip()),
+        shared_span_segments=sum(1 for a, b in pairs if _same_span(a, b)),
     )
     if rep.words < 50:
         rep.issues.append("very_short_transcript")
@@ -334,7 +340,13 @@ def validate_transcript(t: Transcript) -> TranscriptReport:
         rep.issues.append("declared_language_mismatch")
     if rep.non_monotonic:
         rep.issues.append("non_monotonic_timestamps")
+    if rep.shared_span_segments:
+        rep.issues.append("timestamps_at_span_granularity")
     return rep
+
+
+def _same_span(a: TranscriptSegment, b: TranscriptSegment) -> bool:
+    return abs(a.start - b.start) < 1e-6 and abs(a.end - b.end) < 1e-6
 
 
 @dataclass(frozen=True)
@@ -409,3 +421,31 @@ def chunk_transcript(
         )
         start = cut + 1
     return chunks
+
+
+def consolidate_segments(
+    t: Transcript, target_seconds: float = 20.0, max_seconds: float = 45.0
+) -> Transcript:
+    """Merge short caption cues (e.g. 1-5 s YouTube-style cues) into ~``target_seconds`` segments.
+    Each merged segment starts at its first cue's start and ends at its last cue's end, so all
+    timestamps remain source timestamps. Prefers to end on sentence punctuation."""
+    out: list[TranscriptSegment] = []
+    buf: list[TranscriptSegment] = []
+
+    def flush() -> None:
+        if buf:
+            out.append(
+                TranscriptSegment(
+                    start=buf[0].start, end=buf[-1].end, text=" ".join(b.text.strip() for b in buf)
+                )
+            )
+            buf.clear()
+
+    for seg in t.segments:
+        buf.append(seg)
+        span = buf[-1].end - buf[0].start
+        ends_sentence = seg.text.rstrip().endswith((".", "?", "!"))
+        if span >= max_seconds or (span >= target_seconds and ends_sentence):
+            flush()
+    flush()
+    return Transcript(language=t.language, segments=out)

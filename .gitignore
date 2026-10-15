@@ -10,6 +10,7 @@ htmlcov/
 *.egg-info/
 backend/avd_demo.db*
 backend/.media_cache/
+backend/.dataset_cache/
 *.db
 *.db-wal
 *.db-shm

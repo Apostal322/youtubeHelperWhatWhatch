@@ -12,7 +12,9 @@ quality evaluation.
 | Metadata | `videos.list`, `channels.list` | API key | Implemented, tested with mocked HTTP |
 | Creator captions | `captions.list` + `captions.download` | **OAuth grant from the channel owner** (`youtube.force-ssl`); requires a verified Google OAuth app | Client + provider implemented and tested with mocks; OAuth consent flow and token storage are **not** implemented (`CreatorTokenStore` protocol) |
 | User-provided transcripts | `POST /v1/videos/{id}/transcripts` | User attestation of their right to submit (stored as the authorization basis) | Implemented |
-| Licensed datasets | `avd import-dataset file.jsonl` | Each row must declare `license` and `authorization_basis`; rows without are rejected | Implemented |
+| Licensed datasets (generic) | `avd import-dataset file.jsonl` | Each row must declare `license` and `authorization_basis`; rows without are rejected | Implemented |
+| Licensed real-world pilot | `avd dataset import` (manifest `benchmarks/datasets/real_pilot_v1`) | Publisher licences (CC BY-SA 4.0, GPL-3.0); fetched from the publishers' own repositories at pinned commits; full rights record per content source | Implemented; 29 items imported and evaluated (heuristic) |
+| Revocation / takedown | `avd dataset revoke <video_id> --reason` | n/a | Implemented: sources revoked, current evaluations withdrawn, annotation assignment stops |
 | Audio quality | Authorized PCM WAV attached to a content source | Same as the content source | Implemented (demo uses synthetic audio) |
 | Visual quality / editing / readability | Authorized video | Rights to process the video + multimodal model | **Not implemented** — always `requires_media` |
 | LLM evaluation | Anthropic API or OpenAI-compatible server | API key; provider terms | Implemented, tested with scripted responses only |
@@ -28,6 +30,25 @@ quality evaluation.
   `content_unavailable` unless another authorized source exists.
 * No inference in the browser extension. It reads precomputed results from the backend; the badge
   on YouTube pages is a cached backend lookup.
+
+## Rights record (Phase 2)
+
+Every `content_sources` row created by the licensed-dataset importer stores the following fields:
+
+* `owner`, `attribution`, `license`, `authorization_basis`;
+* `provenance_url` (a blob URL at the pinned commit), `retrieved_at`, `raw_sha256`;
+* `permitted_processing`, `permitted_storage`, `restrictions`, `revocation_policy`;
+* `preprocessing` (parser report, normalisation counts, commit and path), and `revoked_at`.
+
+The importer **fails closed**: it refuses a source that lacks a licence or authorisation basis,
+whose bytes no longer match the manifest checksum, whose parse has drifted from the recorded
+content hash, or whose commit differs from the pinned one.
+
+This repository commits only the manifest (paths, checksums, metadata). Transcript texts are
+fetched from the publisher at import time and are not redistributed. The open legal questions
+(whether evaluations count as "analysis" or as adaptation under CC BY-SA, and GPL on prose) are
+listed in the dataset's datasheet and need counsel review before any public release of derived
+data.
 
 ## Quotas
 

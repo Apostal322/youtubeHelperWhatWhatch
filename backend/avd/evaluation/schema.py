@@ -21,7 +21,9 @@ from pydantic import BaseModel, ConfigDict, Field, model_validator
 RUBRIC_VERSION = "rubric_v2"  # criterion-specific anchors for all five levels
 PROMPT_VERSION = "rubric_prompt_v2"  # nonce-delimited transcript, counter-evidence
 AGGREGATION_VERSION = "genre_weighted_mean_renormalized_v2"  # genre mixtures, ambiguity handling
-PREPROCESSING_VERSION = "prep_v1"  # transcript normalisation, language id, chunking, sanitisation
+PREPROCESSING_VERSION = (
+    "prep_v2"  # normalisation (keeps shared source spans), language id, chunking, sanitisation
+)
 FRAMEWORK_VERSION = "2026.10.1"
 
 SCORE_MIN = 1.0
