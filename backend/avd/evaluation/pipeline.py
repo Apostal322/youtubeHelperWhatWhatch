@@ -154,6 +154,18 @@ class EvaluationPipeline:
 
         merged: list[DimensionScore] = []
         for d in Dimension:
+            if d == Dimension.TITLE_CONSISTENCY and not inp.title_is_original:
+                merged.append(
+                    DimensionScore.abstain(
+                        d,
+                        DimensionStatus.INSUFFICIENT_EVIDENCE,
+                        "No original title is available (the title is a placeholder), so title "
+                        "consistency cannot be judged.",
+                        "pipeline",
+                        reason_code=ReasonCode.INSUFFICIENT_MATERIAL,
+                    )
+                )
+                continue
             if not profile.applicable(d):
                 merged.append(
                     DimensionScore.abstain(

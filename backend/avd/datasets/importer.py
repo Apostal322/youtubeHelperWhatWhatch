@@ -83,6 +83,7 @@ def import_manifest(session: Session, manifest_path: Path, fetcher: SourceFetche
         video.language = item["language"]
         video.duration_seconds = int(item["transcript_duration_seconds"]) or None
         video.platform = item["platform"]
+        video.title_source = item["title_source"]
         video.external_url = item["external_url"]
         video.is_synthetic = False
         video.discovery_source = f"dataset:{dataset_id}"

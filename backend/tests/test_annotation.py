@@ -23,20 +23,52 @@ from avd.ingest import upsert_channel
 from tests.conftest import DB, LECTURE, make_transcript
 
 DS = "pilot_test@v1"
-SPLITS = {"cal_1": "calibration", "dev_1": "dev", "dev_2": "dev", "dev_3": "dev", "tst_1": "test", "tst_2": "test"}
+SPLITS = {
+    "cal_1": "calibration",
+    "dev_1": "dev",
+    "dev_2": "dev",
+    "dev_3": "dev",
+    "tst_1": "test",
+    "tst_2": "test",
+}
 
 
 def seed(s: Session) -> None:
     upsert_channel(s, "lic:show", "Show")
-    s.add(Dataset(id=DS, name="pilot_test", version="v1", manifest_sha256="0" * 64, split_strategy="group_by_show", split_seed=1))
+    s.add(
+        Dataset(
+            id=DS,
+            name="pilot_test",
+            version="v1",
+            manifest_sha256="0" * 64,
+            split_strategy="group_by_show",
+            split_seed=1,
+        )
+    )
     for vid, split in SPLITS.items():
-        s.add(Video(id=vid, channel_id="lic:show", title=f"Episode {vid}", platform="example", is_synthetic=False))
+        s.add(
+            Video(
+                id=vid, channel_id="lic:show", title=f"Episode {vid}", platform="example", is_synthetic=False
+            )
+        )
         s.flush()
         add_transcript_source(
-            s, video_id=vid, transcript=make_transcript(LECTURE), source_type=SourceType.LICENSED_DATASET,
-            authorization_basis="test licence", license="CC-BY-4.0",
+            s,
+            video_id=vid,
+            transcript=make_transcript(LECTURE),
+            source_type=SourceType.LICENSED_DATASET,
+            authorization_basis="test licence",
+            license="CC-BY-4.0",
         )
-        s.add(DatasetItem(dataset_id=DS, video_id=vid, split=split, group_key=f"g_{split}", is_calibration_example=split == "calibration"))
+        s.add(
+            DatasetItem(
+                dataset_id=DS,
+                video_id=vid,
+                split=split,
+                group_key=f"g_{split}",
+                is_calibration_example=split == "calibration",
+            )
+        )
     s.flush()
 
 
@@ -57,8 +89,13 @@ def full_scores(score: int | None = 0, quote: bool = True, **overrides: int | No
         sc = overrides.get(d, VARIED[i % len(VARIED)] if score == 0 else score)
         out.append(
             svc.ScoreInput(
-                dimension=d, status="scored" if sc is not None else "abstain", score=sc, confidence=0.7,
-                evidence=[{"segment_index": 4, "quote": "the key enzyme is RuBisCO"}] if (quote and sc is not None) else [],
+                dimension=d,
+                status="scored" if sc is not None else "abstain",
+                score=sc,
+                confidence=0.7,
+                evidence=[{"segment_index": 4, "quote": "the key enzyme is RuBisCO"}]
+                if (quote and sc is not None)
+                else [],
             )
         )
     return out
@@ -92,7 +129,15 @@ def test_payload_is_blind(sess: Session) -> None:
     a = svc.next_assignment(sess, r, DS)
     assert a is not None
     p = svc.item_payload(sess, a)
-    forbidden = {"evaluation", "scores", "overall_score", "view_count", "like_count", "subscriber_count", "annotations"}
+    forbidden = {
+        "evaluation",
+        "scores",
+        "overall_score",
+        "view_count",
+        "like_count",
+        "subscriber_count",
+        "annotations",
+    }
     assert not forbidden & set(p)
     assert p["segments"][0]["text"] and len(p["rubric"]) == len(svc.ANNOTATION_DIMENSIONS)
     assert all(set(r_["anchors"]) == {"1", "2", "3", "4", "5"} for r_ in p["rubric"])
@@ -116,13 +161,23 @@ class TestSubmission:
             ([svc.ScoreInput(d, "abstain", score=4) for d in svc.ANNOTATION_DIMENSIONS], "iff"),
             ([svc.ScoreInput(d, "scored", score=7) for d in svc.ANNOTATION_DIMENSIONS], "1-5"),
             (
-                [svc.ScoreInput(d, "scored", score=3, evidence=[{"segment_index": 0, "quote": "an invented quote never said"}]) for d in svc.ANNOTATION_DIMENSIONS],
+                [
+                    svc.ScoreInput(
+                        d,
+                        "scored",
+                        score=3,
+                        evidence=[{"segment_index": 0, "quote": "an invented quote never said"}],
+                    )
+                    for d in svc.ANNOTATION_DIMENSIONS
+                ],
                 "quote not found",
             ),
             ([svc.ScoreInput(d, "maybe") for d in svc.ANNOTATION_DIMENSIONS], "invalid status"),
         ],
     )
-    def test_invalid_submissions_are_rejected(self, sess: Session, scores: list[svc.ScoreInput], msg: str) -> None:
+    def test_invalid_submissions_are_rejected(
+        self, sess: Session, scores: list[svc.ScoreInput], msg: str
+    ) -> None:
         r = rater(sess, "r1")
         a = svc.next_assignment(sess, r, DS)
         assert a is not None
@@ -278,7 +333,10 @@ def test_api_flow(api: TestClient) -> None:
     assert res.status_code == 200 and res.json()["status"] == "submitted"
     bad = api.post(f"/v1/annotation/annotations/{item['annotation_id']}/submit", json=body, headers=tok)
     assert bad.status_code == 422
-    assert api.get("/v1/annotation/qc", params={"dataset": DS}, headers=admin).json()["submitted_annotations"] == 1
+    assert (
+        api.get("/v1/annotation/qc", params={"dataset": DS}, headers=admin).json()["submitted_annotations"]
+        == 1
+    )
     exp = api.get("/v1/annotation/export", params={"dataset": DS}, headers=admin).json()
     assert exp["labels"] == []  # calibration annotations are never exported as labels
     page = api.get("/annotate")

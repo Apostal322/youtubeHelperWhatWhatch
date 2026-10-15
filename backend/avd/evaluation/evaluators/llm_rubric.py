@@ -148,7 +148,7 @@ def build_user_prompt(
     nonce = nonce_for(inp.transcript.content_hash(), inp.title, inp.description)
     duration = f"{inp.duration_seconds // 60} min" if inp.duration_seconds else "unknown"
     metadata = (
-        f"Title: {neutralize(inp.title)}\nDescription: {neutralize(inp.description[:2000])}\n"
+        f"Title: {neutralize(inp.title)}{'' if inp.title_is_original else ' (placeholder, not the creator title)'}\nDescription: {neutralize(inp.description[:2000])}\n"
         f"Tags: {neutralize(', '.join(inp.tags[:20]))}"
     )
     return (
@@ -459,7 +459,11 @@ class LLMRubricEvaluator:
     # ------------------------------------------------------------------------------ evaluation
 
     def evaluate(self, inp: EvaluationInput, profile: GenreProfile) -> EvaluatorOutput:
-        dims = tuple(d for d in self.dimensions if profile.applicable(d))
+        dims = tuple(
+            d
+            for d in self.dimensions
+            if profile.applicable(d) and (inp.title_is_original or d != Dimension.TITLE_CONSISTENCY)
+        )
         if inp.transcript is None:
             return EvaluatorOutput(
                 dimensions=[

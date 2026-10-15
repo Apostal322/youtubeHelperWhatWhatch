@@ -261,3 +261,25 @@ def test_committed_pilot_manifest_is_consistent() -> None:
         assert it["language"] == "en" and it["raw_sha256"] and it["content_hash"]
         assert "score" not in it and "label" not in it  # the manifest carries no quality labels
     assert all(len(s) == 1 for s in splits_by_group.values())
+
+
+def test_placeholder_titles_are_not_judged_for_consistency() -> None:
+    from avd.evaluation.evaluators.heuristic import HeuristicTextEvaluator
+    from avd.evaluation.pipeline import EvaluationPipeline
+    from avd.evaluation.schema import Dimension, DimensionStatus, EvaluationMode, ReasonCode
+    from tests.conftest import make_input
+
+    pipe = EvaluationPipeline([HeuristicTextEvaluator()], "B", EvaluationMode.SYNTHETIC_DEMO)
+    original = pipe.run(make_input())
+    placeholder_input = make_input().model_copy(update={"title": "Go Time #226", "title_is_original": False})
+    placeholder = pipe.run(placeholder_input)
+    assert original.dimension(Dimension.TITLE_CONSISTENCY).status == DimensionStatus.SCORED
+    d = placeholder.dimension(Dimension.TITLE_CONSISTENCY)
+    assert (
+        d.status == DimensionStatus.INSUFFICIENT_EVIDENCE
+        and d.reason_code == ReasonCode.INSUFFICIENT_MATERIAL
+    )
+    assert (
+        placeholder_input.fingerprint()
+        != make_input().model_copy(update={"title": "Go Time #226"}).fingerprint()
+    )

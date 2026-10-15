@@ -371,7 +371,17 @@ def _explain(c: dict[str, Any], prof: UserProfile) -> list[str]:
         out.append("Similar to videos you marked useful.")
     if ev.is_synthetic:
         out.append("Synthetic demo item with a heuristic (non-AI) evaluation.")
+    elif ev.mode == "heuristic_baseline":
+        out.append("Scores come from a heuristic baseline, not an AI or human assessment.")
     return out
+
+
+def _video_url(v: Video) -> str | None:
+    if v.is_synthetic:
+        return None
+    if v.external_url:
+        return v.external_url
+    return f"https://www.youtube.com/watch?v={v.id}" if v.platform == "youtube" else None
 
 
 def video_card(session: Session, v: Video) -> dict[str, Any]:
@@ -386,6 +396,7 @@ def video_card(session: Session, v: Video) -> dict[str, Any]:
         "topics": v.topics,
         "published_at": v.published_at.isoformat() if v.published_at else None,
         "is_synthetic": v.is_synthetic,
-        "url": None if v.is_synthetic else f"https://www.youtube.com/watch?v={v.id}",
+        "platform": v.platform,
+        "url": _video_url(v),
         "status": v.status,
     }

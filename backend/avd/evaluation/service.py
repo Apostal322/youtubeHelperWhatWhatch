@@ -26,6 +26,10 @@ SYNTHETIC_DISCLAIMER = (
     "Synthetic demo evaluation produced by a deterministic heuristic baseline over synthetic "
     "fixture content. It is NOT an AI assessment and not a real video."
 )
+HEURISTIC_DISCLAIMER = (
+    "Heuristic baseline (keyword and structure features) applied to real content. It is NOT an AI "
+    "assessment and has not been validated against human judgement."
+)
 LLM_DISCLAIMER = (
     "Automated LLM-based assessment. Scores are model judgements against a published rubric, not "
     "ground truth; their agreement with human raters is measured by the benchmark harness and "
@@ -68,12 +72,19 @@ def persist_evaluation(session: Session, result: EvaluationResult, job_id: str |
         .values(is_current=False)
     )
     agg = result.aggregation
+    # "Synthetic" describes the *content*; the evaluator kind is recorded in ``mode``. A heuristic
+    # run over real content is a heuristic baseline, not a synthetic demo.
+    video_row = session.get(Video, result.video_id)
+    content_synthetic = bool(video_row.is_synthetic) if video_row is not None else result.is_synthetic
+    mode = result.mode
+    if mode == EvaluationMode.SYNTHETIC_DEMO and not content_synthetic:
+        mode = EvaluationMode.HEURISTIC_BASELINE
     ev = Evaluation(
         video_id=result.video_id,
         stage=result.stage,
         framework_version=result.framework_version,
-        mode=result.mode.value,
-        is_synthetic=result.is_synthetic,
+        mode=mode.value,
+        is_synthetic=content_synthetic,
         models=result.models,
         genre=result.genre.genre.value,
         genre_confidence=result.genre.confidence,
@@ -152,6 +163,13 @@ def persist_evaluation(session: Session, result: EvaluationResult, job_id: str |
 def serialize_evaluation(ev: Evaluation, include_evidence: bool = True) -> dict[str, Any]:
     synthetic = ev.is_synthetic or ev.mode == EvaluationMode.SYNTHETIC_DEMO.value
     state, state_reasons = assessment_state(ev)
+    disclaimer = (
+        SYNTHETIC_DISCLAIMER
+        if synthetic
+        else HEURISTIC_DISCLAIMER
+        if ev.mode == EvaluationMode.HEURISTIC_BASELINE.value
+        else LLM_DISCLAIMER
+    )
     return {
         "evaluation_id": ev.id,
         "video_id": ev.video_id,
@@ -159,7 +177,7 @@ def serialize_evaluation(ev: Evaluation, include_evidence: bool = True) -> dict[
         "framework_version": ev.framework_version,
         "mode": ev.mode,
         "synthetic": synthetic,
-        "disclaimer": SYNTHETIC_DISCLAIMER if synthetic else LLM_DISCLAIMER,
+        "disclaimer": disclaimer,
         "models": ev.models,
         "genre": ev.genre,
         "genre_confidence": ev.genre_confidence,
@@ -248,6 +266,10 @@ def assessment_state(ev: Evaluation) -> tuple[str, list[str]]:
     reasons: list[str] = []
     if ev.is_synthetic or ev.mode == EvaluationMode.SYNTHETIC_DEMO.value:
         return "synthetic_demo", ["heuristic baseline over synthetic content"]
+    if ev.mode == EvaluationMode.HEURISTIC_BASELINE.value:
+        return "heuristic_baseline", [
+            "keyword/structure heuristic on real content; not an AI or human assessment"
+        ]
     if ev.status == "failed":
         return "failed", ["evaluation failed"]
     scored = [d for d in ev.dimensions if d.status == "scored"]

@@ -52,6 +52,8 @@ class EvaluationInput(BaseModel):
     # Number of popularity statements removed from title/description/tags (audit only; excluded
     # from the fingerprint so the evaluation is invariant to them).
     sanitized_spans: int = 0
+    # False when the title is a placeholder (e.g. "Show #12" derived from a file path).
+    title_is_original: bool = True
 
     def fingerprint(self) -> str:
         payload = {
@@ -67,6 +69,8 @@ class EvaluationInput(BaseModel):
             "audio_sha256": self.audio_sha256,
             "modalities": sorted(m.value for m in self.modalities),
         }
+        if not self.title_is_original:  # only when set, so existing fingerprints stay stable
+            payload["title_is_original"] = False
         canon = json.dumps(payload, sort_keys=True, ensure_ascii=False, separators=(",", ":"))
         return hashlib.sha256(canon.encode()).hexdigest()
 
@@ -92,4 +96,5 @@ def build_evaluation_input(video: Video, bundle: ContentBundle, genre: GenreAsse
         audio_source_id=bundle.audio_source_id,
         modalities=frozenset(bundle.modalities),
         content_source_ids=tuple(s.id for s in bundle.sources),
+        title_is_original=video.title_source in (None, "platform", "creator_file_slug"),
     )

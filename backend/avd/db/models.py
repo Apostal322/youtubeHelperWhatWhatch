@@ -79,6 +79,9 @@ class Video(Base):
     # publisher's transcript repository) use their own platform id and URL.
     platform: Mapped[str] = mapped_column(String(32), default="youtube")
     external_url: Mapped[str | None] = mapped_column(Text, nullable=True)
+    # Where the title came from: "platform" (the creator's title) or a placeholder such as
+    # "derived_from_path"; placeholder titles cannot support a title-consistency judgement.
+    title_source: Mapped[str | None] = mapped_column(String(32), nullable=True)
 
     discovery_source: Mapped[str] = mapped_column(String(64), default="unknown")
     discovered_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)

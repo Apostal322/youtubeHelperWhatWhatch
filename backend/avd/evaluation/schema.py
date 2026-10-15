@@ -110,6 +110,9 @@ class DimensionStatus(StrEnum):
 class EvaluationMode(StrEnum):
     SYNTHETIC_DEMO = "synthetic_demo"  # deterministic heuristic baseline — NOT an AI assessment
     LLM = "llm"
+    # The same heuristic baseline applied to real (non-synthetic) content. Recorded at persistence
+    # time, because only then is the content's provenance known. Not an AI or human assessment.
+    HEURISTIC_BASELINE = "heuristic_baseline"
 
 
 class ReasonCode(StrEnum):
