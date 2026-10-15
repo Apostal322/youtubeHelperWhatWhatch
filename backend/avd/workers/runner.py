@@ -8,8 +8,9 @@ from datetime import timedelta
 from typing import Any
 
 from avd.db.models import PipelineJob
-from avd.llm.base import LLMError
+from avd.llm.base import LLMBudgetExceeded, LLMError
 from avd.logging import get_logger
+from avd.observability import METRICS, job_context
 from avd.workers import queue
 from avd.workers.budget import BudgetExceeded, next_pacific_midnight, utc_midnight
 from avd.workers.context import WorkerContext
@@ -25,6 +26,8 @@ def _classify(exc: Exception) -> tuple[str, bool]:
         return "defer_quota", True
     if isinstance(exc, BudgetExceeded):
         return "defer_budget", True
+    if isinstance(exc, LLMBudgetExceeded):
+        return ("defer_budget", True) if exc.scope == "daily" else ("error", False)
     if isinstance(exc, LLMError):
         return "error", exc.retryable
     if isinstance(exc, YouTubeAPIError):
@@ -45,7 +48,8 @@ def execute_job(ctx: WorkerContext, job_id: str) -> dict[str, Any]:
         try:
             if handler is None:
                 raise ValueError(f"unknown job type {job.job_type}")
-            res = handler(ctx, session, job)
+            with job_context(job.id, job.correlation_id):
+                res = handler(ctx, session, job)
             queue.complete(session, job, res.result, skipped=res.skipped, cost=res.cost_usd)
             session.commit()
             outcome = "skipped" if res.skipped else "succeeded"
@@ -79,6 +83,8 @@ def execute_job(ctx: WorkerContext, job_id: str) -> dict[str, Any]:
                 )
                 outcome = "retry" if job.status == "queued" else "dead"
             session.commit()
+        METRICS.inc("avd_jobs_total", job_type=job.job_type, outcome=outcome)
+        METRICS.observe("avd_job_duration_seconds", time.monotonic() - started, job_type=job.job_type)
         log.info(
             "job finished",
             extra={

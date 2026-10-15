@@ -7,10 +7,16 @@ and ``avd.workers``.
 
 from __future__ import annotations
 
+import hashlib
+import json
+import time
 from collections.abc import Sequence
+from dataclasses import asdict
 from pathlib import Path
+from typing import Any
 
 from avd.config import Settings
+from avd.content.processing import validate_transcript
 from avd.evaluation import schema as _schema
 from avd.evaluation.aggregation import aggregate
 from avd.evaluation.confidence import adjust_confidence
@@ -23,6 +29,7 @@ from avd.evaluation.evaluators.factual import (
 )
 from avd.evaluation.evaluators.heuristic import HeuristicTextEvaluator
 from avd.evaluation.evaluators.llm_rubric import LLMRubricEvaluator
+from avd.evaluation.injection import scan as scan_injection
 from avd.evaluation.inputs import EvaluationInput
 from avd.evaluation.profiles import get_profile
 from avd.evaluation.rubric import RUBRIC
@@ -32,10 +39,11 @@ from avd.evaluation.schema import (
     DimensionStatus,
     EvaluationMode,
     EvaluationResult,
+    ReasonCode,
     UsageRecord,
 )
 from avd.evaluation.validation import validate_dimensions
-from avd.llm.base import LLMError, LLMProvider
+from avd.llm.base import LLMBudgetExceeded, LLMError, LLMProvider
 from avd.logging import get_logger
 
 log = get_logger(__name__)
@@ -49,12 +57,48 @@ class EvaluationPipeline:
         self.stage = stage
         self.mode = mode
 
+    @staticmethod
+    def versions() -> dict[str, str]:
+        return {
+            "framework": _schema.FRAMEWORK_VERSION,
+            "rubric": _schema.RUBRIC_VERSION,
+            "prompt": _schema.PROMPT_VERSION,
+            "aggregation": _schema.AGGREGATION_VERSION,
+            "preprocessing": _schema.PREPROCESSING_VERSION,
+        }
+
+    def config(self) -> dict[str, Any]:
+        descriptors = []
+        for ev in self.evaluators:
+            desc = getattr(ev, "descriptor", None)
+            descriptors.append(desc() if callable(desc) else {"evaluator": ev.name, "version": ev.version})
+        return {
+            "stage": self.stage,
+            "mode": self.mode.value,
+            "versions": self.versions(),
+            "evaluators": descriptors,
+        }
+
+    def config_hash(self) -> str:
+        canon = json.dumps(self.config(), sort_keys=True, separators=(",", ":"), default=str)
+        return hashlib.sha256(canon.encode()).hexdigest()
+
     def run(self, inp: EvaluationInput) -> EvaluationResult:
+        started = time.monotonic()
         profile = get_profile(inp.genre.genre)
         candidates: dict[Dimension, list[tuple[int, DimensionScore]]] = {d: [] for d in Dimension}
         usage: list[UsageRecord] = []
         models: list[str] = []
         notes: list[str] = []
+        evaluator_reports: dict[str, Any] = {}
+        transcript_report = validate_transcript(inp.transcript).as_dict() if inp.transcript else None
+        findings = scan_injection(
+            [s.text for s in inp.transcript.segments] if inp.transcript else [],
+            inp.title,
+            inp.description,
+            inp.tags,
+        )
+        blocked = frozenset(f.segment_index for f in findings if f.segment_index is not None)
 
         for prec, ev in enumerate(self.evaluators):
             missing = sorted(m.value for m in ev.requires - inp.modalities)
@@ -76,8 +120,8 @@ class EvaluationPipeline:
             try:
                 out = ev.evaluate(inp, profile)
             except LLMError as exc:
-                if exc.retryable:
-                    raise  # transient: the job runner retries; nothing is persisted
+                if exc.retryable or isinstance(exc, LLMBudgetExceeded):
+                    raise  # transient or budget: the job is retried/deferred; nothing is persisted
                 out_dims = self._failed(ev, f"{type(exc).__name__}: {exc}")
                 notes.append(f"{ev.name} failed: {exc}")
                 for failed in out_dims:
@@ -104,6 +148,8 @@ class EvaluationPipeline:
             usage.extend(out.usage)
             models.extend(m for m in out.models if m not in models)
             notes.extend(out.notes)
+            if out.report:
+                evaluator_reports[ev.name] = out.report
 
         merged: list[DimensionScore] = []
         for d in Dimension:
@@ -142,13 +188,33 @@ class EvaluationPipeline:
                             DimensionStatus.INSUFFICIENT_EVIDENCE,
                             "No evaluator for this dimension is configured.",
                             "pipeline",
+                            reason_code=ReasonCode.NO_EVALUATOR,
                         )
                     )
 
-        validated, report = validate_dimensions(merged, inp.transcript)
+        validated, report = validate_dimensions(merged, inp.transcript, blocked)
         report.warnings.extend(notes)
-        final = [adjust_confidence(d, inp) for d in validated]
+        report.injection_findings = [asdict(f) for f in findings[:20]]
+        final = [
+            adjust_confidence(d, inp).model_copy(
+                update={"rubric_anchor": RUBRIC[d.dimension].anchor_for(d.score)}
+            )
+            if d.status == DimensionStatus.SCORED
+            else d
+            for d in validated
+        ]
         agg = aggregate(final, profile)
+
+        review: list[str] = []
+        if findings:
+            review.append(f"suspected prompt injection ({len(findings)} finding(s))")
+        if not report.passed:
+            review.append("evidence grounding failed")
+        disagreeing = [d.dimension.value for d in final if d.uncertainty.get("disagreement")]
+        if disagreeing:
+            review.append(f"model samples disagree on: {', '.join(disagreeing)}")
+        if transcript_report and transcript_report["language_mismatch"]:
+            review.append("declared transcript language differs from detected language")
 
         scored_any = any(d.status == DimensionStatus.SCORED for d in final)
         failed_any = any(d.status == DimensionStatus.FAILED for d in final)
@@ -177,6 +243,17 @@ class EvaluationPipeline:
             missing_inputs=missing_inputs,
             usage=usage,
             status=status,
+            config_hash=self.config_hash(),
+            versions=self.versions(),
+            coverage_report={
+                "transcript": transcript_report,
+                "evaluators": evaluator_reports,
+                "modalities": sorted(m.value for m in inp.modalities),
+                "sanitized_popularity_spans": inp.sanitized_spans,
+            },
+            needs_review=bool(review),
+            review_reasons=review,
+            latency_ms=int((time.monotonic() - started) * 1000),
         )
 
     @staticmethod
@@ -205,6 +282,9 @@ def build_pipeline(
                 effort=settings.llm_effort_stage_c,
                 max_tokens=settings.llm_max_output_tokens,
                 samples=settings.llm_self_consistency_samples_stage_c,
+                temperature=settings.llm_temperature,
+                single_pass_max_tokens=settings.llm_single_pass_max_tokens,
+                chunk_target_tokens=settings.llm_chunk_target_tokens,
             ),
             AudioSignalEvaluator(),
         ]
@@ -218,6 +298,9 @@ def build_pipeline(
                 settings.llm_model_stage_b,
                 effort=settings.llm_effort_stage_b,
                 max_tokens=settings.llm_max_output_tokens,
+                temperature=settings.llm_temperature,
+                single_pass_max_tokens=settings.llm_single_pass_max_tokens,
+                chunk_target_tokens=settings.llm_chunk_target_tokens,
             ),
             AudioSignalEvaluator(),
         ],

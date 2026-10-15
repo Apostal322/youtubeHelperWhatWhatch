@@ -212,7 +212,7 @@ def _evaluate(ctx: WorkerContext, session: Session, job: PipelineJob, stage: str
         transcript_text=bundle.transcript.text,
     )
     inp = build_evaluation_input(video, bundle, genre)
-    if is_up_to_date(session, video.id, inp.fingerprint(), stage):
+    if is_up_to_date(session, video.id, inp.fingerprint(), stage, ctx.pipeline(stage).config_hash()):
         return HandlerResult({"reason": "up to date (same inputs and framework version)"}, skipped=True)
     # Release write locks before slow external calls (LLM providers write to the cache table).
     session.commit()

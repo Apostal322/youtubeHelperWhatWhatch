@@ -33,18 +33,30 @@ def completeness_factor(inp: EvaluationInput) -> float:
 
 
 def adjust_confidence(d: DimensionScore, inp: EvaluationInput) -> DimensionScore:
+    """Structural adjustments; every factor applied is recorded in ``uncertainty.adjustments``."""
     if d.status != DimensionStatus.SCORED or d.confidence is None:
         return d
     conf = d.confidence
+    adjustments: list[str] = []
     if d.dimension.group.value != "technical":
-        conf *= completeness_factor(inp)
+        factor = completeness_factor(inp)
+        if factor < 1.0:
+            conf *= factor
+            adjustments.append(f"short_transcript_x{factor}")
     for prefix, cap in METHOD_CAPS:
         if d.method.startswith(prefix):
+            if conf > cap:
+                adjustments.append(f"method_cap_{cap}")
             conf = min(conf, cap)
             break
     missing = list(d.missing_inputs)
     if d.dimension == Dimension.FACTUAL_ACCURACY and d.method.startswith("llm_rubric"):
+        if conf > LLM_FACTUAL_CAP:
+            adjustments.append(f"unretrieved_factual_cap_{LLM_FACTUAL_CAP}")
         conf = min(conf, LLM_FACTUAL_CAP)
         if "reference_corpus" not in missing:
             missing.append("reference_corpus")
-    return d.model_copy(update={"confidence": round(conf, 4), "missing_inputs": missing})
+    uncertainty = {**d.uncertainty, "adjustments": adjustments, "calibrated": False}
+    return d.model_copy(
+        update={"confidence": round(conf, 4), "missing_inputs": missing, "uncertainty": uncertainty}
+    )

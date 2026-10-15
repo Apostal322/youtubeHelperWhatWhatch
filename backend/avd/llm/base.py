@@ -17,6 +17,7 @@ class LLMRequest:
     model: str
     max_tokens: int = 16000
     effort: str | None = None
+    temperature: float | None = None
     # Distinguishes independent samples for self-consistency (part of the cache key).
     sample_index: int = 0
     metadata: dict[str, str] = field(default_factory=dict, compare=False, hash=False)
@@ -30,6 +31,7 @@ class LLMRequest:
                 "user": self.user,
                 "schema": self.json_schema,
                 "effort": self.effort,
+                "temperature": self.temperature,
                 "max_tokens": self.max_tokens,
                 "sample": self.sample_index,
             },
@@ -50,6 +52,8 @@ class LLMResponse:
     stop_reason: str | None
     cached: bool = False
     request_id: str | None = None
+    attempts: int = 1
+    latency_ms: int | None = None
 
 
 class LLMError(RuntimeError):
@@ -70,6 +74,17 @@ class LLMOutputError(LLMError):
 
 class LLMConfigurationError(LLMError):
     pass
+
+
+class LLMBudgetExceeded(LLMError):
+    """A call would exceed a spend limit; no partial evaluation is persisted.
+
+    ``scope="daily"`` defers the job to the next budget day; ``scope="job"`` (the job alone would
+    exceed ``AVD_MAX_JOB_COST_USD``) ends it as dead with an explicit reason instead of looping."""
+
+    def __init__(self, message: str, scope: str = "daily") -> None:
+        super().__init__(message)
+        self.scope = scope
 
 
 class LLMProvider(Protocol):

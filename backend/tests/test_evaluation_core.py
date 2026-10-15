@@ -147,7 +147,9 @@ class TestHeuristicBaseline:
     def test_deterministic_and_labelled_synthetic(self) -> None:
         pipe = build_pipeline("B", get_settings(), None)
         a, b = pipe.run(make_input()), pipe.run(make_input())
-        assert a.model_dump(exclude={"usage"}) == b.model_dump(exclude={"usage"})
+        # Wall-clock run metadata (evaluated_at, latency) differs by design; everything else must not.
+        run_meta = {"usage": True, "latency_ms": True, "dimensions": {"__all__": {"evaluated_at"}}}
+        assert a.model_dump(exclude=run_meta) == b.model_dump(exclude=run_meta)
         assert a.mode == EvaluationMode.SYNTHETIC_DEMO and a.is_synthetic
         for d in a.dimensions:
             if d.status == DimensionStatus.SCORED and d.method.startswith("heuristic"):

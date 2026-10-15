@@ -164,6 +164,14 @@ class Evaluation(Base):
     cost_usd: Mapped[float] = mapped_column(Float, default=0.0)
     is_current: Mapped[bool] = mapped_column(Boolean, default=True, index=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+    # Phase 2: reproducibility and review metadata.
+    config_hash: Mapped[str] = mapped_column(String(64), default="", index=True)
+    versions: Mapped[dict[str, Any]] = mapped_column(JSON, default=dict)
+    coverage_report: Mapped[dict[str, Any]] = mapped_column(JSON, default=dict)
+    needs_review: Mapped[bool] = mapped_column(Boolean, default=False, index=True)
+    review_reasons: Mapped[list[Any]] = mapped_column(JSON, default=list)
+    latency_ms: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    correlation_id: Mapped[str | None] = mapped_column(String(32), nullable=True)
 
     video: Mapped[Video] = relationship(back_populates="evaluations")
     dimensions: Mapped[list[DimensionScoreRow]] = relationship(
@@ -185,6 +193,11 @@ class DimensionScoreRow(Base):
     method: Mapped[str] = mapped_column(String(64))
     model: Mapped[str | None] = mapped_column(String(128))
     missing_inputs: Mapped[list[Any]] = mapped_column(JSON, default=list)
+    reason_code: Mapped[str | None] = mapped_column(String(40), nullable=True)
+    rubric_version: Mapped[str | None] = mapped_column(String(32), nullable=True)
+    rubric_anchor: Mapped[str | None] = mapped_column(Text, nullable=True)
+    evaluated_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    uncertainty: Mapped[dict[str, Any]] = mapped_column(JSON, default=dict)
 
     evaluation: Mapped[Evaluation] = relationship(back_populates="dimensions")
     evidence: Mapped[list[EvidenceRow]] = relationship(
@@ -199,8 +212,10 @@ class EvidenceRow(Base):
     dimension_score_id: Mapped[int] = mapped_column(
         ForeignKey("dimension_scores.id", ondelete="CASCADE"), index=True
     )
+    kind: Mapped[str] = mapped_column(String(16), default="supporting")
     content_source_id: Mapped[str | None] = mapped_column(String(36))
     segment_index: Mapped[int | None] = mapped_column(Integer)
+    segment_id: Mapped[str | None] = mapped_column(String(48), nullable=True)
     start_seconds: Mapped[float | None] = mapped_column(Float)
     end_seconds: Mapped[float | None] = mapped_column(Float)
     quote: Mapped[str | None] = mapped_column(Text)
@@ -300,6 +315,7 @@ class PipelineJob(Base):
     last_error: Mapped[str | None] = mapped_column(Text)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, onupdate=utcnow)
+    correlation_id: Mapped[str | None] = mapped_column(String(32), nullable=True)
 
     __table_args__ = (Index("ix_jobs_claim", "status", "next_attempt_at", "priority"),)
 
@@ -321,6 +337,15 @@ class CostLedger(Base):
     cost_usd: Mapped[float] = mapped_column(Float, default=0.0)
     cached: Mapped[bool] = mapped_column(Boolean, default=False)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, index=True)
+    # Phase 2: the ledger doubles as the model-run log (every attempt, including failures).
+    model_revision: Mapped[str | None] = mapped_column(String(128), nullable=True)
+    prompt_version: Mapped[str | None] = mapped_column(String(48), nullable=True)
+    status: Mapped[str] = mapped_column(String(16), default="ok")  # ok | cached | error
+    error_type: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    latency_ms: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    attempts: Mapped[int] = mapped_column(Integer, default=1)
+    request_id: Mapped[str | None] = mapped_column(String(128), nullable=True)
+    correlation_id: Mapped[str | None] = mapped_column(String(32), nullable=True, index=True)
 
 
 class LLMCache(Base):

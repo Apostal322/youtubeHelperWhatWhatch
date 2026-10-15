@@ -28,6 +28,7 @@ from avd.evaluation.schema import (
     DimensionStatus,
     EvidenceRef,
     Modality,
+    ReasonCode,
 )
 
 METHOD = "heuristic_baseline_v1"
@@ -607,6 +608,7 @@ class HeuristicTextEvaluator:
                 PREFIX + "Text statistics cannot verify factual claims.",
                 METHOD,
                 model=MODEL,
+                reason_code=ReasonCode.METHOD_CANNOT_JUDGE,
             ),
             DimensionScore.abstain(
                 Dimension.ORIGINALITY,
@@ -614,6 +616,7 @@ class HeuristicTextEvaluator:
                 PREFIX + "Text statistics cannot judge originality.",
                 METHOD,
                 model=MODEL,
+                reason_code=ReasonCode.METHOD_CANNOT_JUDGE,
             ),
             scored(
                 Dimension.INFORMATIONAL_VALUE,

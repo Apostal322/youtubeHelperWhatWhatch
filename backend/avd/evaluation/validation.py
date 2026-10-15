@@ -3,9 +3,13 @@
 * Evidence grounding: every model-supplied quote must be found (exactly after normalisation, or
   with high fuzzy similarity) in the cited transcript segment or its immediate neighbours. Verified
   evidence receives timestamps from *our* transcript data; unverifiable evidence is dropped.
-* A scored dimension whose evidence was all unverifiable has its confidence halved.
-* If most evidence claims across an evaluation fail grounding, all model-scored dimensions are
-  invalidated (``failed``) — a strong hallucination signal. They are not re-scored or replaced.
+* A scored dimension whose cited supporting evidence is all unverifiable becomes ``failed``
+  (``validation_failed``): its justification is unsupported. A dimension scored without citing any
+  evidence keeps its score but is marked ``grounded: false``. No numeric confidence penalty is
+  applied (there is no empirical basis for its size).
+* If >= 4 quotes were claimed and < 50 % verify, all model-scored dimensions are invalidated — a
+  strong hallucination signal. They are not re-scored or replaced.
+* Citations of segments flagged as prompt-injection attempts are rejected.
 * Degenerate outputs (identical scores across many dimensions) are flagged.
 """
 
@@ -19,6 +23,7 @@ from avd.evaluation.schema import (
     DimensionScore,
     DimensionStatus,
     EvidenceRef,
+    ReasonCode,
     ValidationReport,
 )
 
@@ -84,35 +89,74 @@ def verify_quote(ref: EvidenceRef, transcript: Transcript) -> EvidenceRef | None
 
 
 def validate_dimensions(
-    dims: list[DimensionScore], transcript: Transcript | None
+    dims: list[DimensionScore],
+    transcript: Transcript | None,
+    blocked_segments: frozenset[int] = frozenset(),
 ) -> tuple[list[DimensionScore], ValidationReport]:
+    """Verify model-supplied evidence. ``blocked_segments`` are segments flagged as prompt-injection
+    attempts; citing them is rejected (an instruction to the grader is not evidence of quality)."""
     warnings: list[str] = []
-    claimed = verified_total = 0
+    claimed = verified_total = injection_rejected = 0
+    ungrounded: list[str] = []
     out: list[DimensionScore] = []
     model_scored: list[int] = []
+    seg_prefix = transcript.content_hash()[:16] if transcript is not None else None
+
+    def check(e: EvidenceRef) -> EvidenceRef | None:
+        nonlocal injection_rejected
+        if transcript is None:
+            return None
+        v = verify_quote(e, transcript)
+        if v is None:
+            return None
+        if v.segment_index in blocked_segments:
+            injection_rejected += 1
+            return None
+        return v.model_copy(update={"segment_id": f"{seg_prefix}#{v.segment_index}"})
 
     for d in dims:
         if d.status != DimensionStatus.SCORED:
             out.append(d)
             continue
         pending = [e for e in d.evidence if not e.verified]
-        already = [e for e in d.evidence if e.verified]
+        already = [
+            e.model_copy(update={"segment_id": f"{seg_prefix}#{e.segment_index}"})
+            if seg_prefix and e.segment_index is not None and e.segment_id is None
+            else e
+            for e in d.evidence
+            if e.verified
+        ]
         if not pending:
-            out.append(d)
+            if not d.evidence and d.method.startswith("llm"):
+                ungrounded.append(d.dimension.value)
+                d = d.model_copy(update={"uncertainty": {**d.uncertainty, "grounded": False}})
+            out.append(d.model_copy(update={"evidence": already}))
             continue
         model_scored.append(len(out))
         claimed += len(pending)
-        ok = [v for e in pending if transcript is not None and (v := verify_quote(e, transcript))]
+        ok = [v for e in pending if (v := check(e)) is not None]
         verified_total += len(ok)
-        conf = d.confidence or 0.0
-        if not ok:
-            conf *= 0.5
-            warnings.append(f"{d.dimension.value}: none of {len(pending)} quotes found in transcript")
-        elif len(ok) < len(pending):
-            warnings.append(
-                f"{d.dimension.value}: {len(pending) - len(ok)} of {len(pending)} quotes not found"
+        supporting_claimed = sum(1 for e in pending if e.kind == "supporting")
+        supporting_ok = sum(1 for e in ok if e.kind == "supporting")
+        unc = {**d.uncertainty, "evidence_claimed": len(pending), "evidence_verified": len(ok)}
+        if supporting_claimed and not supporting_ok:
+            warnings.append(f"{d.dimension.value}: none of {supporting_claimed} supporting quotes verified")
+            out.append(
+                DimensionScore.abstain(
+                    d.dimension,
+                    DimensionStatus.FAILED,
+                    "Unsupported: none of the cited supporting evidence could be verified against the transcript.",
+                    d.method,
+                    model=d.model,
+                    reason_code=ReasonCode.VALIDATION_FAILED,
+                ).model_copy(update={"uncertainty": unc})
             )
-        out.append(d.model_copy(update={"evidence": already + ok, "confidence": round(conf, 4)}))
+            continue
+        if len(ok) < len(pending):
+            warnings.append(
+                f"{d.dimension.value}: {len(pending) - len(ok)} of {len(pending)} quotes not verified"
+            )
+        out.append(d.model_copy(update={"evidence": already + ok, "uncertainty": unc}))
 
     invalidated = []
     if claimed >= MIN_CLAIMS_FOR_INVALIDATION and verified_total / claimed < GROUNDING_INVALIDATION_THRESHOLD:
@@ -123,13 +167,19 @@ def validate_dimensions(
         for i in model_scored:
             d = out[i]
             invalidated.append(d.dimension)
-            out[i] = DimensionScore.abstain(
-                d.dimension,
-                DimensionStatus.FAILED,
-                "Invalidated: evidence quotes could not be verified against the transcript.",
-                d.method,
-                model=d.model,
-            )
+            if d.status == DimensionStatus.SCORED:
+                out[i] = DimensionScore.abstain(
+                    d.dimension,
+                    DimensionStatus.FAILED,
+                    "Invalidated: most evidence quotes in this evaluation could not be verified against the transcript.",
+                    d.method,
+                    model=d.model,
+                    reason_code=ReasonCode.VALIDATION_FAILED,
+                )
+    if injection_rejected:
+        warnings.append(f"{injection_rejected} citation(s) of injection-flagged segments rejected")
+    if ungrounded:
+        warnings.append(f"scored without any cited evidence: {', '.join(ungrounded)}")
 
     scores = [d.score for d in out if d.status == DimensionStatus.SCORED]
     if len(scores) >= 6 and len(set(scores)) == 1:
@@ -138,6 +188,8 @@ def validate_dimensions(
     report = ValidationReport(
         passed=not invalidated,
         warnings=warnings,
+        injection_citations_rejected=injection_rejected,
+        ungrounded_dimensions=ungrounded,
         evidence_claimed=claimed,
         evidence_verified=verified_total,
         dimensions_invalidated=invalidated,

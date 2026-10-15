@@ -168,6 +168,12 @@ def cmd_train_ranker(args: argparse.Namespace) -> None:
     model.save(Path(args.out))
 
 
+def cmd_llm_smoke(args: argparse.Namespace) -> None:
+    from avd.smoke import main as smoke_main
+
+    sys.exit(smoke_main(args))
+
+
 def cmd_bench(args: argparse.Namespace) -> None:
     from avd.bench.harness import main as bench_main
 
@@ -204,6 +210,11 @@ def main(argv: list[str] | None = None) -> None:
     t.add_argument("--out", default="ranker.json")
     t.add_argument("--min-pairs", type=int, default=50)
     t.set_defaults(fn=cmd_train_ranker)
+    ls = sub.add_parser("llm-smoke", help="cost-capped live check of the real LLM evaluation path")
+    ls.add_argument("--fixture", default="syn_sci_001", help="fixture video id to evaluate")
+    ls.add_argument("--transcript", default=None, help="evaluate this VTT/SRT/JSON transcript instead")
+    ls.add_argument("--max-cost", type=float, default=None, help="explicit spend cap in USD")
+    ls.set_defaults(fn=cmd_llm_smoke)
     b = sub.add_parser("bench", help="run the evaluation benchmark harness")
     b.add_argument("--dataset", default=str(REPO_ROOT / "benchmarks" / "datasets" / "synthetic_v1"))
     b.add_argument("--fixtures", default=str(REPO_ROOT / "data" / "fixtures"))

@@ -10,14 +10,19 @@ genre-weighted overall summary.
 
 from __future__ import annotations
 
+from datetime import UTC, datetime
 from enum import StrEnum
-from typing import Any
+from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
-# Bump when rubric anchors, prompts, profiles or aggregation change. Stored with every evaluation so
-# results from different framework versions are never silently mixed.
-FRAMEWORK_VERSION = "2026.10.0"
+# Component versions. Each is stored with every evaluation; FRAMEWORK_VERSION changes whenever any
+# of them changes, so results from different framework versions are never silently mixed.
+RUBRIC_VERSION = "rubric_v2"  # criterion-specific anchors for all five levels
+PROMPT_VERSION = "rubric_prompt_v2"  # nonce-delimited transcript, counter-evidence
+AGGREGATION_VERSION = "genre_weighted_mean_renormalized_v2"  # genre mixtures, ambiguity handling
+PREPROCESSING_VERSION = "prep_v1"  # transcript normalisation, language id, chunking, sanitisation
+FRAMEWORK_VERSION = "2026.10.1"
 
 SCORE_MIN = 1.0
 SCORE_MAX = 5.0
@@ -104,14 +109,33 @@ class EvaluationMode(StrEnum):
     LLM = "llm"
 
 
+class ReasonCode(StrEnum):
+    """Machine-readable reason for an abstention or failure."""
+
+    GENRE_NOT_APPLICABLE = "genre_not_applicable"
+    MISSING_MODALITY = "missing_modality"
+    MODEL_ABSTAINED = "model_abstained"
+    METHOD_CANNOT_JUDGE = "method_cannot_judge"
+    INSUFFICIENT_MATERIAL = "insufficient_material"
+    NO_EVALUATOR = "no_evaluator"
+    EVALUATOR_ERROR = "evaluator_error"
+    MODEL_REFUSED = "model_refused"
+    INVALID_OUTPUT = "invalid_output"
+    OMITTED_BY_MODEL = "omitted_by_model"
+    VALIDATION_FAILED = "validation_failed"
+
+
 class EvidenceRef(BaseModel):
     """A pointer into an authorized input. Timestamps are copied from our transcript data, never
-    from model output."""
+    from model output. ``segment_id`` = ``<transcript content hash prefix>#<index>`` is stable for a
+    given transcript version."""
 
     model_config = ConfigDict(frozen=True)
 
+    kind: Literal["supporting", "counter"] = "supporting"
     content_source_id: str | None = None
     segment_index: int | None = None
+    segment_id: str | None = None
     start_seconds: float | None = None
     end_seconds: float | None = None
     quote: str | None = Field(default=None, max_length=600)
@@ -127,8 +151,24 @@ class DimensionScore(BaseModel):
     justification: str = ""
     evidence: list[EvidenceRef] = Field(default_factory=list)
     method: str
-    model: str | None = None
+    model: str | None = None  # model that actually produced the judgement (served model id)
     missing_inputs: list[str] = Field(default_factory=list)
+    reason_code: ReasonCode | None = None  # set for every non-scored status
+    rubric_version: str = RUBRIC_VERSION
+    rubric_anchor: str | None = None  # anchor text of the scored level (filled by the pipeline)
+    evaluated_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
+    # Raw uncertainty components (model-reported confidence, sample dispersion, evidence
+    # verification, adjustments applied). ``confidence`` is derived from these and is uncalibrated
+    # until fitted against human labels.
+    uncertainty: dict[str, Any] = Field(default_factory=dict)
+
+    @property
+    def supporting(self) -> list[EvidenceRef]:
+        return [e for e in self.evidence if e.kind == "supporting"]
+
+    @property
+    def counter(self) -> list[EvidenceRef]:
+        return [e for e in self.evidence if e.kind == "counter"]
 
     @model_validator(mode="after")
     def _status_consistency(self) -> DimensionScore:
@@ -155,8 +195,16 @@ class DimensionScore(BaseModel):
         *,
         model: str | None = None,
         missing_inputs: list[str] | None = None,
+        reason_code: ReasonCode | None = None,
     ) -> DimensionScore:
         assert status != DimensionStatus.SCORED
+        if reason_code is None:
+            reason_code = {
+                DimensionStatus.NOT_APPLICABLE: ReasonCode.GENRE_NOT_APPLICABLE,
+                DimensionStatus.REQUIRES_MEDIA: ReasonCode.MISSING_MODALITY,
+                DimensionStatus.INSUFFICIENT_EVIDENCE: ReasonCode.INSUFFICIENT_MATERIAL,
+                DimensionStatus.FAILED: ReasonCode.EVALUATOR_ERROR,
+            }[status]
         return cls(
             dimension=dimension,
             status=status,
@@ -164,6 +212,7 @@ class DimensionScore(BaseModel):
             method=method,
             model=model,
             missing_inputs=missing_inputs or [],
+            reason_code=reason_code,
         )
 
 
@@ -207,6 +256,9 @@ class ValidationReport(BaseModel):
     evidence_claimed: int = 0
     evidence_verified: int = 0
     dimensions_invalidated: list[Dimension] = Field(default_factory=list)
+    injection_citations_rejected: int = 0
+    ungrounded_dimensions: list[str] = Field(default_factory=list)
+    injection_findings: list[dict[str, Any]] = Field(default_factory=list)
 
 
 class UsageRecord(BaseModel):
@@ -235,6 +287,15 @@ class EvaluationResult(BaseModel):
     missing_inputs: list[str]
     usage: list[UsageRecord] = Field(default_factory=list)
     status: str  # complete | partial | abstained | failed
+    # Hash of the evaluator configuration (evaluators, models, prompt/rubric/aggregation versions,
+    # sampling and chunking settings). A change forces re-evaluation of otherwise identical inputs.
+    config_hash: str = ""
+    versions: dict[str, str] = Field(default_factory=dict)
+    # Which part of the authorized material evaluators actually received (computed by our code).
+    coverage_report: dict[str, Any] = Field(default_factory=dict)
+    needs_review: bool = False
+    review_reasons: list[str] = Field(default_factory=list)
+    latency_ms: int | None = None
 
     @property
     def cost_usd(self) -> float:

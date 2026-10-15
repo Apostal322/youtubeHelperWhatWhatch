@@ -8,7 +8,6 @@ from sqlalchemy import select, update
 from sqlalchemy.orm import Session, selectinload
 
 from avd.db.models import (
-    CostLedger,
     DimensionScoreRow,
     Evaluation,
     EvidenceRow,
@@ -21,6 +20,7 @@ from avd.evaluation.schema import (
     EvaluationResult,
     Genre,
 )
+from avd.observability import correlation_id
 
 SYNTHETIC_DISCLAIMER = (
     "Synthetic demo evaluation produced by a deterministic heuristic baseline over synthetic "
@@ -44,13 +44,17 @@ def current_evaluation(session: Session, video_id: str) -> Evaluation | None:
     )
 
 
-def is_up_to_date(session: Session, video_id: str, fingerprint: str, stage: str) -> bool:
+def is_up_to_date(
+    session: Session, video_id: str, fingerprint: str, stage: str, config_hash: str | None = None
+) -> bool:
     """Incremental processing: skip when an evaluation with identical inputs, the same framework
-    version and an equal-or-higher stage already exists."""
+    version, the same evaluator configuration (models, prompts, sampling, chunking) and an
+    equal-or-higher stage already exists."""
     ev = current_evaluation(session, video_id)
     return (
         ev is not None
         and ev.input_fingerprint == fingerprint
+        and (config_hash is None or ev.config_hash == config_hash)
         and ev.framework_version == FRAMEWORK_VERSION
         and STAGE_RANK.get(ev.stage, 0) >= STAGE_RANK.get(stage, 0)
         and ev.status != "failed"
@@ -92,6 +96,13 @@ def persist_evaluation(session: Session, result: EvaluationResult, job_id: str |
         missing_inputs=result.missing_inputs,
         cost_usd=result.cost_usd,
         is_current=True,
+        config_hash=result.config_hash,
+        versions=result.versions,
+        coverage_report=result.coverage_report,
+        needs_review=result.needs_review,
+        review_reasons=result.review_reasons,
+        latency_ms=result.latency_ms,
+        correlation_id=correlation_id.get(),
     )
     for d in result.dimensions:
         row = DimensionScoreRow(
@@ -104,11 +115,18 @@ def persist_evaluation(session: Session, result: EvaluationResult, job_id: str |
             method=d.method,
             model=d.model,
             missing_inputs=d.missing_inputs,
+            reason_code=d.reason_code.value if d.reason_code else None,
+            rubric_version=d.rubric_version,
+            rubric_anchor=d.rubric_anchor,
+            evaluated_at=d.evaluated_at,
+            uncertainty=d.uncertainty,
         )
         row.evidence = [
             EvidenceRow(
+                kind=e.kind,
                 content_source_id=e.content_source_id,
                 segment_index=e.segment_index,
+                segment_id=e.segment_id,
                 start_seconds=e.start_seconds,
                 end_seconds=e.end_seconds,
                 quote=e.quote,
@@ -119,20 +137,8 @@ def persist_evaluation(session: Session, result: EvaluationResult, job_id: str |
         ]
         ev.dimensions.append(row)
     session.add(ev)
-    for u in result.usage:
-        session.add(
-            CostLedger(
-                job_id=job_id,
-                video_id=result.video_id,
-                provider=u.provider,
-                model=u.model,
-                operation=u.operation,
-                input_tokens=u.input_tokens,
-                output_tokens=u.output_tokens,
-                cost_usd=u.cost_usd,
-                cached=u.cached,
-            )
-        )
+    # Model calls are recorded per attempt by LoggingProvider (cost_ledger); only the evaluation
+    # total is stored here so failed and retried attempts are never double counted.
     video = session.get(Video, result.video_id)
     if video is not None:
         video.status = "evaluated" if result.status != "failed" else "evaluation_failed"
@@ -145,6 +151,7 @@ def persist_evaluation(session: Session, result: EvaluationResult, job_id: str |
 
 def serialize_evaluation(ev: Evaluation, include_evidence: bool = True) -> dict[str, Any]:
     synthetic = ev.is_synthetic or ev.mode == EvaluationMode.SYNTHETIC_DEMO.value
+    state, state_reasons = assessment_state(ev)
     return {
         "evaluation_id": ev.id,
         "video_id": ev.video_id,
@@ -179,8 +186,16 @@ def serialize_evaluation(ev: Evaluation, include_evidence: bool = True) -> dict[
                 "method": d.method,
                 "model": d.model,
                 "missing_inputs": d.missing_inputs,
+                "reason_code": d.reason_code,
+                "rubric_version": d.rubric_version,
+                "rubric_anchor": d.rubric_anchor,
+                "evaluated_at": d.evaluated_at.isoformat() if d.evaluated_at else None,
+                "content_fingerprint": ev.input_fingerprint,
+                "uncertainty": d.uncertainty,
                 "evidence": [
                     {
+                        "kind": e.kind,
+                        "segment_id": e.segment_id,
                         "segment_index": e.segment_index,
                         "start_seconds": e.start_seconds,
                         "end_seconds": e.end_seconds,
@@ -200,7 +215,60 @@ def serialize_evaluation(ev: Evaluation, include_evidence: bool = True) -> dict[
         "missing_inputs": ev.missing_inputs,
         "cost_usd": ev.cost_usd,
         "created_at": ev.created_at.isoformat() if ev.created_at else None,
+        "config_hash": ev.config_hash,
+        "versions": ev.versions,
+        "coverage_report": _public_coverage(ev.coverage_report),
+        "needs_review": ev.needs_review,
+        "review_reasons": ev.review_reasons,
+        "assessment_state": state,
+        "assessment_state_reasons": state_reasons,
     }
+
+
+def _public_coverage(report: dict[str, Any]) -> dict[str, Any]:
+    out = dict(report or {})
+    evaluators = {}
+    for name, r in (out.get("evaluators") or {}).items():
+        evaluators[name] = {k: v for k, v in r.items() if k != "claims_extracted"}
+    out["evaluators"] = evaluators
+    return out
+
+
+def assessment_state(ev: Evaluation) -> tuple[str, list[str]]:
+    """What kind of assessment this is, in user-facing terms.
+
+    * ``synthetic_demo`` — heuristic baseline over synthetic fixtures; never a real rating.
+    * ``failed`` — evaluators failed; no scores should be shown.
+    * ``insufficient_evidence`` — nothing (or too little) could be judged; no overall score.
+    * ``preliminary`` — scores exist but with caveats (review flags, unverified or missing evidence,
+      partial coverage, uncalibrated confidence below 0.5).
+    * ``grounded`` — model evaluation whose scored judgements cite verified transcript evidence,
+      passed validation and has no review flags. Still not human-validated.
+    """
+    reasons: list[str] = []
+    if ev.is_synthetic or ev.mode == EvaluationMode.SYNTHETIC_DEMO.value:
+        return "synthetic_demo", ["heuristic baseline over synthetic content"]
+    if ev.status == "failed":
+        return "failed", ["evaluation failed"]
+    scored = [d for d in ev.dimensions if d.status == "scored"]
+    if not scored or ev.status == "abstained":
+        return "insufficient_evidence", ["no dimension could be judged"]
+    if ev.overall_score is None:
+        reasons.append(ev.aggregation.get("abstain_reason") or "no overall score")
+    if ev.needs_review:
+        reasons.extend(ev.review_reasons)
+    if not (ev.validation or {}).get("passed", True):
+        reasons.append("evidence validation failed")
+    ungrounded = (ev.validation or {}).get("ungrounded_dimensions") or []
+    if ungrounded:
+        reasons.append(f"scored without evidence: {', '.join(ungrounded)}")
+    if ev.overall_confidence is not None and ev.overall_confidence < 0.5:
+        reasons.append("low (uncalibrated) confidence")
+    if reasons:
+        return (
+            "insufficient_evidence" if ev.overall_score is None and len(scored) < 3 else "preliminary"
+        ), reasons
+    return "grounded", ["scored judgements cite verified transcript evidence; not human-validated"]
 
 
 def summary(ev: Evaluation | None) -> dict[str, Any] | None:
@@ -217,6 +285,8 @@ def summary(ev: Evaluation | None) -> dict[str, Any] | None:
         "mode": ev.mode,
         "genre": ev.genre,
         "stage": ev.stage,
+        "assessment_state": assessment_state(ev)[0],
+        "needs_review": ev.needs_review,
     }
 
 

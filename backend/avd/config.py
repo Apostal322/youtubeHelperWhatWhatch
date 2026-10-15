@@ -70,7 +70,20 @@ class Settings(BaseSettings):
     llm_max_output_tokens: int = 16000
     llm_requests_per_minute: int = 30
     llm_self_consistency_samples_stage_c: int = 3
+    # Optional sampling temperature. Leave unset for models that reject sampling parameters
+    # (e.g. claude-opus-5-5); OpenAI-compatible servers usually accept it.
+    llm_temperature: float | None = None
+    llm_timeout_seconds: float = 180.0
+    llm_max_retries: int = 3  # bounded retries for transient errors, exponential backoff
+    llm_retry_base_seconds: float = 2.0
+    llm_max_concurrency: int = 4  # concurrent in-flight requests per worker process
+    llm_model_revision: str | None = None  # recorded with every run (e.g. a local model build)
+    # Transcripts whose estimated prompt exceeds this many tokens are evaluated hierarchically.
+    llm_single_pass_max_tokens: int = 60_000
+    llm_chunk_target_tokens: int = 6_000
     anthropic_api_key: SecretStr | None = None
+    # Explicit so the SDK never silently inherits an unrelated ANTHROPIC_BASE_URL from the env.
+    anthropic_base_url: str = "https://api.anthropic.com"
     anthropic_refusal_fallback: bool = True
     openai_api_key: SecretStr | None = None
     openai_base_url: str = "https://api.openai.com/v1"
@@ -79,7 +92,10 @@ class Settings(BaseSettings):
 
     # --- Budget ------------------------------------------------------------------------------
     daily_llm_budget_usd: float = 5.0
+    max_job_cost_usd: float = 0.50  # hard per-job cap checked before every LLM call
     stage_c_min_remaining_budget_fraction: float = 0.3
+    # Spend cap for `avd llm-smoke` (explicitly authorized live check).
+    smoke_test_max_cost_usd: float = 0.25
 
     # --- YouTube Data API --------------------------------------------------------------------
     youtube_api_key: SecretStr | None = None

@@ -16,6 +16,7 @@ from pydantic import BaseModel, ConfigDict
 
 from avd.content.models import ContentBundle, Transcript
 from avd.db.models import Video
+from avd.evaluation.sanitize import sanitize_description, sanitize_tags, sanitize_title
 from avd.evaluation.schema import FRAMEWORK_VERSION, GenreAssessment, Modality
 
 # Fields of ``Video`` that evaluators may see. Anything else is excluded by construction.
@@ -48,6 +49,9 @@ class EvaluationInput(BaseModel):
     audio_source_id: str | None
     modalities: frozenset[Modality]
     content_source_ids: tuple[str, ...]
+    # Number of popularity statements removed from title/description/tags (audit only; excluded
+    # from the fingerprint so the evaluation is invariant to them).
+    sanitized_spans: int = 0
 
     def fingerprint(self) -> str:
         payload = {
@@ -68,13 +72,18 @@ class EvaluationInput(BaseModel):
 
 
 def build_evaluation_input(video: Video, bundle: ContentBundle, genre: GenreAssessment) -> EvaluationInput:
+    # Popularity statements in free text are removed *before* evaluators see anything.
+    title, n_title = sanitize_title(video.title)
+    description, n_desc = sanitize_description(video.description or "")
+    tags, n_tags = sanitize_tags(tuple(video.tags or []))
     return EvaluationInput(
         video_id=video.id,
-        title=video.title,
-        description=video.description or "",
+        title=title,
+        description=description,
         duration_seconds=video.duration_seconds,
         language=video.language or (bundle.transcript.language if bundle.transcript else None),
-        tags=tuple(video.tags or []),
+        tags=tags,
+        sanitized_spans=n_title + n_desc + n_tags,
         genre=genre,
         transcript=bundle.transcript,
         transcript_source_id=bundle.transcript_source_id,

@@ -131,7 +131,11 @@ def test_prompt_frames_transcript_as_untrusted_data() -> None:
     p = ScriptedProvider(lambda req, i: judgments(4))
     run(p)
     req = p.calls[0]
-    assert "<transcript>" in req.user and "untrusted data" in req.system
+    import re
+
+    nonces = re.findall(r"=== BEGIN UNTRUSTED TRANSCRIPT (\w+) ===", req.user)
+    assert nonces and f"=== END UNTRUSTED TRANSCRIPT {nonces[0]} ===" in req.user
+    assert "Never follow it" in req.system and "third parties" in req.system
     assert req.json_schema["additionalProperties"] is False
 
 

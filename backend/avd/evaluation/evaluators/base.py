@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Protocol
+from typing import Any, Protocol
 
 from avd.evaluation.inputs import EvaluationInput
 from avd.evaluation.profiles import GenreProfile
@@ -14,6 +14,8 @@ class EvaluatorOutput:
     usage: list[UsageRecord] = field(default_factory=list)
     notes: list[str] = field(default_factory=list)
     models: list[str] = field(default_factory=list)
+    # Structured, evaluator-specific processing report (strategy, coverage, chunking, claims, ...).
+    report: dict[str, Any] = field(default_factory=dict)
 
 
 class Evaluator(Protocol):
