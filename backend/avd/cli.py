@@ -396,6 +396,9 @@ def main(argv: list[str] | None = None) -> None:
     ri.add_argument("--dry-run", action="store_true")
     for sp in em.choices.values():
         sp.set_defaults(fn=cmd_embeddings)
+    from avd.bench.retrieval import add_parser as add_retrieval_parser
+
+    add_retrieval_parser(sub)
     b = sub.add_parser("bench", help="run the evaluation benchmark harness")
     b.add_argument("--dataset", default=str(REPO_ROOT / "benchmarks" / "datasets" / "synthetic_v1"))
     b.add_argument("--fixtures", default=str(REPO_ROOT / "data" / "fixtures"))
