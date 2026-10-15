@@ -14,6 +14,7 @@ backend/.media_cache/
 *.db-wal
 *.db-shm
 celerybeat-schedule*
+dump.rdb
 
 # Node / extension
 node_modules/
