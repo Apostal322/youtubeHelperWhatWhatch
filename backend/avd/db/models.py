@@ -75,6 +75,10 @@ class Video(Base):
     youtube_category_id: Mapped[str | None] = mapped_column(String(8))
     tags: Mapped[list[Any]] = mapped_column(JSON, default=list)
     is_synthetic: Mapped[bool] = mapped_column(Boolean, default=False)
+    # Where the content lives. YouTube is the product's focus; licensed research sources (e.g. a
+    # publisher's transcript repository) use their own platform id and URL.
+    platform: Mapped[str] = mapped_column(String(32), default="youtube")
+    external_url: Mapped[str | None] = mapped_column(Text, nullable=True)
 
     discovery_source: Mapped[str] = mapped_column(String(64), default="unknown")
     discovered_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
@@ -93,6 +97,15 @@ class Video(Base):
     embedding: Mapped[list[float] | None] = mapped_column(EmbeddingVector(), nullable=True)
     embedding_model: Mapped[str | None] = mapped_column(String(128))
     embedding_input: Mapped[str | None] = mapped_column(String(32))  # "metadata" | "transcript"
+    embedding_dim: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    embedding_preprocessing: Mapped[str | None] = mapped_column(String(32), nullable=True)
+    embedding_content_hash: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    embedded_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    # Genre v2: distribution over genres, ambiguity status and manual corrections.
+    genre_distribution: Mapped[dict[str, Any]] = mapped_column(JSON, default=dict)
+    genre_status: Mapped[str | None] = mapped_column(String(16), nullable=True)
+    genre_override: Mapped[str | None] = mapped_column(String(32), nullable=True)
+    genre_override_by: Mapped[str | None] = mapped_column(String(64), nullable=True)
 
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, onupdate=utcnow)
@@ -133,6 +146,18 @@ class ContentSource(Base):
     media_uri: Mapped[str | None] = mapped_column(Text, nullable=True)
     status: Mapped[str] = mapped_column(String(16), default="active")  # active | revoked
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+    # Phase 2 rights and provenance (see docs/permissions.md). Absent rights => fail closed.
+    owner: Mapped[str | None] = mapped_column(String(300), nullable=True)
+    attribution: Mapped[str | None] = mapped_column(Text, nullable=True)
+    provenance_url: Mapped[str | None] = mapped_column(Text, nullable=True)
+    retrieved_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    raw_sha256: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    permitted_processing: Mapped[list[Any]] = mapped_column(JSON, default=list)
+    permitted_storage: Mapped[str | None] = mapped_column(String(120), nullable=True)
+    restrictions: Mapped[list[Any]] = mapped_column(JSON, default=list)
+    revocation_policy: Mapped[str | None] = mapped_column(Text, nullable=True)
+    revoked_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    preprocessing: Mapped[dict[str, Any]] = mapped_column(JSON, default=dict)
 
     video: Mapped[Video] = relationship(back_populates="content_sources")
 
@@ -377,3 +402,169 @@ class DiscoveryQuery(Base):
     enabled: Mapped[bool] = mapped_column(Boolean, default=True)
 
     __table_args__ = (UniqueConstraint("query", "language", "order"),)
+
+
+# ---------------------------------------------------------------------------------------- Phase 2
+
+
+class Dataset(Base):
+    """A versioned evaluation dataset (e.g. ``real_pilot_v1``) built from a committed manifest."""
+
+    __tablename__ = "datasets"
+
+    id: Mapped[str] = mapped_column(String(64), primary_key=True)  # "<name>@<version>"
+    name: Mapped[str] = mapped_column(String(64))
+    version: Mapped[str] = mapped_column(String(32))
+    description: Mapped[str] = mapped_column(Text, default="")
+    manifest_sha256: Mapped[str] = mapped_column(String(64))
+    split_strategy: Mapped[str] = mapped_column(String(64))
+    split_seed: Mapped[int] = mapped_column(Integer)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+
+
+class DatasetItem(Base):
+    __tablename__ = "dataset_items"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    dataset_id: Mapped[str] = mapped_column(ForeignKey("datasets.id", ondelete="CASCADE"), index=True)
+    video_id: Mapped[str] = mapped_column(ForeignKey("videos.id", ondelete="CASCADE"))
+    split: Mapped[str] = mapped_column(String(16))  # calibration | dev | test
+    group_key: Mapped[str] = mapped_column(String(120))  # creator / show / series cluster
+    stratum: Mapped[dict[str, Any]] = mapped_column(JSON, default=dict)
+    is_calibration_example: Mapped[bool] = mapped_column(Boolean, default=False)
+
+    __table_args__ = (UniqueConstraint("dataset_id", "video_id"),)
+
+
+class Rater(Base):
+    """A human annotator, identified by a pseudonym. Tokens are stored hashed."""
+
+    __tablename__ = "raters"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_id)
+    pseudonym: Mapped[str] = mapped_column(String(64), unique=True)
+    token_hash: Mapped[str] = mapped_column(String(64), unique=True)
+    expertise: Mapped[list[Any]] = mapped_column(JSON, default=list)  # e.g. ["software", "biology"]
+    role: Mapped[str] = mapped_column(String(16), default="rater")  # rater | adjudicator
+    status: Mapped[str] = mapped_column(String(16), default="onboarding")  # onboarding | active | suspended
+    onboarded_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+
+
+class Annotation(Base):
+    """One rater's independent judgement of one item (never shown to other raters first)."""
+
+    __tablename__ = "annotations"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_id)
+    dataset_id: Mapped[str] = mapped_column(ForeignKey("datasets.id", ondelete="CASCADE"), index=True)
+    video_id: Mapped[str] = mapped_column(ForeignKey("videos.id", ondelete="CASCADE"), index=True)
+    rater_id: Mapped[str] = mapped_column(ForeignKey("raters.id", ondelete="CASCADE"), index=True)
+    rubric_version: Mapped[str] = mapped_column(String(32))
+    status: Mapped[str] = mapped_column(
+        String(16), default="in_progress"
+    )  # in_progress | submitted | excluded
+    is_repeat: Mapped[bool] = mapped_column(Boolean, default=False)  # duplicate-annotation consistency check
+    started_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+    submitted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    duration_seconds: Mapped[float | None] = mapped_column(Float, nullable=True)
+    confidence: Mapped[float | None] = mapped_column(Float, nullable=True)
+    flags: Mapped[list[Any]] = mapped_column(
+        JSON, default=list
+    )  # ambiguous_rubric | insufficient_material | ...
+    notes: Mapped[str | None] = mapped_column(Text, nullable=True)
+    exclusion_reason: Mapped[str | None] = mapped_column(Text, nullable=True)
+
+    scores: Mapped[list[AnnotationScore]] = relationship(
+        back_populates="annotation", cascade="all, delete-orphan"
+    )
+
+
+class AnnotationScore(Base):
+    __tablename__ = "annotation_scores"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    annotation_id: Mapped[str] = mapped_column(ForeignKey("annotations.id", ondelete="CASCADE"), index=True)
+    dimension: Mapped[str] = mapped_column(String(48))
+    # scored | abstain | insufficient_evidence | ambiguous | not_applicable
+    status: Mapped[str] = mapped_column(String(24))
+    score: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    confidence: Mapped[float | None] = mapped_column(Float, nullable=True)
+    evidence: Mapped[list[Any]] = mapped_column(JSON, default=list)  # [{"segment_index", "quote"}]
+    note: Mapped[str | None] = mapped_column(Text, nullable=True)
+
+    annotation: Mapped[Annotation] = relationship(back_populates="scores")
+
+
+class PairwiseLabel(Base):
+    __tablename__ = "pairwise_labels"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    dataset_id: Mapped[str] = mapped_column(ForeignKey("datasets.id", ondelete="CASCADE"), index=True)
+    rater_id: Mapped[str] = mapped_column(ForeignKey("raters.id", ondelete="CASCADE"), index=True)
+    video_a: Mapped[str] = mapped_column(ForeignKey("videos.id", ondelete="CASCADE"))
+    video_b: Mapped[str] = mapped_column(ForeignKey("videos.id", ondelete="CASCADE"))
+    criterion: Mapped[str] = mapped_column(
+        String(48)
+    )  # content | presentation | technical | overall | <dimension>
+    preference: Mapped[str] = mapped_column(String(16))  # a | b | equal | insufficient
+    confidence: Mapped[float | None] = mapped_column(Float, nullable=True)
+    rationale: Mapped[str | None] = mapped_column(Text, nullable=True)
+    rubric_version: Mapped[str] = mapped_column(String(32))
+    duration_seconds: Mapped[float | None] = mapped_column(Float, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+
+
+class Adjudication(Base):
+    """Resolution of a flagged disagreement by an adjudicator (a human with role=adjudicator)."""
+
+    __tablename__ = "adjudications"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    dataset_id: Mapped[str] = mapped_column(ForeignKey("datasets.id", ondelete="CASCADE"), index=True)
+    video_id: Mapped[str] = mapped_column(ForeignKey("videos.id", ondelete="CASCADE"))
+    dimension: Mapped[str] = mapped_column(String(48))
+    adjudicator_id: Mapped[str] = mapped_column(ForeignKey("raters.id"))
+    decision: Mapped[str] = mapped_column(String(16))  # score | exclude | ambiguous
+    final_score: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    rationale: Mapped[str] = mapped_column(Text)
+    annotation_ids: Mapped[list[Any]] = mapped_column(JSON, default=list)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+
+
+class FactualClaim(Base):
+    """A claim extracted from an evaluated transcript and its verification result."""
+
+    __tablename__ = "factual_claims"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    evaluation_id: Mapped[str] = mapped_column(ForeignKey("evaluations.id", ondelete="CASCADE"), index=True)
+    segment_index: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    quote: Mapped[str | None] = mapped_column(Text, nullable=True)
+    claim: Mapped[str] = mapped_column(Text)
+    # factual_assertion | opinion | prediction | satire | fiction | personal_experience
+    claim_type: Mapped[str] = mapped_column(String(32))
+    # supported | contradicted | mixed | unverifiable | insufficient_evidence | not_applicable | unchecked
+    verdict: Mapped[str] = mapped_column(String(24), default="unchecked")
+    domain_risk: Mapped[str] = mapped_column(String(16), default="standard")  # standard | high_stakes
+    sources: Mapped[list[Any]] = mapped_column(
+        JSON, default=list
+    )  # [{passage_id, doc_id, title, license, retrieved_at}]
+    explanation: Mapped[str | None] = mapped_column(Text, nullable=True)
+    checked_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+
+
+class BenchmarkRun(Base):
+    __tablename__ = "benchmark_runs"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_id)
+    tag: Mapped[str] = mapped_column(String(120))
+    dataset: Mapped[str] = mapped_column(String(120))
+    dataset_sha256: Mapped[str] = mapped_column(String(64))
+    git_commit: Mapped[str] = mapped_column(String(64))
+    evaluator: Mapped[str] = mapped_column(String(64))
+    config: Mapped[dict[str, Any]] = mapped_column(JSON, default=dict)
+    metrics: Mapped[dict[str, Any]] = mapped_column(JSON, default=dict)
+    cost_usd: Mapped[float] = mapped_column(Float, default=0.0)
+    runtime_seconds: Mapped[float] = mapped_column(Float, default=0.0)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
