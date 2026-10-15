@@ -47,6 +47,7 @@ class TaskBackend(StrEnum):
 class EmbeddingProviderName(StrEnum):
     HASHING = "hashing"
     SENTENCE_TRANSFORMERS = "sentence_transformers"
+    ONNX_MINILM = "onnx_minilm"  # all-MiniLM-L6-v2 on ONNX Runtime; 'avd embeddings fetch-model'
 
 
 class Settings(BaseSettings):
@@ -105,6 +106,7 @@ class Settings(BaseSettings):
     # --- Embeddings --------------------------------------------------------------------------
     embedding_provider: EmbeddingProviderName = EmbeddingProviderName.HASHING
     embedding_model: str = "sentence-transformers/all-MiniLM-L6-v2"
+    embedding_model_dir: Path = REPO_ROOT / "backend" / ".model_cache"
 
     # --- Worker ------------------------------------------------------------------------------
     worker_lease_seconds: int = 600

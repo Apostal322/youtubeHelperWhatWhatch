@@ -3,6 +3,8 @@
 * ``HashingEmbedder`` (default): deterministic signed feature hashing of unigrams + bigrams with
   sublinear TF, L2-normalised, 384 dims. No downloads, no GPU, reproducible — but purely lexical:
   it does not know that "car" and "automobile" are related, and does not align across languages.
+* ``OnnxMiniLMEmbedder`` (``pip install '.[semantic]'``; ``avd embeddings fetch-model``):
+  all-MiniLM-L6-v2 on ONNX Runtime, semantic but English-only (``onnx_minilm.py``).
 * ``SentenceTransformerEmbedder`` (``pip install '.[ml]'``): semantic embeddings, e.g.
   all-MiniLM-L6-v2 (384 dims, same column size). Switching models requires re-embedding; every
   stored vector records the model that produced it and queries only compare like with like.
@@ -90,6 +92,7 @@ _STOP = set(
 class Embedder(Protocol):
     model_id: str
     dim: int
+    preprocessing: str
     relevance_floor: float
     relevance_ceiling: float
 
@@ -99,6 +102,7 @@ class Embedder(Protocol):
 class HashingEmbedder:
     model_id = "hashing-uni-bigram-v1"
     dim = EMBEDDING_DIM
+    preprocessing = "meta_keywords_v1"
     # Empirical similarity range: unrelated texts mostly fall below the floor, strong topical
     # matches approach the ceiling. Used to map raw cosine to a [0, 1] relevance feature.
     relevance_floor = 0.06
@@ -129,6 +133,8 @@ class HashingEmbedder:
 
 
 class SentenceTransformerEmbedder:  # pragma: no cover - optional heavy dependency
+    preprocessing = "chunk_mean_v1"
+
     def __init__(self, model_name: str) -> None:
         from sentence_transformers import SentenceTransformer
 
@@ -150,6 +156,10 @@ def get_embedder() -> Embedder:
     s = get_settings()
     if s.embedding_provider == EmbeddingProviderName.SENTENCE_TRANSFORMERS:
         return SentenceTransformerEmbedder(s.embedding_model)
+    if s.embedding_provider == EmbeddingProviderName.ONNX_MINILM:
+        from avd.embeddings.onnx_minilm import OnnxMiniLMEmbedder
+
+        return OnnxMiniLMEmbedder(s.embedding_model_dir)
     return HashingEmbedder()
 
 

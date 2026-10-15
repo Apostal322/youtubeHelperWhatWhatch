@@ -270,6 +270,20 @@ def cmd_gates(args: argparse.Namespace) -> None:
             sys.exit(1)
 
 
+def cmd_embeddings(args: argparse.Namespace) -> None:
+    settings = get_settings()
+    if args.emb_cmd == "fetch-model":
+        from avd.embeddings.onnx_minilm import fetch_model
+
+        print(f"verified model at {fetch_model(settings.embedding_model_dir)}")
+        return
+    from avd.db.session import get_sessionmaker
+    from avd.embeddings.base import get_embedder
+    from avd.embeddings.reindex import reindex
+
+    print(json.dumps(reindex(get_sessionmaker(), get_embedder(), args.batch_size, args.dry_run), indent=2))
+
+
 def cmd_bench(args: argparse.Namespace) -> None:
     from avd.bench.harness import main as bench_main
 
@@ -373,6 +387,15 @@ def main(argv: list[str] | None = None) -> None:
     gt.add_parser("check")
     for sp in gt.choices.values():
         sp.set_defaults(fn=cmd_gates)
+    em = sub.add_parser("embeddings", help="embedding model and index maintenance").add_subparsers(
+        dest="emb_cmd", required=True
+    )
+    em.add_parser("fetch-model", help="download and verify the pinned MiniLM ONNX model")
+    ri = em.add_parser("reindex", help="re-embed rows whose model, recipe or content changed")
+    ri.add_argument("--batch-size", type=int, default=64)
+    ri.add_argument("--dry-run", action="store_true")
+    for sp in em.choices.values():
+        sp.set_defaults(fn=cmd_embeddings)
     b = sub.add_parser("bench", help="run the evaluation benchmark harness")
     b.add_argument("--dataset", default=str(REPO_ROOT / "benchmarks" / "datasets" / "synthetic_v1"))
     b.add_argument("--fixtures", default=str(REPO_ROOT / "data" / "fixtures"))

@@ -11,6 +11,7 @@ htmlcov/
 backend/avd_demo.db*
 backend/.media_cache/
 backend/.dataset_cache/
+backend/.model_cache/
 *.db
 *.db-wal
 *.db-shm

@@ -23,6 +23,7 @@ dependencies = [
 [project.optional-dependencies]
 anthropic = ["anthropic>=1.0"]
 ml = ["sentence-transformers>=3.0"]
+semantic = ["onnxruntime>=1.18", "tokenizers>=0.19"]
 dev = [
   "pytest>=8.0",
   "pytest-cov>=5.0",

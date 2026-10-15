@@ -21,11 +21,11 @@ from sqlalchemy.orm import Session
 
 from avd.content.store import active_sources, load_bundle
 from avd.db.models import Channel, DiscoveryQuery, Evaluation, PipelineJob, Video
-from avd.embeddings.base import video_embedding_text
+from avd.embeddings import documents as emb_docs
 from avd.evaluation.inputs import build_evaluation_input
 from avd.evaluation.schema import FRAMEWORK_VERSION, EvaluationResult, Genre
 from avd.evaluation.service import is_up_to_date, persist_evaluation
-from avd.evaluation.topics import extract_topics, transcript_keywords
+from avd.evaluation.topics import extract_topics
 from avd.ingest import apply_channel_metadata, apply_video_metadata, register_discovered
 from avd.llm.pricing import estimate_cost
 from avd.logging import get_logger
@@ -57,10 +57,6 @@ Handler = Callable[[WorkerContext, Session, PipelineJob], HandlerResult]
 def _content_key(session: Session, video_id: str) -> str:
     hashes = sorted(r.content_hash for r in active_sources(session, video_id))
     return hashlib.sha256("|".join(hashes).encode()).hexdigest()[:12] if hashes else "pending"
-
-
-def _metadata_text(v: Video) -> str:
-    return video_embedding_text(v.title, v.description or "", list(v.tags or []), list(v.topics or []), None)
 
 
 # ----------------------------------------------------------------------------- discovery
@@ -129,9 +125,7 @@ def handle_stage_a(ctx: WorkerContext, session: Session, job: PipelineJob) -> Ha
         video.genre, video.genre_confidence, video.genre_method = g.genre.value, g.confidence, g.method
     video.topics = extract_topics(video.title, video.description or "", list(video.tags or []))
     if video.embedding is None or video.embedding_model != ctx.embedder.model_id:
-        video.embedding = ctx.embedder.embed([_metadata_text(video)])[0]
-        video.embedding_model = ctx.embedder.model_id
-        video.embedding_input = "metadata"
+        emb_docs.apply(video, emb_docs.embed_video(ctx.embedder, video, None))
 
     modalities: set[str] = set()
     provider_errors = []
@@ -219,19 +213,8 @@ def _evaluate(ctx: WorkerContext, session: Session, job: PipelineJob, stage: str
 
     result = ctx.pipeline(stage).run(inp)
     ev = persist_evaluation(session, result, job.id)
-    video.embedding = ctx.embedder.embed(
-        [
-            video_embedding_text(
-                video.title,
-                video.description or "",
-                list(video.tags or []),
-                list(video.topics or []),
-                transcript_keywords(bundle.transcript.text),
-            )
-        ]
-    )[0]
-    video.embedding_model = ctx.embedder.model_id
-    video.embedding_input = "transcript"
+    if emb_docs.is_stale(ctx.embedder, video, bundle.transcript):
+        emb_docs.apply(video, emb_docs.embed_video(ctx.embedder, video, bundle.transcript))
 
     out: dict[str, Any] = {
         "evaluation_id": ev.id,
