@@ -24,6 +24,7 @@ AGGREGATION_VERSION = "genre_weighted_mean_renormalized_v2"  # genre mixtures, a
 PREPROCESSING_VERSION = (
     "prep_v2"  # normalisation (keeps shared source spans), language id, chunking, sanitisation
 )
+INJECTION_DETECTOR_VERSION = "injection_v2"  # v2: no flags on talk *about* AI; see docs/phase2.md
 FRAMEWORK_VERSION = "2026.10.1"
 
 SCORE_MIN = 1.0

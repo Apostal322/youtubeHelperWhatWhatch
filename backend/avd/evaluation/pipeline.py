@@ -65,6 +65,7 @@ class EvaluationPipeline:
             "prompt": _schema.PROMPT_VERSION,
             "aggregation": _schema.AGGREGATION_VERSION,
             "preprocessing": _schema.PREPROCESSING_VERSION,
+            "injection_detector": _schema.INJECTION_DETECTOR_VERSION,
         }
 
     def config(self) -> dict[str, Any]:

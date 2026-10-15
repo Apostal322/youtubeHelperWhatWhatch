@@ -19,6 +19,11 @@ import hashlib
 import re
 from dataclasses import dataclass
 
+_SCORE_FORM = (
+    r"(\b(?:perfect|maximum|max|highest|top|full)\s+(?:score|scores|marks|rating|5|10)\b"
+    r"|\b(?:5|five|10|ten|100)\s*(?:/|out of)\s*(?:5|five|10|ten|100)\b|\ba\s+(?:perfect\s+)?(?:5|10)\b)"
+)
+
 _PATTERNS: list[tuple[str, re.Pattern[str]]] = [
     (
         "instruction_override",
@@ -36,19 +41,37 @@ _PATTERNS: list[tuple[str, re.Pattern[str]]] = [
         ),
     ),
     ("role_spoofing", re.compile(r"(^|[\s\"'(\[])(system|assistant|developer)\s*:", re.I)),
+    # Addressing the grader. Talk *about* AI ("if you're an AI engineer", "you're using an AI as an
+    # API") is common in real tech content and is not matched: the pattern needs a role switch
+    # ("you are now", "from now on", "act as", "pretend") or an evaluator role noun.
     (
         "role_spoofing",
         re.compile(
-            r"\b(you are|you're|act as|pretend to be)\b.{0,25}\b(ai|assistant|evaluator|grader|language model|llm)\b",
+            r"\b(you are now|you're now|from now on,? you(?: are|'re)?|act as|pretend (?:to be|you are))\b"
+            r".{0,25}\b(ai|assistant|evaluator|grader|judge|rater|reviewer|language model|llm)\b"
+            r"|\byou are (?:an?|the) (?:evaluator|grader|judge|rater|scoring (?:model|system))\b",
             re.I,
         ),
     ),
-    ("prompt_reference", re.compile(r"\b(system|developer)\s+(prompt|message|instructions?)\b", re.I)),
+    # Mentioning a "system prompt" is ordinary in AI discussions; acting on or spoofing one is not.
+    (
+        "prompt_reference",
+        re.compile(
+            r"\b(ignore|disregard|override|reveal|leak|print out)\b.{0,20}\b(system|developer)\s+"
+            r"(prompt|message|instructions?)\b|\b(system|developer)\s+(prompt|message|instructions?)\s*:",
+            re.I | re.S,
+        ),
+    ),
+    # A request for a specific grade aimed at the content being evaluated.
     (
         "score_manipulation",
         re.compile(
-            r"\b(give|rate|score|grade|assign|award)\b.{0,40}\b(video|content|channel|it|this|me|us)\b"
-            r".{0,40}\b(5|five|10|ten|100|perfect|maximum|max|highest|top|full marks)\b",
+            r"\b(give|rate|score|grade|assign|award)\b.{0,30}\b(video|content|channel|episode|transcript|it|this)\b"
+            r".{0,30}"
+            + _SCORE_FORM
+            + r"|\b(give|rate|score|grade|assign|award)\b.{0,30}"
+            + _SCORE_FORM
+            + r".{0,30}\b(video|content|channel|episode|transcript)\b",
             re.I | re.S,
         ),
     ),
