@@ -65,8 +65,8 @@
       "gaming": 1
     },
     "latency_ms": {
-      "p50": 59.5,
-      "p95": 77.2
+      "p50": 58.0,
+      "p95": 86.25
     },
     "cost_usd": {
       "total": 0.0,
@@ -176,14 +176,14 @@
       {
         "id": "latency_p95",
         "status": "pass",
-        "detail": "77.2 <= 300000",
+        "detail": "86.25 <= 300000",
         "kind": "operational"
       }
     ],
     "release_ready": false
   },
   "meta": {
-    "run_at": "2026-10-15T22:47:26+00:00",
+    "run_at": "2026-10-15T22:57:22+00:00",
     "dataset": "real_pilot@v1",
     "split": "dev",
     "items": 10,
@@ -193,12 +193,12 @@
       "changelog:gotime",
       "changelog:practicalai"
     ],
-    "manifest_items_sha256": "5bc30338ce62614125be0bcf42df89d3a1f7238bede318a9472d11c30eaf92dc",
-    "manifest_file_sha256": "0df6a8972a5b6a8a29f8637269ef02723f2164d5a5be12084d1c0f2d69b89963",
+    "manifest_items_sha256": "19039096dcc201ac06bc81b076a2a93d29a3137781371722eeb0ea5f88ae20c0",
+    "manifest_file_sha256": "44859ab4c24d6b2958e73d711024b5f28daa4426defb3605c7fb076844eaff41",
     "labels_sha256": null,
     "human_label_rows": 0,
     "human_pair_rows": 0,
-    "git_commit": "b015106352318793b73b6601371fcc5f6632a127",
+    "git_commit": "ceb0b77dfb3a112df69ba479b0189e3b54ef9dd2",
     "git_dirty": false,
     "evaluator": "heuristic",
     "llm_provider": "heuristic",
@@ -236,7 +236,7 @@
     },
     "seed": 0,
     "n_boot": 2000,
-    "runtime_seconds": 1.44,
+    "runtime_seconds": 1.43,
     "gates_file_sha256": "2d3f4651056975909d498fc0c22521b8b32169a813f083403e3f7e3a26c7016a",
     "gates_lock_valid": true,
     "python": "3.12.3",

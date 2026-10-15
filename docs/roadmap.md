@@ -14,8 +14,10 @@ Before scaling anything, establish whether the evaluator agrees with people.
    ceiling).
 3. **Calibrate confidence** (isotonic or temperature scaling per dimension) using the ECE bins the
    harness already reports; publish the calibration with the framework version.
-4. **Enable semantic embeddings** (`sentence_transformers`, multilingual model) and re-measure
-   recommendation metrics; the lexical baseline's collision floor is a known limitation.
+4. **Semantic embeddings.** Done for English (MiniLM ONNX, Phase 2: R@1 0.71 vs 0.28 lexical).
+   Still open: a multilingual model, verified equivalence to the reference implementation, and
+   switching the default provider once recommendation metrics are re-measured on human-labelled
+   preferences.
 5. Promote the framework version only when the benchmark shows improvement on held-out labels.
 
 ## M2 — Content coverage

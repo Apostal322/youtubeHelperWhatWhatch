@@ -242,10 +242,27 @@ the relevance floor/ceiling (16 relevant pairs) — treat them as optimistic.
 * **Lexical embeddings are weak.** The default 384-bucket hashing embedder has a collision noise
   floor: e.g. "astronomy" shares a bucket with the Spanish word "tarjetas", producing spurious
   relevance (~0.10) between an astronomy interest and a flash-card study video. Embedding transcript
-  keywords instead of raw text raised persona AUC from 0.79 to 0.88; semantic embeddings
-  (`sentence_transformers`, multilingual) are the real fix and are implemented as an option but were
-  not available in the build environment (network policy).
-* Relevance calibration (floor 0.06, ceiling 0.33) was fitted on a tiny synthetic sample.
+  keywords instead of raw text raised persona AUC from 0.79 to 0.88.
+* **Semantic embeddings (Phase 2).** `AVD_EMBEDDING_PROVIDER=onnx_minilm` uses all-MiniLM-L6-v2 on
+  ONNX Runtime. It was measured on known-item retrieval: real Talk Python titles as queries against
+  100 transcript-only documents ([report](../benchmarks/reports/retrieval-talkpython-n100-s7.md)).
+
+  | method | Recall@1 [95 % CI] | MRR [95 % CI] |
+  |---|---|---|
+  | hashing | 0.28 [0.20, 0.37] | 0.43 [0.35, 0.50] |
+  | MiniLM | 0.71 [0.61, 0.80] | 0.78 [0.70, 0.85] |
+  | reciprocal-rank fusion of both | 0.57 | 0.67 |
+
+  Fusion is worse than MiniLM alone, so it is not used. Limits of this result:
+  * MiniLM is English-only; no multilingual model was reachable.
+  * Hugging Face is blocked here, so numerical equivalence to sentence-transformers is unverified.
+  * Document embedding costs about 0.8 s per long transcript on CPU (24 windows).
+  * 14 of 29 MiniLM false matches were as similar as a typical correct match, so cosine
+    thresholds do not separate errors.
+  * Titles share rare words with transcripts. This is known-item retrieval, not a test of
+    recommendation quality.
+* Relevance calibration: hashing floor 0.06 / ceiling 0.33, fitted on a tiny synthetic sample;
+  MiniLM 0.20 / 0.50, from the retrieval experiment's non-relevant and relevant similarity medians.
 * Feedback loops: logged impressions carry position bias; LTR training needs debiasing before use.
 
 **Coverage**

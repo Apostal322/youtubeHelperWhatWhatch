@@ -29,3 +29,4 @@ extension/dist/
 benchmarks/reports/*
 !benchmarks/reports/README.md
 !benchmarks/reports/baseline-*
+!benchmarks/reports/retrieval-*

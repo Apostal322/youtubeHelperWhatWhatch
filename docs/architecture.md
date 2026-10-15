@@ -126,7 +126,7 @@ PostgreSQL only; `alembic check` runs in CI to detect model/migration drift).
 
 | Simplification | Why | Upgrade path |
 |---|---|---|
-| Hashing embedder by default | Works offline, deterministic, no model download | `AVD_EMBEDDING_PROVIDER=sentence_transformers` (same 384-dim column); re-embed via `reevaluate_stale` |
+| Hashing embedder by default | Works offline, deterministic, no model download | `AVD_EMBEDDING_PROVIDER=onnx_minilm` (`pip install '.[semantic]'`, `avd embeddings fetch-model`; same 384-dim column) then `avd embeddings reindex`. Each vector records model, dim, recipe, input hash and time, and search never mixes models |
 | Single LLM call for all text dimensions | Cost | Split per group / per-dimension specialist evaluators; the `Evaluator` protocol is unchanged |
 | No visual evaluator | Requires authorized video + multimodal model | Add an evaluator requiring `Modality.VIDEO`; dimensions already defined |
 | Keyword genre classifier | Transparent, free | Embedding or LLM classifier behind `GenreClassifier` |

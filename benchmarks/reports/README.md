@@ -6,6 +6,7 @@ baselines (`baseline-*`) are committed so regressions are visible in review.
 | Report | Evaluator | Dataset | Labels |
 |---|---|---|---|
 | `baseline-heuristic-synthetic_v1.{md,json}` | deterministic heuristic baseline | synthetic_v1 (20 synthetic videos) | synthetic design intent, single rater |
+| `retrieval-talkpython-n100-s7.{md,json}` | hashing vs MiniLM ONNX vs RRF (`avd bench-retrieval`) | 100 Talk Python transcripts (titles withheld) | creator titles as known-item queries (no human labels needed) |
 | `baseline-heuristic-real_pilot_v1-dev.{md,json}` | heuristic baseline (`avd bench-real`) | real_pilot_v1, dev split (10 licensed episodes) | **none yet**: human-grounded section reports "not available" |
 
 Notes:

@@ -1,0 +1,573 @@
+{
+  "meta": {
+    "run_at": "2026-10-15T22:57:18+00:00",
+    "git_commit": "ceb0b77dfb3a112df69ba479b0189e3b54ef9dd2",
+    "source": "https://github.com/mikeckennedy/talk-python-transcripts@accd851f0d3353bf2d3792969d7f334a4c4768b3 (youtube_transcripts/)",
+    "license": "GPL-3.0",
+    "seed": 7,
+    "n_documents": 100,
+    "documents": [
+      {
+        "path": "youtube_transcripts/403-fusion-breakthrough.vtt",
+        "sha256": "f341866fdef7c5715e9bac62d5cf961147c2c1fb0e29bdb799e28cfc4b8d0354"
+      },
+      {
+        "path": "youtube_transcripts/496-scaf-deploys-yt.vtt",
+        "sha256": "520196abff7ce6d8ff3504cf8690bffd63feebe831f18ac5c2ed3a5fad58dbbd"
+      },
+      {
+        "path": "youtube_transcripts/535-pyview-real-time-python-web-apps-youtube.vtt",
+        "sha256": "4904bc806e625a0f3b0130f4df70e53533be75b8c135552fe7a7287339ff9a6d"
+      },
+      {
+        "path": "youtube_transcripts/320-python-in-the-energy-grid.vtt",
+        "sha256": "454ce937c7ee2e55e8b6cb35183cc86f339a84c08b25a3800e1d2a3997d71284"
+      },
+      {
+        "path": "youtube_transcripts/335-gene-editing.vtt",
+        "sha256": "5505fe5556acfe6e2a590e040749cc7bbff99d55f936769fd705b6462b4feb4b"
+      },
+      {
+        "path": "youtube_transcripts/458-serverless-update.vtt",
+        "sha256": "f4448dfc04ba8c0d63b7a053d619b7848624b156a52cb2064f4b8ff5c8ae9608"
+      },
+      {
+        "path": "youtube_transcripts/362-hypermodern-python.vtt",
+        "sha256": "e8c5817a17f592b388839cd74d68f5bd76103f5e6ac31431ab41b872ccc7fa37"
+      },
+      {
+        "path": "youtube_transcripts/415-pydantic-20-and-fastapi.vtt",
+        "sha256": "1c1e0d00acdaa9f0a9b531a73ee4d91ec0d6fb07abb8f6269a451da1f2621578"
+      },
+      {
+        "path": "youtube_transcripts/391-pyscript-powered-by-micropython.vtt",
+        "sha256": "087890c55f11141841fa3c7f48c88df0e52164ac2c8b7c12584bd7f1b4f5d0c4"
+      },
+      {
+        "path": "youtube_transcripts/306-scaling-python-and-jupyter-with-zeromq.vtt",
+        "sha256": "4f74f904f500d1dae5a011f5fcb997493c938ec4982dc398d942d13e565ebcef"
+      },
+      {
+        "path": "youtube_transcripts/456-building-custom-gpts-with-python.vtt",
+        "sha256": "9d41e2f2dfc72d51d3e05e93d58df53f458dc5997b090cbba9d03e780b1ac1d6"
+      },
+      {
+        "path": "youtube_transcripts/444-young-success-blueprint.vtt",
+        "sha256": "b9456dd0712af93a387b1e5aeba5da0687a5b52c801b535f2e4c982bfb8bc554"
+      },
+      {
+        "path": "youtube_transcripts/447-parallel-python-apps-with-sub-interpreters.vtt",
+        "sha256": "c9a1ab69ce0c0e1e45783de7cd2f6dc3f1e92b0892680fbdcc85c5f273c9b9c7"
+      },
+      {
+        "path": "youtube_transcripts/327-little-automation-tools.vtt",
+        "sha256": "e7143b184983a0e7c943fabc3b15f88f57501a4ea9c490e270910fad1f78945a"
+      },
+      {
+        "path": "youtube_transcripts/494-update-on-flet-python-flutter-uis.vtt",
+        "sha256": "0b4e93f544aa175d70caf6d2fafef157202316afc5c99e54695bd2d3ae8585b0"
+      },
+      {
+        "path": "youtube_transcripts/345-10-tips-and-tools.vtt",
+        "sha256": "bf2bc159f3b7df80faf54a3c093ec52ff59bd6e4a87c1deefe25bcc665508fb7"
+      },
+      {
+        "path": "youtube_transcripts/394-awesome-jupyter-pro.vtt",
+        "sha256": "17d78bac2e60a273facc9d1d315f7d9084f3db4e6f47ea4c6e00c01c7b056bde"
+      },
+      {
+        "path": "youtube_transcripts/383-textinator-python-mac-apps.vtt",
+        "sha256": "1a2bce8824fab5808f6b41a99dcfcc83cb1f2aeafb63a49c57387c0b93993dba"
+      },
+      {
+        "path": "youtube_transcripts/504-developer-trends.vtt",
+        "sha256": "0858f6418cd073b24b25ff800c48e739ca399a76fbbf85d30b35c44a3ec8cccd"
+      },
+      {
+        "path": "youtube_transcripts/338-cibuildwheel-scikit-hep.vtt",
+        "sha256": "3c6d7dc25ed930bf2f56588c41edec261267835e1ef887488d890b9b664c3f5f"
+      },
+      {
+        "path": "youtube_transcripts/486-csnakes-embed-python-code-in-.net.vtt",
+        "sha256": "3f4deda94aefe5f9f4f35abb21e4a23a54fe357b967be28bc530bdf285c5210e"
+      },
+      {
+        "path": "youtube_transcripts/381-python-perf-specializing-adaptive-interpreter.vtt",
+        "sha256": "5f135f4d04bd802e886c114823e8eebb2a4afbf9396a735f4f635f90876a4c2a"
+      },
+      {
+        "path": "youtube_transcripts/330-apache-airflow.vtt",
+        "sha256": "9b4ca0422383c3993c300cb9ddddc85a6893ac67032678866f2bf4b9cdb6deaa"
+      },
+      {
+        "path": "youtube_transcripts/315-awesome-fastapi-list.vtt",
+        "sha256": "89bcbba0e3e98803904f8e85572e5430efca034ac4a6555f3831a960cba2eee7"
+      },
+      {
+        "path": "youtube_transcripts/346-recommended-packages.vtt",
+        "sha256": "59d6b16f0bcdb3f8f3dbbd4e3f6e03eb3a892ff056e4598c43281df441fc2ef6"
+      },
+      {
+        "path": "youtube_transcripts/374-python-survey-results.vtt",
+        "sha256": "a17e0c5143286fd0402413e444653c1a569df99e3e7f0bc12c583d551203db14"
+      },
+      {
+        "path": "youtube_transcripts/496-scaf-deploys.vtt",
+        "sha256": "be528328ebe8655b9257907f06e5fdd6b05cecca9166bfff6b308b229c09fd7f"
+      },
+      {
+        "path": "youtube_transcripts/518-celebrating-django-s-20th-birthday-with-its-creators.vtt",
+        "sha256": "944f5ef84473d15eb2681e04d21345364a75f4a559d4437cbd66df90270358c7"
+      },
+      {
+        "path": "youtube_transcripts/416-sports-analytics.vtt",
+        "sha256": "6e84df0f4ed0ee11fc2a302c6afdc820985ac58d42db5c611aec36c5cc80d826"
+      },
+      {
+        "path": "youtube_transcripts/377-packaging-pypi.vtt",
+        "sha256": "53e76b09d8791d18e570ede3b96e27cf0dcf0e39a2a94c1d3d32174f17fe2c64"
+      },
+      {
+        "path": "youtube_transcripts/477-spacy-nlp.vtt",
+        "sha256": "887159f77a62ae3641ccad9439c5f2f8a01c3c76b658d92ac6ed0ddb99830cca"
+      },
+      {
+        "path": "youtube_transcripts/342-python-in-architecture.vtt",
+        "sha256": "d5cb5d71173e96a3bc6eb0b5c97b683d75c406f218cafb7bb058f29b2abfe030"
+      },
+      {
+        "path": "youtube_transcripts/520-pyx-the-other-side-of-the-uv-coin-youtube.vtt",
+        "sha256": "3bea5febebcef12bf847638e4cf419e1950f65249cbb25eaa7daf2476113549c"
+      },
+      {
+        "path": "youtube_transcripts/540-modern-python-monorepo-timeline-original.vtt",
+        "sha256": "32562fe0389874c5a343f8d8fbbe0f34031e640449a634dff4981644d036823c"
+      },
+      {
+        "path": "youtube_transcripts/344-sqlalchemy-2.vtt",
+        "sha256": "64d4cea08a43e21322d097b557276b4f097c09ed2deaaa5b823cbe390f151d28"
+      },
+      {
+        "path": "youtube_transcripts/333-state-of-data-science-in-2021.vtt",
+        "sha256": "633b5c4c55b8373f5831adbffafdf1ba2bfa5f3707d25edb53b43338a5715f38"
+      },
+      {
+        "path": "youtube_transcripts/405-testing-astronomy.vtt",
+        "sha256": "fade0fae6fc5050591a3b48f370291d5245f68760715bdd005e57db7b0328ce1"
+      },
+      {
+        "path": "youtube_transcripts/541-monty-python-in-rust-for-ai.vtt",
+        "sha256": "7921eadebc3fa9077bf3a5a4f07ec7ba113310808d273566cdb5417da095da71"
+      },
+      {
+        "path": "youtube_transcripts/502-YOUTUBE-django-ledger-accounting-with-python-talk-python-live-stream.vtt",
+        "sha256": "f8e0f661c462eb809b02208d1000012f9123084e43ed39a1f2be6321b2e6054a"
+      },
+      {
+        "path": "youtube_transcripts/420-isolation-and-consistency.vtt",
+        "sha256": "e384036352c6f446318bdc2b697433bde4c420e1f189fea54bc0c1dd67fb0c96"
+      },
+      {
+        "path": "youtube_transcripts/378-flet-flutter-apps-in-python.vtt",
+        "sha256": "d92b2d7026f7110771fd386e00d3eca3254f9747f7b581f7a75be4395a739acc"
+      },
+      {
+        "path": "youtube_transcripts/473-adhd-devs.vtt",
+        "sha256": "2294b8a5abb390a9ef09545481bec1ecd2051201d48640f99be2a7e253e788e2"
+      },
+      {
+        "path": "youtube_transcripts/537-datastar-modern-web-dev-simplified-youtube.vtt",
+        "sha256": "316d2764c3c721ffc857a15946af2d07502b773a76bdb8ab2f5b6d98878f755a"
+      },
+      {
+        "path": "youtube_transcripts/495-osmnx-python-and-openstreetmap.vtt",
+        "sha256": "1121bcd8fe709abaee010880421c6029229d04d369acbb02f28e96b3ac51f21b"
+      },
+      {
+        "path": "youtube_transcripts/331-developer-in-residence.vtt",
+        "sha256": "13e087945b4b0ebcefc19183cf8632aaffb2640f3e07da785216aeb268f45be1"
+      },
+      {
+        "path": "youtube_transcripts/387-pants-build.vtt",
+        "sha256": "887263eb7a863666b450af435bd63ed2c8490744b12233422630c7725bb3ec29"
+      },
+      {
+        "path": "youtube_transcripts/375-language-summit.vtt",
+        "sha256": "16193c59eaadcbdd723afc9f2981d436671138f38c0301f9060a38f9c2a52f62"
+      },
+      {
+        "path": "youtube_transcripts/509-gpu-programming-in-pure-python.vtt",
+        "sha256": "ffb218cd808aeba65cac7f42717f0d5122ff91cba03aa9384612862a06c238d5"
+      },
+      {
+        "path": "youtube_transcripts/322-starting-in-data-sci.mp3.vtt",
+        "sha256": "b59772167687113db77e64533fcc2fefa14a1ed2463c5aaadd845852c01548f2"
+      },
+      {
+        "path": "youtube_transcripts/398-black-holes.vtt",
+        "sha256": "6d0933b0f680881a1a683f95100c96f3a0e0604ae48ea150ddfd66dc4a6ef562"
+      },
+      {
+        "path": "youtube_transcripts/499-beeware-and-the-state-of-python-on-mobile.vtt",
+        "sha256": "f360b57ef2031c4b04e0326fa59f4c0e45f3041969de5b271d96b05f45c0400c"
+      },
+      {
+        "path": "youtube_transcripts/356-ml-startups.vtt",
+        "sha256": "e5f6e3ba6ce37b06b0bdcb341eb2e55c6b82fe4a9eb5eb92cb2febb2829a046e"
+      },
+      {
+        "path": "youtube_transcripts/302-the-data-engineering-landscape-in-2021.vtt",
+        "sha256": "321aa55a3e07d091c4cac0c247abec5fcb05e1724a7d88d3de4c3b3268964f86"
+      },
+      {
+        "path": "youtube_transcripts/506-ty-aka-red-knot-type-checker.vtt",
+        "sha256": "a456c07d33dcafb42b299854579072d4af4621039f2274fba9f2dc95b4a979fd"
+      },
+      {
+        "path": "youtube_transcripts/460-dropbase-build-internal-tools-with-python.vtt",
+        "sha256": "81c98185a8a42713ef7b8f6457acd8274225551cc39ae29cc0fca972097e3ddc"
+      },
+      {
+        "path": "youtube_transcripts/316-flask-2-0.vtt",
+        "sha256": "67151b71e971598a64b08d9b3327e1863b495d89989af3282737ec6d0859f2d5"
+      },
+      {
+        "path": "youtube_transcripts/461-python-in-academic-labs.vtt",
+        "sha256": "d35e63cf018e76b618bddc2a12a478cbf3738d8f1cb3a5d1cea3decc2eb51f51"
+      },
+      {
+        "path": "youtube_transcripts/395-readme-tools.vtt",
+        "sha256": "4cc09aad6e2aad23d9a3707761510a0297239565afaa0dd3b263e51f1aefa51a"
+      },
+      {
+        "path": "youtube_transcripts/301-deploying-and-running-django-web-apps-in-2021.vtt",
+        "sha256": "87bfc397dfd2fdfcc7326ba962dca267a61489e079ed69b19b3323d47bdaa02a"
+      },
+      {
+        "path": "youtube_transcripts/376-pydantic-2-the-plan.vtt",
+        "sha256": "d3714f10afbe68d2a8d3bc1db2d33b51c79bf7ea433fd0abe88309a92e187211"
+      },
+      {
+        "path": "youtube_transcripts/329-geekout-energy-storage.vtt",
+        "sha256": "04d7dd4501839993d138817c19f998a5a9cd89ab2fb51839518142076da814b4"
+      },
+      {
+        "path": "youtube_transcripts/448-open-source-full-time.vtt",
+        "sha256": "0143044c2f49a08209e3f66e937763df6e6e362b8b42a7e53bdcaf4cd740c517"
+      },
+      {
+        "path": "youtube_transcripts/544-wheel-next.vtt",
+        "sha256": "320d8a44ba3abde424fbdbe3476b781081242725c8423e00a325735f12f8fe03"
+      },
+      {
+        "path": "youtube_transcripts/500-django-simple-deploy-and-other-devops things.vtt",
+        "sha256": "88dbd96564a861217a6d32ad759ede70494bde672ce9d89ee0e3ff38aa8d4f39"
+      },
+      {
+        "path": "youtube_transcripts/336-rich-and-textual.vtt",
+        "sha256": "31858a771d77adc1ccc701b7a6dccd8a961e678901e4907eed1a0ffc00856961"
+      },
+      {
+        "path": "youtube_transcripts/311-get-inside-the-git-folder.vtt",
+        "sha256": "58e876b628bf05920b23a045194aa1ef489c085db602e44be4a57a91d7b0e277"
+      },
+      {
+        "path": "youtube_transcripts/409-privacy-as-code.vtt",
+        "sha256": "a2415c6b389868f979a4e88411ebde781ffff9ebe5a2a82c84953ddfab3483a1"
+      },
+      {
+        "path": "youtube_transcripts/369-getting-lazy-with-python-imports-and-pep-690.vtt",
+        "sha256": "bf381ac7d77cf5d737323143e77b81b726eae143c0b80af2f924b37d4d6f2019"
+      },
+      {
+        "path": "youtube_transcripts/389-awesome-asyncio.vtt",
+        "sha256": "614af020cfceff87d5f09fec48e50acc36692dc50df3508432c3a54f62df7115"
+      },
+      {
+        "path": "youtube_transcripts/334-microsoft-planetary-computer.vtt",
+        "sha256": "e6972e0463a1514079a442f0acc7865655a2e044254fca124107563d6546ec33"
+      },
+      {
+        "path": "youtube_transcripts/440-jupyter-ai.vtt",
+        "sha256": "4c674c54e1a55d3a2daac1c1de3eabfff26d052105fdb46c4426b0cb73758c8c"
+      },
+      {
+        "path": "youtube_transcripts/432-beanie-pydantic-upgrade.vtt",
+        "sha256": "a71f8188ba496764eb2d02095831bc11a1cf332af5a04c7c41a7ac785ca54c42"
+      },
+      {
+        "path": "youtube_transcripts/484-from-react-to-a-django-htmx-based-stack.vtt",
+        "sha256": "3ff1ebca632b600ac9e0e75a1f86edf7740f4bb3f110107f32b8c49cc37e2514"
+      },
+      {
+        "path": "youtube_transcripts/367-say-hello-to-pyscript-webassembly-python.vtt",
+        "sha256": "60b138e40924440e1c08fa5e854d8cf21fde96d26c69e483d4a5cfe5b8e01426"
+      },
+      {
+        "path": "youtube_transcripts/426-pyscript-update.vtt",
+        "sha256": "4c609deef29bc467b495b2dca1ddbfbe562951454372657c09840390da6cb010"
+      },
+      {
+        "path": "youtube_transcripts/372-applied-math.vtt",
+        "sha256": "51f2ff92e02db0be70b670d1a19acbf105d822b94315dd4cb467528387549eff"
+      },
+      {
+        "path": "youtube_transcripts/439-pixi-package-manager.vtt",
+        "sha256": "18b39db6b6ccb2ed8d1ded5b579ee5d336f8a4742b5db2a151113d448d3951b8"
+      },
+      {
+        "path": "youtube_transcripts/332-robust-python.vtt",
+        "sha256": "ba6d2a4cd9c434e0792dfd19a04a2f3ecdf77ca1c0141daa9efe6a8deab5b6a8"
+      },
+      {
+        "path": "youtube_transcripts/483-reflex-framework-frontend-backend-pure-python.vtt",
+        "sha256": "fb057443e4f576b953351e5381f3e7907a3b70bc455e9ab8c389e7cf507674cd"
+      },
+      {
+        "path": "youtube_transcripts/307-python-from-1994-to-2021-my-how-youve-grown.vtt",
+        "sha256": "77a60d6204811a75d11c74f3179d508c5e65515fff427398d183ee2a2621bd1d"
+      },
+      {
+        "path": "youtube_transcripts/314-modern-python-projects-ama.vtt",
+        "sha256": "431e16f7f20b755c68409cb582fda5b364e35d2658e526c19832f7135ba0ac10"
+      },
+      {
+        "path": "youtube_transcripts/358-understanding-pandas-visually-with-pandastutor.vtt",
+        "sha256": "4f27524575110a4f1e4710c59557b78d4788aac70530b54c73c5f95cd86ebe3c"
+      },
+      {
+        "path": "youtube_transcripts/508-programming-your-computer-with-python.vtt",
+        "sha256": "797e5b5bb8c722430f6eacb681d9ac81c740bec6a43cbff0ed68191702cd569a"
+      },
+      {
+        "path": "youtube_transcripts/498-high-performance-terminal-apps.vtt",
+        "sha256": "f47d8e791f67b1db15c7aeea67000f245da77999cab69d4dbb619102a5c268e9"
+      },
+      {
+        "path": "youtube_transcripts/354-sphinx-myst-docs.vtt",
+        "sha256": "b9432338306f9f39e055848dfd5c06984fcd5b6ef1e6c1d102c70415ca42ca3d"
+      },
+      {
+        "path": "youtube_transcripts/431-visualizing-cpython-release.vtt",
+        "sha256": "bdc2b18496839593ff27b1d3a5254795efbd93007058c7a46bd49aa1cc553f13"
+      },
+      {
+        "path": "youtube_transcripts/479-designing-effective-load-tests.vtt",
+        "sha256": "f0f40a868ea250e8d5986c55694c3a35d7ba836881aa58d3d58f8378febafbd6"
+      },
+      {
+        "path": "youtube_transcripts/513-stories-from-python-history.vtt",
+        "sha256": "33ce24a5de6cd2417104db086db5a92a901fe444cd082cdbc6371a66afe82711"
+      },
+      {
+        "path": "youtube_transcripts/441-syntatic-sugar.vtt",
+        "sha256": "bc836e8faf06716bbbbe7c47c891b6143dd5760a83aca272ec115b30e0d7026c"
+      },
+      {
+        "path": "youtube_transcripts/325-circuitpython-and-micropython.vtt",
+        "sha256": "321ae554590fd8ecd5dd2fd5146a84fbb251b8515af0e277af8b817bf3a76e40"
+      },
+      {
+        "path": "youtube_transcripts/422-how-data-scientists-use-python.vtt",
+        "sha256": "46d2ed828efb16a79279f8c8a29cd05e2567fe5492dbbbf98c05c140e664b11a"
+      },
+      {
+        "path": "youtube_transcripts/392-data-science-at-the-command-line.vtt",
+        "sha256": "a970327e920086af5a1c7ab474a7900a05a3c3024f3b3e5ec66e0d6edacfffc4"
+      },
+      {
+        "path": "youtube_transcripts/413-live-from-pycon.vtt",
+        "sha256": "ae52b7c1701ddd1c6fe1abf0313590dd84b23dd5c6cdc34a3d83ff0634527477"
+      },
+      {
+        "path": "youtube_transcripts/350-steering-council.vtt",
+        "sha256": "c8fcce315053035d03583e0f8aeee1f437cc7f0d84a032c5a27e9b2c542f200c"
+      },
+      {
+        "path": "youtube_transcripts/472-state-of-flask-and-pallets-in-2024.vtt",
+        "sha256": "7ad9aa8607743f8a7722d84a0dfdd252a3dea809d389c899795793a29d6a8097"
+      },
+      {
+        "path": "youtube_transcripts/481-python-opinions-and-zeitgeist-with-hynek.vtt",
+        "sha256": "8243f4bb5f5d2cb6c2c66ac62b1883cd9fef2671c551a6c8272b134b0a59b18d"
+      },
+      {
+        "path": "youtube_transcripts/424-solving-10-different-simulation-problems.vtt",
+        "sha256": "f4147e8bbd6c63aee6860face5dc8c015a56e6eb22ea7f7e72984df500387af8"
+      },
+      {
+        "path": "youtube_transcripts/453-uv-the-next-evolution-in-python-packages.vtt",
+        "sha256": "a0bc9be47639142a2bb230bed0720ce7164ae75fde4730f2cb92a8324bd7101f"
+      },
+      {
+        "path": "youtube_transcripts/459-ai-coding.vtt",
+        "sha256": "0811663ee8dae0ce9c829fe12d6f87973145d8d61e91d6b799e34adef598ab25"
+      },
+      {
+        "path": "youtube_transcripts/485-secure-coding-for-python-with-shehackspurple.vtt",
+        "sha256": "29e0bec6a05b6b0ee5a20f62ba5724dda7c378a4a30d65a2bc3464fcbd7e2b5b"
+      }
+    ],
+    "queries": "creator episode titles from file slugs; titles withheld from documents",
+    "caveat": "titles often share rare words with their transcripts (e.g. a library name), which favours\nlexical matching. This measures known-item retrieval, not topical recommendation quality."
+  },
+  "results": {
+    "hashing": {
+      "model_id": "hashing-uni-bigram-v1",
+      "preprocessing": "meta_keywords_v1",
+      "n_queries": 100,
+      "recall@1": {
+        "value": 0.28,
+        "n_units": 100,
+        "n_groups": 100,
+        "seed": 7,
+        "ci_low": 0.1998,
+        "ci_high": 0.37,
+        "n_boot": 1000
+      },
+      "recall@5": {
+        "value": 0.63,
+        "n_units": 100,
+        "n_groups": 100,
+        "seed": 7,
+        "ci_low": 0.53,
+        "ci_high": 0.72,
+        "n_boot": 1000
+      },
+      "recall@10": {
+        "value": 0.71,
+        "n_units": 100,
+        "n_groups": 100,
+        "seed": 7,
+        "ci_low": 0.62,
+        "ci_high": 0.79,
+        "n_boot": 1000
+      },
+      "mrr": {
+        "value": 0.4261,
+        "n_units": 100,
+        "n_groups": 100,
+        "seed": 7,
+        "ci_low": 0.35,
+        "ci_high": 0.5049,
+        "n_boot": 1000
+      },
+      "ndcg@10": 0.4864,
+      "median_rank": 3.0,
+      "false_match_rate": 0.72,
+      "confident_false_matches": 18,
+      "confident_threshold": 0.1992,
+      "similarity": {
+        "relevant_median": 0.1135,
+        "non_relevant_median": 0.0,
+        "non_relevant_p95": 0.125
+      },
+      "doc_embedding_seconds_total": 0.42,
+      "doc_embedding_ms_per_doc": 4.2,
+      "query_latency_ms": {
+        "p50": 0.11,
+        "p95": 0.17
+      }
+    },
+    "minilm_onnx": {
+      "model_id": "all-MiniLM-L6-v2-onnx@4f148ba8ae9c",
+      "preprocessing": "chunk_mean_v1",
+      "n_queries": 100,
+      "recall@1": {
+        "value": 0.71,
+        "n_units": 100,
+        "n_groups": 100,
+        "seed": 7,
+        "ci_low": 0.61,
+        "ci_high": 0.8,
+        "n_boot": 1000
+      },
+      "recall@5": {
+        "value": 0.87,
+        "n_units": 100,
+        "n_groups": 100,
+        "seed": 7,
+        "ci_low": 0.8,
+        "ci_high": 0.93,
+        "n_boot": 1000
+      },
+      "recall@10": {
+        "value": 0.9,
+        "n_units": 100,
+        "n_groups": 100,
+        "seed": 7,
+        "ci_low": 0.83,
+        "ci_high": 0.95,
+        "n_boot": 1000
+      },
+      "mrr": {
+        "value": 0.7802,
+        "n_units": 100,
+        "n_groups": 100,
+        "seed": 7,
+        "ci_low": 0.704,
+        "ci_high": 0.8504,
+        "n_boot": 1000
+      },
+      "ndcg@10": 0.8056,
+      "median_rank": 1.0,
+      "false_match_rate": 0.29,
+      "confident_false_matches": 14,
+      "confident_threshold": 0.4926,
+      "similarity": {
+        "relevant_median": 0.4779,
+        "non_relevant_median": 0.1975,
+        "non_relevant_p95": 0.4216
+      },
+      "doc_embedding_seconds_total": 80.55,
+      "doc_embedding_ms_per_doc": 805.5,
+      "query_latency_ms": {
+        "p50": 2.04,
+        "p95": 2.52
+      }
+    },
+    "hybrid_rrf": {
+      "method": "reciprocal rank fusion (k=60) of hashing + minilm_onnx",
+      "n_queries": 100,
+      "recall@1": {
+        "value": 0.57,
+        "n_units": 100,
+        "n_groups": 100,
+        "seed": 7,
+        "ci_low": 0.47,
+        "ci_high": 0.67,
+        "n_boot": 1000
+      },
+      "recall@5": {
+        "value": 0.81,
+        "n_units": 100,
+        "n_groups": 100,
+        "seed": 7,
+        "ci_low": 0.73,
+        "ci_high": 0.88,
+        "n_boot": 1000
+      },
+      "recall@10": {
+        "value": 0.84,
+        "n_units": 100,
+        "n_groups": 100,
+        "seed": 7,
+        "ci_low": 0.76,
+        "ci_high": 0.91,
+        "n_boot": 1000
+      },
+      "mrr": {
+        "value": 0.6734,
+        "n_units": 100,
+        "n_groups": 100,
+        "seed": 7,
+        "ci_low": 0.5937,
+        "ci_high": 0.7487,
+        "n_boot": 1000
+      },
+      "ndcg@10": 0.7074,
+      "median_rank": 1.0,
+      "false_match_rate": 0.43
+    }
+  }
+}
