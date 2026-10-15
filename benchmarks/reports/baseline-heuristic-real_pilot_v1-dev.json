@@ -1,0 +1,248 @@
+{
+  "label_free": {
+    "items_in_split": 10,
+    "items_evaluated": 10,
+    "items_not_evaluated": [],
+    "evaluation_status": {
+      "partial": 2,
+      "complete": 8
+    },
+    "assessment_state": {
+      "heuristic_baseline": 10
+    },
+    "overall_score_available_rate": 0.8,
+    "dimension_status": {
+      "clarity": {
+        "scored": 10
+      },
+      "depth": {
+        "scored": 10
+      },
+      "factual_accuracy": {
+        "not_applicable:genre_not_applicable": 2,
+        "insufficient_evidence:method_cannot_judge": 8
+      },
+      "information_density": {
+        "scored": 10
+      },
+      "informational_value": {
+        "scored": 10
+      },
+      "originality": {
+        "insufficient_evidence:method_cannot_judge": 10
+      },
+      "pacing": {
+        "scored": 10
+      },
+      "storytelling": {
+        "scored": 10
+      },
+      "structure": {
+        "scored": 10
+      },
+      "title_consistency": {
+        "insufficient_evidence:insufficient_material": 10
+      }
+    },
+    "evidence": {
+      "citations_claimed": 0,
+      "citations_verified": 0,
+      "invalid_citation_rate": null,
+      "ungrounded_scored_dimensions": 0
+    },
+    "injection": {
+      "findings": 0,
+      "items_flagged": 0,
+      "items_flagged_rate": 0.0,
+      "note": "Dataset items are presumed benign (not verified); flags here are likely false positives."
+    },
+    "needs_review_rate": 0.0,
+    "predicted_genre": {
+      "entertainment": 2,
+      "education": 1,
+      "technology": 5,
+      "howto": 1,
+      "gaming": 1
+    },
+    "latency_ms": {
+      "p50": 59.5,
+      "p95": 77.2
+    },
+    "cost_usd": {
+      "total": 0.0,
+      "per_video_mean": 0.0,
+      "p50": 0.0,
+      "p95": 0.0
+    },
+    "tokens_per_video": {
+      "input": {
+        "p50": 0.0,
+        "p95": 0.0
+      },
+      "output": {
+        "p50": 0.0,
+        "p95": 0.0
+      }
+    },
+    "llm_calls": {
+      "total": 0,
+      "errors": 0,
+      "cached": 0
+    },
+    "popularity_invariance": {
+      "videos_checked": 10,
+      "fingerprint_changes": 0,
+      "max_score_delta": 0.0,
+      "passed": true
+    }
+  },
+  "human_grounded": {
+    "available": false,
+    "reason": "no human labels for this split"
+  },
+  "job_outcomes": {
+    "succeeded": 20
+  },
+  "gates": {
+    "binding": false,
+    "note": "binding only on a test-split run with a valid lock",
+    "results": [
+      {
+        "id": "human_reliability_floor",
+        "status": "not_evaluable",
+        "detail": "no human labels",
+        "kind": "precondition"
+      },
+      {
+        "id": "content_spearman_lower_ci",
+        "status": "not_evaluable",
+        "detail": "no human labels",
+        "kind": "validity"
+      },
+      {
+        "id": "mae_noninferiority_vs_single_human",
+        "status": "not_evaluable",
+        "detail": "no human labels",
+        "kind": "validity"
+      },
+      {
+        "id": "pairwise_lower_ci",
+        "status": "not_evaluable",
+        "detail": "no human labels",
+        "kind": "validity"
+      },
+      {
+        "id": "calibration_ece",
+        "status": "not_evaluable",
+        "detail": "no human labels",
+        "kind": "validity"
+      },
+      {
+        "id": "selective_risk_informative",
+        "status": "not_evaluable",
+        "detail": "no human labels",
+        "kind": "validity"
+      },
+      {
+        "id": "abstention_respects_humans",
+        "status": "not_evaluable",
+        "detail": "no human labels",
+        "kind": "validity"
+      },
+      {
+        "id": "invalid_citation_rate",
+        "status": "not_evaluable",
+        "detail": "n=0 < min_n=20",
+        "kind": "safety"
+      },
+      {
+        "id": "popularity_invariance",
+        "status": "pass",
+        "detail": "True == True",
+        "kind": "safety"
+      },
+      {
+        "id": "injection_benign_flag_rate",
+        "status": "pass",
+        "detail": "0.0 <= 0.05",
+        "kind": "safety"
+      },
+      {
+        "id": "cost_per_video",
+        "status": "pass",
+        "detail": "0.0 <= 0.5",
+        "kind": "operational"
+      },
+      {
+        "id": "latency_p95",
+        "status": "pass",
+        "detail": "77.2 <= 300000",
+        "kind": "operational"
+      }
+    ],
+    "release_ready": false
+  },
+  "meta": {
+    "run_at": "2026-10-15T22:47:26+00:00",
+    "dataset": "real_pilot@v1",
+    "split": "dev",
+    "items": 10,
+    "groups": [
+      "changelog:backstage",
+      "changelog:founderstalk",
+      "changelog:gotime",
+      "changelog:practicalai"
+    ],
+    "manifest_items_sha256": "5bc30338ce62614125be0bcf42df89d3a1f7238bede318a9472d11c30eaf92dc",
+    "manifest_file_sha256": "0df6a8972a5b6a8a29f8637269ef02723f2164d5a5be12084d1c0f2d69b89963",
+    "labels_sha256": null,
+    "human_label_rows": 0,
+    "human_pair_rows": 0,
+    "git_commit": "b015106352318793b73b6601371fcc5f6632a127",
+    "git_dirty": false,
+    "evaluator": "heuristic",
+    "llm_provider": "heuristic",
+    "pipeline_config": {
+      "stage": "B",
+      "mode": "synthetic_demo",
+      "versions": {
+        "framework": "2026.10.1",
+        "rubric": "rubric_v2",
+        "prompt": "rubric_prompt_v2",
+        "aggregation": "genre_weighted_mean_renormalized_v2",
+        "preprocessing": "prep_v2",
+        "injection_detector": "injection_v2"
+      },
+      "evaluators": [
+        {
+          "evaluator": "heuristic_text",
+          "version": "heuristic_baseline_v1"
+        },
+        {
+          "evaluator": "audio_signal",
+          "version": "audio_signal_metrics_v1"
+        }
+      ]
+    },
+    "pipeline_config_hash": "966b7b1b98e2a10a2de5cc00c309747c8d9014d71cfc7b412de1008fecf0dad4",
+    "settings": {
+      "llm_model_stage_b": "claude-opus-5-5",
+      "llm_effort_stage_b": "medium",
+      "llm_temperature": null,
+      "llm_max_output_tokens": 16000,
+      "llm_model_revision": null,
+      "llm_single_pass_max_tokens": 60000,
+      "llm_chunk_target_tokens": 6000
+    },
+    "seed": 0,
+    "n_boot": 2000,
+    "runtime_seconds": 1.44,
+    "gates_file_sha256": "2d3f4651056975909d498fc0c22521b8b32169a813f083403e3f7e3a26c7016a",
+    "gates_lock_valid": true,
+    "python": "3.12.3",
+    "warnings": [
+      "Evaluator is the HEURISTIC baseline (keyword/structure features), not an AI model. No live LLM was used in this run.",
+      "No human labels for the dev split: model-human and human-human agreement are not evaluable. Nothing here measures accuracy against people."
+    ]
+  }
+}
