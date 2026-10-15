@@ -252,6 +252,24 @@ def cmd_annotate(args: argparse.Namespace) -> None:
             print(json.dumps({k: len(v) for k, v in data.items()}))
 
 
+def cmd_bench_real(args: argparse.Namespace) -> None:
+    from avd.bench.real import main as real_main
+
+    real_main(args)
+
+
+def cmd_gates(args: argparse.Namespace) -> None:
+    from avd.bench.real import load_gates, lock_gates
+
+    if args.gates_cmd == "lock":
+        print(json.dumps(lock_gates(args.statement, new_test_set=args.new_test_set), indent=2))
+    else:
+        g = load_gates()
+        print(json.dumps({"sha256": g["sha256"], "lock_valid": g["lock_valid"], "lock": g["lock"]}, indent=2))
+        if not g["lock_valid"]:
+            sys.exit(1)
+
+
 def cmd_bench(args: argparse.Namespace) -> None:
     from avd.bench.harness import main as bench_main
 
@@ -332,6 +350,29 @@ def main(argv: list[str] | None = None) -> None:
         sp.add_argument("--dataset", default="real_pilot@v1")
     for sp in (cr, q, ex):
         sp.set_defaults(fn=cmd_annotate)
+    br = sub.add_parser("bench-real", help="benchmark on a real licensed dataset against human labels")
+    br.add_argument(
+        "--manifest", default=str(REPO_ROOT / "benchmarks" / "datasets" / "real_pilot_v1" / "manifest.json")
+    )
+    br.add_argument("--labels", default=None, help="directory from 'avd annotate export'")
+    br.add_argument("--split", choices=["dev", "test"], default="dev")
+    br.add_argument(
+        "--confirm-test", action="store_true", help="deliberately evaluate the held-out test split"
+    )
+    br.add_argument("--evaluator", choices=["heuristic", "configured"], default="heuristic")
+    br.add_argument("--offline", action="store_true")
+    br.add_argument("--seed", type=int, default=0)
+    br.add_argument("--n-boot", type=int, default=2000)
+    br.add_argument("--out", default=str(REPO_ROOT / "benchmarks" / "reports"))
+    br.add_argument("--tag", default=None)
+    br.set_defaults(fn=cmd_bench_real)
+    gt = sub.add_parser("gates", help="release gates lock").add_subparsers(dest="gates_cmd", required=True)
+    gl = gt.add_parser("lock")
+    gl.add_argument("--statement", required=True)
+    gl.add_argument("--new-test-set", action="store_true")
+    gt.add_parser("check")
+    for sp in gt.choices.values():
+        sp.set_defaults(fn=cmd_gates)
     b = sub.add_parser("bench", help="run the evaluation benchmark harness")
     b.add_argument("--dataset", default=str(REPO_ROOT / "benchmarks" / "datasets" / "synthetic_v1"))
     b.add_argument("--fixtures", default=str(REPO_ROOT / "data" / "fixtures"))

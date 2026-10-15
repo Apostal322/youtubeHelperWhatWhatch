@@ -1,0 +1,6 @@
+{
+  "sha256": "2d3f4651056975909d498fc0c22521b8b32169a813f083403e3f7e3a26c7016a",
+  "locked_at": "2026-10-15T22:42:08+00:00",
+  "statement": "Locked before any human annotation of real_pilot@v1 exists (0 raters, 0 annotations at lock time). Thresholds chosen a priori; see rationale per gate.",
+  "history": []
+}

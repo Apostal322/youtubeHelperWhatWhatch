@@ -627,6 +627,7 @@ def export_labels(session: Session, dataset_id: str) -> dict[str, list[dict[str,
                 "group_key": item.group_key,
                 "evidence": s.evidence,
                 "flags": a.flags,
+                "submitted_at": _aware(a.submitted_at).isoformat() if a.submitted_at else None,
             }
             (repeats if a.is_repeat else labels).append(row)
     for adj in session.scalars(select(Adjudication).where(Adjudication.dataset_id == dataset_id)).all():
@@ -642,6 +643,7 @@ def export_labels(session: Session, dataset_id: str) -> dict[str, list[dict[str,
                 "rationale": adj.rationale,
                 "split": item.split if item else None,
                 "group_key": item.group_key if item else None,
+                "submitted_at": _aware(adj.created_at).isoformat(),
             }
         )
     pairs = [
@@ -656,6 +658,8 @@ def export_labels(session: Session, dataset_id: str) -> dict[str, list[dict[str,
             "label_source": "human_annotation",
             "rubric_version": p.rubric_version,
             "split": items[p.video_a].split if p.video_a in items else None,
+            "group_key": items[p.video_a].group_key if p.video_a in items else None,
+            "submitted_at": _aware(p.created_at).isoformat(),
         }
         for p in session.scalars(select(PairwiseLabel).where(PairwiseLabel.dataset_id == dataset_id)).all()
     ]
