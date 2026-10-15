@@ -234,6 +234,7 @@ def test_redis_token_bucket_shared_state() -> None:
 
 def test_anthropic_provider_maps_responses(monkeypatch: pytest.MonkeyPatch) -> None:
     """The Anthropic provider sends a JSON-schema output config and maps refusals/truncation."""
+    pytest.importorskip("anthropic")  # optional extra: pip install -e ".[anthropic]"
     from types import SimpleNamespace
 
     from avd.llm.base import LLMOutputError, LLMRefusalError, LLMRequest
