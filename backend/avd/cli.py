@@ -230,6 +230,28 @@ def cmd_dataset_revoke(args: argparse.Namespace) -> None:
         print(json.dumps(revoke_video_sources(s, args.video_id, args.reason)))
 
 
+def cmd_annotate(args: argparse.Namespace) -> None:
+    from avd.annotation import service as svc
+    from avd.db.session import session_scope
+
+    with session_scope() as s:
+        if args.annotate_cmd == "create-rater":
+            rater, token = svc.create_rater(s, args.pseudonym, args.expertise, args.role)
+            print(json.dumps({"id": rater.id, "pseudonym": rater.pseudonym, "role": rater.role}))
+            print(f"token (shown once, give it to the rater privately): {token}", file=sys.stderr)
+        elif args.annotate_cmd == "qc":
+            print(json.dumps(svc.qc_report(s, args.dataset), indent=2))
+        elif args.annotate_cmd == "export":
+            out = Path(args.out)
+            out.mkdir(parents=True, exist_ok=True)
+            data = svc.export_labels(s, args.dataset)
+            for name in ("labels", "repeats", "pairs", "items"):
+                with (out / f"{name}.jsonl").open("w", encoding="utf-8") as f:
+                    for row in data[name]:
+                        f.write(json.dumps(row, ensure_ascii=False) + "\n")
+            print(json.dumps({k: len(v) for k, v in data.items()}))
+
+
 def cmd_bench(args: argparse.Namespace) -> None:
     from avd.bench.harness import main as bench_main
 
@@ -296,6 +318,20 @@ def main(argv: list[str] | None = None) -> None:
     rv.add_argument("video_id")
     rv.add_argument("--reason", required=True)
     rv.set_defaults(fn=cmd_dataset_revoke)
+    an = sub.add_parser("annotate", help="human annotation administration").add_subparsers(
+        dest="annotate_cmd", required=True
+    )
+    cr = an.add_parser("create-rater")
+    cr.add_argument("pseudonym")
+    cr.add_argument("--expertise", nargs="*", default=[])
+    cr.add_argument("--role", choices=["rater", "adjudicator"], default="rater")
+    q = an.add_parser("qc")
+    ex = an.add_parser("export")
+    ex.add_argument("--out", required=True)
+    for sp in (q, ex):
+        sp.add_argument("--dataset", default="real_pilot@v1")
+    for sp in (cr, q, ex):
+        sp.set_defaults(fn=cmd_annotate)
     b = sub.add_parser("bench", help="run the evaluation benchmark harness")
     b.add_argument("--dataset", default=str(REPO_ROOT / "benchmarks" / "datasets" / "synthetic_v1"))
     b.add_argument("--fixtures", default=str(REPO_ROOT / "data" / "fixtures"))

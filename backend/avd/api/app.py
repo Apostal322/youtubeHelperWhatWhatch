@@ -5,7 +5,7 @@ from typing import Any
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from avd.api.routers import admin, public, users
+from avd.api.routers import admin, annotation, public, users
 from avd.config import get_settings
 from avd.logging import configure_logging
 
@@ -33,6 +33,8 @@ def create_app() -> FastAPI:
     app.include_router(public.router)
     app.include_router(users.router)
     app.include_router(admin.router)
+    app.include_router(annotation.router)
+    app.include_router(annotation.ui_router)
     return app
 
 
