@@ -13,8 +13,9 @@ weight, the overall summary) reflects production quality.
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+from typing import Any
 
-from avd.evaluation.schema import Dimension, DimensionGroup, Genre
+from avd.evaluation.schema import Dimension, DimensionGroup, Genre, GenreAssessment, GenreStatus
 
 D = Dimension
 G = DimensionGroup
@@ -46,6 +47,7 @@ class GenreProfile:
             "dimension_weights": {d.value: w for d, w in self.dimension_weights.items()},
             "group_weights": {g.value: w for g, w in self.group_weights.items()},
             "guidance": self.guidance,
+            "notes": list(self.notes),
         }
 
 
@@ -241,6 +243,125 @@ PROFILES: dict[Genre, GenreProfile] = {
             "A transcript captures lyrics and spoken parts only; abstain on what cannot be judged "
             "from text. Audio quality matters strongly when authorized audio is available.",
         ),
+        # ---- genre v2 -------------------------------------------------------------------------
+        GenreProfile(
+            Genre.LECTURE,
+            "Lectures and long-form teaching: explanatory depth, correctness and structure.",
+            _weights(
+                depth=1.5,
+                factual_accuracy=1.6,
+                originality=0.4,
+                informational_value=1.3,
+                clarity=1.5,
+                structure=1.4,
+                pacing=0.7,
+                storytelling=0.3,
+                visual_quality=0.3,
+                editing=0.2,
+            ),
+            {G.CONTENT: 0.6, G.PRESENTATION: 0.3, G.TECHNICAL: 0.1},
+            "A lecture is judged on correctness, depth and the clarity of its explanations. A plain "
+            "recording, slow delivery or the absence of editing are not content flaws.",
+        ),
+        GenreProfile(
+            Genre.PROGRAMMING,
+            "Programming tutorials, talks and code walkthroughs.",
+            _weights(
+                information_density=1.2,
+                depth=1.3,
+                factual_accuracy=1.5,
+                originality=0.6,
+                informational_value=1.4,
+                clarity=1.4,
+                structure=1.2,
+                storytelling=0.2,
+                visual_readability=1.4,
+                editing=0.5,
+            ),
+            {G.CONTENT: 0.55, G.PRESENTATION: 0.3, G.TECHNICAL: 0.15},
+            "Judge technical correctness (does the described code or approach actually work, are "
+            "trade-offs and versions stated), depth beyond the documentation, and whether a "
+            "practitioner could apply it.",
+        ),
+        GenreProfile(
+            Genre.PRODUCT_REVIEW,
+            "Product and service reviews.",
+            _weights(
+                information_density=1.1,
+                depth=1.1,
+                factual_accuracy=1.4,
+                originality=1.0,
+                informational_value=1.5,
+                storytelling=0.3,
+                title_consistency=1.4,
+            ),
+            {G.CONTENT: 0.6, G.PRESENTATION: 0.25, G.TECHNICAL: 0.15},
+            "Value evidence of first-hand testing, accurate specifications, comparison with "
+            "alternatives, stated drawbacks and disclosed sponsorship. Do not reward hype, and "
+            "do not treat the reviewer's verdict as a fact.",
+        ),
+        GenreProfile(
+            Genre.INTERVIEW_PODCAST,
+            "Interviews, panels and conversational podcasts.",
+            _weights(
+                information_density=0.8,
+                depth=1.3,
+                factual_accuracy=1.0,
+                originality=1.1,
+                informational_value=1.2,
+                clarity=1.0,
+                structure=0.6,
+                pacing=0.8,
+                storytelling=0.7,
+                audio_quality=1.2,
+                visual_quality=0.2,
+                editing=0.4,
+                visual_readability=0.2,
+            ),
+            {G.CONTENT: 0.6, G.PRESENTATION: 0.25, G.TECHNICAL: 0.15},
+            "Conversation is the format: tangents, banter and loose structure are normal and only "
+            "matter when they crowd out substance. Judge the insight guests share, the quality of "
+            "the questions, and whether claims are distinguished from opinions and anecdotes.",
+        ),
+        GenreProfile(
+            Genre.COMEDY,
+            "Stand-up, sketches and comedic commentary.",
+            _weights(
+                information_density=0.2,
+                depth=0.3,
+                factual_accuracy=0.0,
+                originality=1.8,
+                informational_value=0.2,
+                clarity=0.7,
+                structure=0.8,
+                pacing=1.5,
+                storytelling=1.4,
+                editing=1.0,
+                visual_readability=0.2,
+            ),
+            {G.CONTENT: 0.35, G.PRESENTATION: 0.45, G.TECHNICAL: 0.2},
+            "Judge originality of the material, timing and execution. Satire and exaggeration "
+            "are not factual errors. Do not penalise the absence of educational content.",
+        ),
+        GenreProfile(
+            Genre.PERSONAL_STORYTELLING,
+            "Personal stories, memoir-style vlogs and lived-experience accounts.",
+            _weights(
+                information_density=0.4,
+                depth=0.8,
+                factual_accuracy=0.0,
+                originality=1.3,
+                informational_value=0.6,
+                clarity=0.9,
+                structure=0.9,
+                pacing=1.2,
+                storytelling=2.0,
+                visual_readability=0.2,
+            ),
+            {G.CONTENT: 0.4, G.PRESENTATION: 0.45, G.TECHNICAL: 0.15},
+            "Personal experience is not a factual claim to verify; judge narrative craft, honesty "
+            "of framing and what a viewer takes away. Flag general claims presented as facts.",
+        ),
         GenreProfile(
             Genre.OTHER,
             "Fallback profile with uniform weights.",
@@ -256,3 +377,50 @@ assert set(PROFILES) == set(Genre), "every genre needs a profile"
 
 def get_profile(genre: Genre) -> GenreProfile:
     return PROFILES[genre]
+
+
+def profile_from_dict(d: dict[str, Any]) -> GenreProfile:
+    """Rebuild the exact profile stored with an evaluation (``aggregation.profile``)."""
+    return GenreProfile(
+        Genre(d["genre"]),
+        d.get("description", ""),
+        {Dimension(k): float(v) for k, v in d["dimension_weights"].items()},
+        {DimensionGroup(k): float(v) for k, v in d["group_weights"].items()},
+        d.get("guidance", ""),
+        notes=list(d.get("notes", [])),
+    )
+
+
+def blend(shares: dict[Genre, float]) -> GenreProfile:
+    """Mixture profile: dimension and group weights are the share-weighted means of the
+    component profiles. The result is reported verbatim with the evaluation."""
+    total = sum(shares.values())
+    parts = [(PROFILES[g], s / total) for g, s in sorted(shares.items(), key=lambda kv: -kv[1])]
+    dims = {d: round(sum(p.weight(d) * s for p, s in parts), 4) for d in Dimension}
+    groups = {g: round(sum(p.group_weights.get(g, 0.0) * s for p, s in parts), 4) for g in DimensionGroup}
+    label = " + ".join(f"{p.genre.value} {s:.0%}" for p, s in parts)
+    return GenreProfile(
+        parts[0][0].genre,
+        f"Mixture: {label}.",
+        dims,
+        groups,
+        " ".join(f"[{p.genre.value}] {p.guidance}" for p, _ in parts),
+        notes=[f"blended profile ({label})"],
+    )
+
+
+def profile_for(assessment: GenreAssessment) -> GenreProfile:
+    """The aggregation profile for a genre assessment (aggregation v2).
+
+    * confident / overridden: that genre's profile;
+    * mixed: a blend of the two leading genres, weighted by their shares;
+    * ambiguous / unknown: the neutral ``other`` profile (uniform weights) — weak genre evidence
+      must not silently decide which dimensions count.
+    """
+    if assessment.status == GenreStatus.MIXED and assessment.secondary is not None:
+        a = assessment.distribution.get(assessment.genre.value, 0.5)
+        b = assessment.distribution.get(assessment.secondary.value, 0.5)
+        return blend({assessment.genre: a, assessment.secondary: b})
+    if assessment.status in (GenreStatus.AMBIGUOUS, GenreStatus.UNKNOWN):
+        return PROFILES[Genre.OTHER]
+    return PROFILES[assessment.genre]

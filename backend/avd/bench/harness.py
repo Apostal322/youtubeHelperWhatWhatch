@@ -41,8 +41,15 @@ from avd.db.session import make_engine
 from avd.embeddings.base import get_embedder
 from avd.evaluation.aggregation import aggregate
 from avd.evaluation.inputs import build_evaluation_input
-from avd.evaluation.profiles import get_profile
-from avd.evaluation.schema import FRAMEWORK_VERSION, Dimension, DimensionScore, DimensionStatus, Genre
+from avd.evaluation.profiles import get_profile, profile_from_dict
+from avd.evaluation.schema import (
+    FRAMEWORK_VERSION,
+    GENRE_PARENT,
+    Dimension,
+    DimensionScore,
+    DimensionStatus,
+    Genre,
+)
 from avd.evaluation.service import genre_or_other
 from avd.recsys.recommender import recommend
 from avd.services import seed_demo
@@ -228,7 +235,11 @@ def _evaluation_metrics(
             for (v_id, d), v in by_key.items()
             if v_id == vid
         ]
-        ref_overall[vid] = aggregate(dims, get_profile(genre_or_other(ev.genre))).overall
+        # Same weights as the evaluation itself (blended for genre mixtures), so the comparison is
+        # like for like.
+        stored = (ev.aggregation or {}).get("profile")
+        prof = profile_from_dict(stored) if stored else get_profile(genre_or_other(ev.genre))
+        ref_overall[vid] = aggregate(dims, prof).overall
         model_overall[vid] = ev.overall_score
     both: list[tuple[float, float]] = []
     for v in evals:
@@ -292,6 +303,8 @@ def _genre_accuracy(videos: dict[str, Video]) -> dict[str, Any]:
         code = vid.split("_")[1] if vid.startswith("syn_") else None
         if code in GENRE_CODES:
             rows.append((vid, GENRE_CODES[code], v.genre))
+    # v2 genres are refinements; compare at the v1 level the fixture labels use.
+    rows = [(v, t, GENRE_PARENT.get(Genre(p), Genre(p)).value if p else p) for v, t, p in rows]
     correct = sum(1 for _, t, p in rows if t == p)
     return {
         "accuracy": _r(correct / len(rows)) if rows else None,

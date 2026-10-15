@@ -18,6 +18,7 @@ from __future__ import annotations
 
 from avd.evaluation.profiles import GenreProfile
 from avd.evaluation.schema import (
+    AGGREGATION_VERSION,
     AggregationResult,
     Contribution,
     Dimension,
@@ -27,7 +28,7 @@ from avd.evaluation.schema import (
     GroupAggregate,
 )
 
-METHOD = "genre_weighted_mean_renormalized_v1"
+METHOD = AGGREGATION_VERSION  # v2: blended profiles for genre mixtures, neutral profile when ambiguous
 MIN_CONTENT_COVERAGE = 0.5
 MIN_TOTAL_COVERAGE = 0.4
 DIVERGENCE_THRESHOLD = 1.5
@@ -121,9 +122,11 @@ def aggregate(dimensions: list[DimensionScore], profile: GenreProfile) -> Aggreg
             "the overall summary."
         )
 
+    notes.extend(profile.notes)
     return AggregationResult(
         profile=profile.genre,
         method=METHOD,
+        profile_detail=profile.as_dict(),
         groups=groups,
         overall=overall,
         overall_confidence=overall_conf,

@@ -11,6 +11,7 @@ from sqlalchemy.orm import Session
 
 from avd.db.models import Channel, Evaluation, Video
 from avd.db.types import EmbeddingVector
+from avd.evaluation.schema import expand_genres
 
 
 @dataclass
@@ -30,7 +31,7 @@ def _apply_filters(q: Select, f: SearchFilters, embedding_model: str) -> Select:
             Evaluation.status.in_(("complete", "partial"))
         )
     if f.genres:
-        q = q.where(Video.genre.in_(f.genres))
+        q = q.where(Video.genre.in_(expand_genres(f.genres)))
     if f.languages:
         q = q.where(Video.language.in_(f.languages))
     if not f.include_synthetic:

@@ -31,7 +31,7 @@ from avd.db.models import (
 )
 from avd.embeddings.base import Embedder, calibrated_relevance
 from avd.evaluation.profiles import get_profile
-from avd.evaluation.schema import Dimension
+from avd.evaluation.schema import Dimension, expand_genres, genre_preference
 from avd.evaluation.service import genre_or_other, summary
 from avd.recsys.index import SearchFilters, vector_search
 from avd.recsys.ranker import DEFAULT_WEIGHTS, LinearRanker, Ranker
@@ -109,12 +109,15 @@ def _cos(a: list[float], b: list[float]) -> float:
 
 def personal_quality(ev: Evaluation, dimension_weights: dict[str, float]) -> float | None:
     """User-weighted view of quality: genre-profile weights x user priority multipliers."""
+    # The exact (possibly blended) weights used for this evaluation; v1 rows fall back to the genre.
+    stored = ((ev.aggregation or {}).get("profile") or {}).get("dimension_weights")
     profile = get_profile(genre_or_other(ev.genre))
     num = den = 0.0
     for d in ev.dimensions:
         if d.status != "scored" or d.score is None:
             continue
-        w = profile.weight(Dimension(d.dimension)) * float(dimension_weights.get(d.dimension, 1.0))
+        base = float(stored.get(d.dimension, 0.0)) if stored else profile.weight(Dimension(d.dimension))
+        w = base * float(dimension_weights.get(d.dimension, 1.0))
         num += w * d.score
         den += w
     if den == 0:
@@ -162,7 +165,7 @@ def recommend(
         for vid, sim in vector_search(session, vec, 60, embedder.model_id, filters):
             if vid not in relevance or sim > relevance[vid][0]:
                 relevance[vid] = (sim, interest)
-    preferred = [g for g, w in prof.genre_weights.items() if w > 0] or None
+    preferred = expand_genres([g for g, w in prof.genre_weights.items() if w > 0]) or None
     q = (
         select(Video.id)
         .join(Evaluation, (Evaluation.video_id == Video.id) & Evaluation.is_current.is_(True))
@@ -226,9 +229,7 @@ def recommend(
             "confidence": ev.overall_confidence
             if ev.overall_confidence is not None
             else (sum(conf_values) / len(conf_values) if conf_values else 0.0),
-            "genre_preference": float(prof.genre_weights.get(v.genre or "other", 0.5))
-            if prof.genre_weights
-            else 0.5,
+            "genre_preference": genre_preference(prof.genre_weights, v.genre) if prof.genre_weights else 0.5,
             "depth_match": depth_match,
             "novelty": 0.5 ** prof.impressions.get(vid, 0),
             "feedback_affinity": affinity,

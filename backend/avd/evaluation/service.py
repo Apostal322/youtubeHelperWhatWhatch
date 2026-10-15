@@ -97,7 +97,7 @@ def persist_evaluation(session: Session, result: EvaluationResult, job_id: str |
         group_scores={g.value: a.model_dump(mode="json") for g, a in agg.groups.items()},
         aggregation={
             "method": agg.method,
-            "profile": get_profile(agg.profile).as_dict(),
+            "profile": agg.profile_detail or get_profile(agg.profile).as_dict(),
             "contributions": [c.model_dump(mode="json") for c in agg.contributions],
             "abstain_reason": agg.abstain_reason,
             "notes": agg.notes,
@@ -156,6 +156,8 @@ def persist_evaluation(session: Session, result: EvaluationResult, job_id: str |
         video.genre = result.genre.genre.value
         video.genre_confidence = result.genre.confidence
         video.genre_method = result.genre.method
+        video.genre_distribution = result.genre.distribution
+        video.genre_status = result.genre.status.value
     session.flush()
     return ev
 

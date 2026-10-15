@@ -12,7 +12,7 @@ from __future__ import annotations
 import re
 from typing import Protocol
 
-from avd.evaluation.schema import Genre, GenreAssessment
+from avd.evaluation.schema import GENRE_PARENT, Genre, GenreAssessment, GenreStatus
 
 # YouTube category ids -> genre prior.
 CATEGORY_PRIOR: dict[str, Genre] = {
@@ -35,7 +35,6 @@ CATEGORY_PRIOR: dict[str, Genre] = {
 
 LEXICON: dict[Genre, tuple[str, ...]] = {
     Genre.EDUCATION: (
-        "lecture",
         "lesson",
         "course",
         "explained",
@@ -84,25 +83,19 @@ LEXICON: dict[Genre, tuple[str, ...]] = {
     ),
     Genre.TECHNOLOGY: (
         "software",
-        "programming",
-        "code",
         "computer",
         "algorithm",
         "database",
         "app",
         "hardware",
         "linux",
-        "python",
-        "javascript",
         "ai",
         "machine learning",
         "network",
         "smartphone",
-        "review",
         "gpu",
         "cpu",
         "tecnología",
-        "programación",
         "technik",
         "software",
     ),
@@ -123,15 +116,10 @@ LEXICON: dict[Genre, tuple[str, ...]] = {
         "spiel",
     ),
     Genre.ENTERTAINMENT: (
-        "funny",
-        "comedy",
-        "sketch",
         "prank",
         "challenge",
         "vlog",
         "reaction",
-        "story time",
-        "storytime",
         "laugh",
         "entertainment",
         "show",
@@ -143,7 +131,6 @@ LEXICON: dict[Genre, tuple[str, ...]] = {
         "the story of",
         "history of",
         "archive",
-        "interview",
         "documental",
         "dokumentation",
     ),
@@ -205,6 +192,87 @@ LEXICON: dict[Genre, tuple[str, ...]] = {
         "noticias",
         "nachrichten",
     ),
+    Genre.LECTURE: (
+        "lecture",
+        "lectures",
+        "professor",
+        "seminar",
+        "syllabus",
+        "homework",
+        "in this lecture",
+        "today we will",
+        "vorlesung",
+        "clase magistral",
+    ),
+    Genre.PROGRAMMING: (
+        "programming",
+        "code",
+        "coding",
+        "compiler",
+        "function",
+        "python",
+        "javascript",
+        "typescript",
+        "rust",
+        "golang",
+        "api",
+        "framework",
+        "library",
+        "refactoring",
+        "debugging",
+        "open source",
+        "repository",
+        "kubernetes",
+        "docker",
+        "sql",
+        "programación",
+    ),
+    Genre.PRODUCT_REVIEW: (
+        "review",
+        "unboxing",
+        "hands-on",
+        "worth it",
+        "pros and cons",
+        "should you buy",
+        "first impressions",
+        "battery life",
+        "specs",
+        "reseña",
+        "testbericht",
+    ),
+    Genre.INTERVIEW_PODCAST: (
+        "podcast",
+        "episode",
+        "interview",
+        "my guest",
+        "our guest",
+        "welcome to the show",
+        "joined by",
+        "conversation with",
+        "panel",
+        "entrevista",
+    ),
+    Genre.COMEDY: (
+        "comedy",
+        "stand-up",
+        "standup",
+        "sketch",
+        "funny",
+        "jokes",
+        "parody",
+        "satire",
+        "comedia",
+    ),
+    Genre.PERSONAL_STORYTELLING: (
+        "my story",
+        "story time",
+        "storytime",
+        "my journey",
+        "my experience",
+        "when i was",
+        "what happened to me",
+        "life update",
+    ),
 }
 
 _WORD = re.compile(r"[\w'’]+", re.UNICODE)
@@ -221,8 +289,35 @@ class GenreClassifier(Protocol):
     ) -> GenreAssessment: ...
 
 
+# "Name Surname: text" at the start of a transcript segment/paragraph.
+_SPEAKER = re.compile(r"(?m)^\s*([A-Z][\w.'’-]+(?: [A-Z][\w.'’-]+){0,2}):\s")
+
+MIN_EVIDENCE = 4.0  # below this total score (e.g. a single title keyword) the assessment is "ambiguous"
+AMBIGUOUS_TOP_SHARE = 0.35
+MIXED_SECOND_SHARE = 0.25
+MIXED_RATIO = 0.6
+
+
+def speaker_turn_cue(transcript_text: str | None) -> tuple[int, int]:
+    """(distinct labelled speakers, labelled turns) in the first 50k characters."""
+    if not transcript_text:
+        return 0, 0
+    labels = _SPEAKER.findall(transcript_text[:50000].replace(". ", ".\n"))
+    counts: dict[str, int] = {}
+    for lab in labels:
+        counts[lab] = counts.get(lab, 0) + 1
+    speakers = [k for k, v in counts.items() if v >= 3]
+    return len(speakers), sum(counts[k] for k in speakers)
+
+
 class KeywordGenreClassifier:
-    method = "keyword_lexicon_v1"
+    """Genre v2: keyword lexicon over metadata (and transcript in Stage B), a YouTube category
+    prior, and a transcript *format* cue (several labelled speakers taking turns indicates an
+    interview or discussion). Returns the full distribution and a status:
+    ``confident`` / ``mixed`` (two genres carry weight -> blended profile) / ``ambiguous``
+    (weak or spread-out evidence -> neutral profile) / ``unknown`` (no evidence)."""
+
+    method = "keyword_lexicon_v2"
 
     def classify(
         self,
@@ -248,16 +343,49 @@ class KeywordGenreClassifier:
                 hits = sum(low.count(f" {w} ") for w in words)
                 if hits:
                     scores[genre] = scores.get(genre, 0.0) + weight * min(hits, 8)
+        speakers, turns = speaker_turn_cue(transcript_text)
+        if speakers >= 2 and turns >= 10:
+            scores[Genre.INTERVIEW_PODCAST] = scores.get(Genre.INTERVIEW_PODCAST, 0.0) + 3.0
 
         if not scores:
-            return GenreAssessment(genre=Genre.OTHER, confidence=0.2, method=self.method, scores={})
+            return GenreAssessment(
+                genre=Genre.OTHER, confidence=0.2, method=self.method, status=GenreStatus.UNKNOWN
+            )
         total = sum(scores.values())
-        ranked = sorted(scores.items(), key=lambda kv: (-kv[1], kv[0].value))
-        genre, top = ranked[0]
-        confidence = round(min(0.95, top / total), 3)
+        # Ties prefer the more specific v2 genre over its v1 parent (e.g. lecture over education).
+        ranked = sorted(scores.items(), key=lambda kv: (-kv[1], kv[0] not in GENRE_PARENT, kv[0].value))
+        dist = {g.value: round(v / total, 3) for g, v in ranked}
+        (genre, top), second = ranked[0], (ranked[1] if len(ranked) > 1 else None)
+        p1, p2 = top / total, (second[1] / total if second else 0.0)
+        secondary = None
+        if second is not None and p2 >= MIXED_SECOND_SHARE and p2 / p1 >= MIXED_RATIO:
+            status, secondary = GenreStatus.MIXED, second[0]
+        elif total < MIN_EVIDENCE or p1 < AMBIGUOUS_TOP_SHARE:
+            status = GenreStatus.AMBIGUOUS
+        else:
+            status = GenreStatus.CONFIDENT
         return GenreAssessment(
             genre=genre,
-            confidence=confidence,
+            confidence=round(min(0.95, p1), 3),
             method=self.method,
-            scores={g.value: round(s / total, 3) for g, s in ranked[:4]},
+            scores=dict(list(dist.items())[:4]),
+            distribution=dist,
+            status=status,
+            secondary=secondary,
         )
+
+
+def apply_override(assessment: GenreAssessment, override: str | None, by: str | None) -> GenreAssessment:
+    """A person's genre correction replaces the classifier's choice (the classifier's distribution
+    is kept for audit)."""
+    if not override:
+        return assessment
+    return assessment.model_copy(
+        update={
+            "genre": Genre(override),
+            "confidence": 1.0,
+            "method": f"manual_override:{by or 'unknown'}",
+            "status": GenreStatus.OVERRIDDEN,
+            "secondary": None,
+        }
+    )

@@ -5,7 +5,8 @@ from __future__ import annotations
 from datetime import UTC, datetime
 from typing import Any
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, status
+from pydantic import BaseModel, Field
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
@@ -13,6 +14,7 @@ from avd.api.deps import db, require_admin
 from avd.api.schemas import DiscoverIn
 from avd.config import Settings, get_settings
 from avd.db.models import Channel, CostLedger, Evaluation, PipelineJob, Video
+from avd.evaluation.schema import Genre
 from avd.workers import queue
 from avd.workers.budget import BudgetManager, llm_spent_today, youtube_units_today
 
@@ -143,3 +145,27 @@ def coverage(session: Session = Depends(db)) -> dict[str, Any]:
             ("status", Video.status),
         )
     }
+
+
+class GenreOverrideIn(BaseModel):
+    genre: Genre | None = Field(description="the corrected genre; null clears the override")
+    by: str = Field(min_length=1, max_length=64, description="who made the correction (pseudonym)")
+
+
+@router.put("/videos/{video_id}/genre")
+def override_genre(video_id: str, body: GenreOverrideIn, session: Session = Depends(db)) -> dict[str, Any]:
+    """Manual genre correction. The classifier's distribution is kept for audit; the video is
+    re-queued so its evaluation is recomputed with the corrected profile."""
+    from avd.services import enqueue_stage_a
+
+    video = session.get(Video, video_id)
+    if video is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "video not found")
+    video.genre_override = body.genre.value if body.genre else None
+    video.genre_override_by = body.by if body.genre else None
+    if body.genre is None:
+        video.genre_method = None  # let the classifier decide again
+    queued = enqueue_stage_a(
+        session, video_id, force=True, payload={"force_stage_b": True, "reason": "genre_override"}
+    )
+    return {"video_id": video_id, "genre_override": video.genre_override, "requeued": queued}

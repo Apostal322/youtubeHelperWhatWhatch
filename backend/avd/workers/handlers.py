@@ -22,6 +22,7 @@ from sqlalchemy.orm import Session
 from avd.content.store import active_sources, load_bundle
 from avd.db.models import Channel, DiscoveryQuery, Evaluation, PipelineJob, Video
 from avd.embeddings import documents as emb_docs
+from avd.evaluation.genre import apply_override
 from avd.evaluation.inputs import build_evaluation_input
 from avd.evaluation.schema import FRAMEWORK_VERSION, EvaluationResult, Genre
 from avd.evaluation.service import is_up_to_date, persist_evaluation
@@ -38,6 +39,8 @@ log = get_logger(__name__)
 FACT_CRITICAL = {
     Genre.SCIENCE.value,
     Genre.EDUCATION.value,
+    Genre.LECTURE.value,
+    Genre.PRODUCT_REVIEW.value,
     Genre.NEWS_COMMENTARY.value,
     Genre.DOCUMENTARY.value,
 }
@@ -118,11 +121,17 @@ def handle_stage_a(ctx: WorkerContext, session: Session, job: PipelineJob) -> Ha
     video = session.get(Video, job.video_id)
     if video is None:
         return HandlerResult({"reason": "video not found"}, skipped=True)
-    g = ctx.classifier.classify(
-        video.title, video.description or "", list(video.tags or []), video.youtube_category_id
+    g = apply_override(
+        ctx.classifier.classify(
+            video.title, video.description or "", list(video.tags or []), video.youtube_category_id
+        ),
+        video.genre_override,
+        video.genre_override_by,
     )
-    if video.genre_method is None or video.genre_method == g.method:
+    # Stage A never overwrites a transcript-informed (Stage B) classification.
+    if video.genre_method is None or video.genre_method == g.method or video.genre_override:
         video.genre, video.genre_confidence, video.genre_method = g.genre.value, g.confidence, g.method
+        video.genre_distribution, video.genre_status = g.distribution, g.status.value
     video.topics = extract_topics(video.title, video.description or "", list(video.tags or []))
     if video.embedding is None or video.embedding_model != ctx.embedder.model_id:
         emb_docs.apply(video, emb_docs.embed_video(ctx.embedder, video, None))
@@ -157,6 +166,8 @@ def handle_stage_a(ctx: WorkerContext, session: Session, job: PipelineJob) -> Ha
         estimated_cost_usd=est,
         payload={"priority_parts": parts},
         max_attempts=ctx.settings.job_max_attempts,
+        # e.g. after a manual genre correction: re-run Stage B even though the content is unchanged
+        requeue_terminal=bool((job.payload or {}).get("force_stage_b")),
     )
     return HandlerResult(
         {"modalities": sorted(modalities), "stage_b_enqueued": created, "priority": priority}
@@ -198,12 +209,16 @@ def _evaluate(ctx: WorkerContext, session: Session, job: PipelineJob, stage: str
     if bundle.transcript is None:
         video.status = "content_unavailable"
         return HandlerResult({"reason": "no authorized transcript"}, skipped=True)
-    genre = ctx.classifier.classify(
-        video.title,
-        video.description or "",
-        list(video.tags or []),
-        video.youtube_category_id,
-        transcript_text=bundle.transcript.text,
+    genre = apply_override(
+        ctx.classifier.classify(
+            video.title,
+            video.description or "",
+            list(video.tags or []),
+            video.youtube_category_id,
+            transcript_text=bundle.transcript.text,
+        ),
+        video.genre_override,
+        video.genre_override_by,
     )
     inp = build_evaluation_input(video, bundle, genre)
     if is_up_to_date(session, video.id, inp.fingerprint(), stage, ctx.pipeline(stage).config_hash()):

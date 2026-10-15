@@ -31,7 +31,7 @@ from avd.evaluation.evaluators.heuristic import HeuristicTextEvaluator
 from avd.evaluation.evaluators.llm_rubric import LLMRubricEvaluator
 from avd.evaluation.injection import scan as scan_injection
 from avd.evaluation.inputs import EvaluationInput
-from avd.evaluation.profiles import get_profile
+from avd.evaluation.profiles import profile_for
 from avd.evaluation.rubric import RUBRIC
 from avd.evaluation.schema import (
     Dimension,
@@ -86,7 +86,7 @@ class EvaluationPipeline:
 
     def run(self, inp: EvaluationInput) -> EvaluationResult:
         started = time.monotonic()
-        profile = get_profile(inp.genre.genre)
+        profile = profile_for(inp.genre)
         candidates: dict[Dimension, list[tuple[int, DimensionScore]]] = {d: [] for d in Dimension}
         usage: list[UsageRecord] = []
         models: list[str] = []

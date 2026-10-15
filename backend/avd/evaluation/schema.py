@@ -90,7 +90,54 @@ class Genre(StrEnum):
     MUSIC = "music"
     HOWTO = "howto"
     NEWS_COMMENTARY = "news_commentary"
+    # Genre v2: more specific formats (each maps to a v1 parent in GENRE_PARENT).
+    LECTURE = "lecture"
+    PROGRAMMING = "programming"
+    PRODUCT_REVIEW = "product_review"
+    INTERVIEW_PODCAST = "interview_podcast"
+    COMEDY = "comedy"
+    PERSONAL_STORYTELLING = "personal_storytelling"
     OTHER = "other"
+
+
+# v2 genres refine v1 genres; used to compare against v1-era labels.
+GENRE_PARENT: dict[Genre, Genre] = {
+    Genre.LECTURE: Genre.EDUCATION,
+    Genre.PROGRAMMING: Genre.TECHNOLOGY,
+    Genre.PRODUCT_REVIEW: Genre.TECHNOLOGY,
+    Genre.COMEDY: Genre.ENTERTAINMENT,
+    Genre.PERSONAL_STORYTELLING: Genre.ENTERTAINMENT,
+    Genre.INTERVIEW_PODCAST: Genre.OTHER,
+}
+
+
+def expand_genres(genres: list[str]) -> list[str]:
+    """Genres plus their v2 refinements (a "technology" filter also matches "programming")."""
+    out = list(dict.fromkeys(genres))
+    for child, parent in GENRE_PARENT.items():
+        if parent.value in out and child.value not in out:
+            out.append(child.value)
+    return out
+
+
+def genre_preference(weights: dict[str, float], genre: str | None, default: float = 0.5) -> float:
+    """A user's weight for a genre, falling back to its v1 parent (preferences predate v2)."""
+    g = genre or "other"
+    if g in weights:
+        return float(weights[g])
+    try:
+        parent = GENRE_PARENT.get(Genre(g))
+    except ValueError:
+        parent = None
+    return float(weights.get(parent.value, default)) if parent is not None else default
+
+
+class GenreStatus(StrEnum):
+    CONFIDENT = "confident"  # one genre clearly dominates
+    MIXED = "mixed"  # two genres both carry substantial weight -> blended profile
+    AMBIGUOUS = "ambiguous"  # weak, spread-out evidence -> neutral (uniform) profile
+    UNKNOWN = "unknown"  # no usable evidence -> neutral profile
+    OVERRIDDEN = "overridden"  # set by a person
 
 
 class Modality(StrEnum):
@@ -226,7 +273,10 @@ class GenreAssessment(BaseModel):
     genre: Genre
     confidence: float = Field(ge=0.0, le=1.0)
     method: str
-    scores: dict[str, float] = Field(default_factory=dict)
+    scores: dict[str, float] = Field(default_factory=dict)  # top-4 shares (v1 field)
+    distribution: dict[str, float] = Field(default_factory=dict)  # all genres with evidence, sums to 1
+    status: GenreStatus = GenreStatus.CONFIDENT
+    secondary: Genre | None = None  # the second genre of a mixture
 
 
 class GroupAggregate(BaseModel):
@@ -247,6 +297,7 @@ class Contribution(BaseModel):
 class AggregationResult(BaseModel):
     profile: Genre
     method: str
+    profile_detail: dict[str, Any] = Field(default_factory=dict)  # the exact (possibly blended) weights
     groups: dict[DimensionGroup, GroupAggregate]
     overall: float | None
     overall_confidence: float | None

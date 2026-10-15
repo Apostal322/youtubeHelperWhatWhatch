@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from datetime import UTC, datetime
+from typing import Any
 
 from sqlalchemy.orm import Session
 
@@ -29,13 +30,20 @@ def plan_discovery(session: Session, n_queries: int = 4) -> int:
     return created
 
 
-def enqueue_stage_a(session: Session, video_id: str, priority: float = 10.0, force: bool = False) -> bool:
+def enqueue_stage_a(
+    session: Session,
+    video_id: str,
+    priority: float = 10.0,
+    force: bool = False,
+    payload: dict[str, Any] | None = None,
+) -> bool:
     _, created = enqueue(
         session,
         "stage_a",
         f"stage_a:{video_id}:{FRAMEWORK_VERSION}",
         video_id=video_id,
         priority=priority,
+        payload=payload,
         requeue_terminal=force,
     )
     return created
