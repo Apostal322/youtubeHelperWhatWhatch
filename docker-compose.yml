@@ -1,0 +1,75 @@
+# Local stack: PostgreSQL + pgvector, Redis, API, Celery worker + beat.
+#   docker compose up --build
+#   docker compose run --rm init          # migrate + seed synthetic demo fixtures
+# Real LLM / YouTube integrations are enabled through .env (see .env.example).
+
+x-backend: &backend
+  build:
+    context: .
+    dockerfile: backend/Dockerfile
+  env_file:
+    - path: .env
+      required: false
+  environment:
+    AVD_DATABASE_URL: postgresql+psycopg://avd:avd@postgres:5432/avd
+    AVD_REDIS_URL: redis://redis:6379/0
+    AVD_TASK_BACKEND: celery
+    AVD_ADMIN_TOKEN: ${AVD_ADMIN_TOKEN:-change-me-local-admin}
+  volumes:
+    - media:/app/backend/.media_cache
+  depends_on:
+    postgres:
+      condition: service_healthy
+    redis:
+      condition: service_healthy
+
+services:
+  postgres:
+    image: pgvector/pgvector:0.8.0-pg16
+    environment:
+      POSTGRES_USER: avd
+      POSTGRES_PASSWORD: avd
+      POSTGRES_DB: avd
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U avd -d avd"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  redis:
+    image: redis:7.4-alpine
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  init:
+    <<: *backend
+    command: ["sh", "-c", "avd migrate && avd seed-demo"]
+    restart: "no"
+    profiles: ["init"]
+
+  api:
+    <<: *backend
+    command: ["sh", "-c", "avd migrate && uvicorn avd.api.app:app --host 0.0.0.0 --port 8000"]
+    ports:
+      - "8000:8000"
+
+  worker:
+    <<: *backend
+    command: ["celery", "-A", "avd.workers.celery_app", "worker", "-Q", "light,deep", "-c", "4", "--loglevel=INFO"]
+
+  beat:
+    <<: *backend
+    command: ["celery", "-A", "avd.workers.celery_app", "beat", "--loglevel=INFO", "-s", "/tmp/celerybeat-schedule"]
+
+volumes:
+  pgdata:
+  media:

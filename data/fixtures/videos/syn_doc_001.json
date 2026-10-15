@@ -1,0 +1,242 @@
+{
+  "video_id": "syn_doc_001",
+  "synthetic": true,
+  "title": "The Night the Telegraphs Caught Fire: The 1859 Carrington Event",
+  "description": "On 1 September 1859 an amateur astronomer saw a flash of white light on the Sun. Hours later, telegraph lines sparked and auroras lit up the tropics. The story of the Carrington Event, and why it still matters for power grids today.",
+  "channel": {
+    "channel_id": "syn_ch_smallledger",
+    "title": "The Small Ledger",
+    "subscriber_count": 920
+  },
+  "published_at": "2025-09-01T08:00:00Z",
+  "duration_seconds": 272,
+  "language": "en",
+  "youtube_category_id": "27",
+  "tags": [
+    "documentary",
+    "history",
+    "space weather",
+    "solar flare",
+    "carrington event",
+    "telegraph"
+  ],
+  "popularity": {
+    "view_count": 2870,
+    "like_count": 264,
+    "comment_count": 41
+  },
+  "content": {
+    "source_type": "synthetic_fixture",
+    "license": "CC0-1.0",
+    "authorization_basis": "Original synthetic transcript authored for the AI Video Discovery project. No real video exists.",
+    "modalities": [
+      "transcript"
+    ],
+    "audio_fixture": null,
+    "transcript": {
+      "language": "en",
+      "segments": [
+        {
+          "start": 0.0,
+          "end": 9.6,
+          "text": "On the morning of the first of September, eighteen fifty-nine, an English astronomer named Richard Carrington was doing what he did most clear days."
+        },
+        {
+          "start": 9.6,
+          "end": 18.0,
+          "text": "He had a telescope set up to project an image of the Sun onto a screen, and he was sketching sunspots."
+        },
+        {
+          "start": 18.0,
+          "end": 26.0,
+          "text": "It was patient, unglamorous work. And at about eleven eighteen in the morning, he saw something nobody had recorded before."
+        },
+        {
+          "start": 26.0,
+          "end": 31.2,
+          "text": "Two beads of intense white light appeared inside one of the sunspot groups."
+        },
+        {
+          "start": 31.2,
+          "end": 38.0,
+          "text": "They were so bright that at first he thought light was leaking into the instrument. He checked."
+        },
+        {
+          "start": 38.0,
+          "end": 38.8,
+          "text": "It wasn't."
+        },
+        {
+          "start": 38.8,
+          "end": 47.2,
+          "text": "He hurried off to find someone to witness it, and by the time he came back, a minute or so later,"
+        },
+        {
+          "start": 47.2,
+          "end": 52.0,
+          "text": "the light was already fading. Within about five minutes it was gone."
+        },
+        {
+          "start": 52.0,
+          "end": 62.0,
+          "text": "What Carrington had seen was a solar flare, the first one ever observed, and, as it happens, one of the most powerful in recorded history."
+        },
+        {
+          "start": 62.0,
+          "end": 67.6,
+          "text": "Elsewhere in London, another observer, Richard Hodgson, saw the same flash independently, which mattered,"
+        },
+        {
+          "start": 67.6,
+          "end": 73.2,
+          "text": "because a single report of something that strange would have been easy to dismiss."
+        },
+        {
+          "start": 73.2,
+          "end": 76.8,
+          "text": "Now here's the part Carrington could not have known."
+        },
+        {
+          "start": 76.8,
+          "end": 86.0,
+          "text": "Along with that flare, the Sun had thrown off an enormous cloud of magnetised plasma, what we now call a coronal mass ejection."
+        },
+        {
+          "start": 86.0,
+          "end": 93.2,
+          "text": "These clouds normally take two to four days to cross the hundred and fifty million kilometres to Earth."
+        },
+        {
+          "start": 93.2,
+          "end": 96.8,
+          "text": "This one took about seventeen and a half hours."
+        },
+        {
+          "start": 96.8,
+          "end": 104.4,
+          "text": "It slammed into Earth's magnetic field, and the result was the most intense geomagnetic storm in the historical record."
+        },
+        {
+          "start": 104.4,
+          "end": 112.8,
+          "text": "The first thing people noticed was the sky. Auroras, which usually stay near the poles, were seen far to the south."
+        },
+        {
+          "start": 112.8,
+          "end": 118.0,
+          "text": "Reports came in from the Caribbean, from Hawaii, from parts of South America."
+        },
+        {
+          "start": 118.0,
+          "end": 125.2,
+          "text": "In the northeastern United States, people wrote that the light was bright enough to read a newspaper by."
+        },
+        {
+          "start": 125.2,
+          "end": 134.4,
+          "text": "There's a story, often repeated, of gold miners camped in the Rocky Mountains waking up in the night and starting to make breakfast,"
+        },
+        {
+          "start": 134.4,
+          "end": 140.4,
+          "text": "because they assumed it was already morning. The second thing people noticed was the telegraph."
+        },
+        {
+          "start": 140.4,
+          "end": 147.2,
+          "text": "In eighteen fifty-nine the telegraph was the internet of its day, long copper wires strung across continents."
+        },
+        {
+          "start": 147.2,
+          "end": 154.8,
+          "text": "And long wires in a rapidly changing magnetic field pick up current. Operators reported sparks jumping from their equipment."
+        },
+        {
+          "start": 154.8,
+          "end": 162.0,
+          "text": "Some got shocks. In a few offices, the paper tape caught fire. And then something genuinely strange happened."
+        },
+        {
+          "start": 162.0,
+          "end": 170.4,
+          "text": "Operators on a line between Boston and Portland, Maine, found that their signals were garbled, so they disconnected their batteries entirely."
+        },
+        {
+          "start": 170.4,
+          "end": 178.8,
+          "text": "And the line kept working. For about two hours they sent messages using nothing but the current induced by the storm."
+        },
+        {
+          "start": 178.8,
+          "end": 187.6,
+          "text": "Back in England, the magnetometers at the Kew Observatory had recorded a sharp disturbance at almost exactly the time of Carrington's flare."
+        },
+        {
+          "start": 187.6,
+          "end": 194.8,
+          "text": "Carrington noticed the coincidence, but he was careful. He wrote that one swallow does not make a summer."
+        },
+        {
+          "start": 194.8,
+          "end": 200.0,
+          "text": "He didn't claim the flare caused the storm, because one event isn't proof."
+        },
+        {
+          "start": 200.0,
+          "end": 208.8,
+          "text": "It took decades of further observation to establish the connection between solar activity and geomagnetic storms that we now take for granted."
+        },
+        {
+          "start": 208.8,
+          "end": 215.6,
+          "text": "So why should we care about a storm from more than a hundred and sixty years ago?"
+        },
+        {
+          "start": 215.6,
+          "end": 221.2,
+          "text": "Because our world is now full of long conductors. Power grids, undersea cables, pipelines."
+        },
+        {
+          "start": 221.2,
+          "end": 230.4,
+          "text": "In March nineteen eighty-nine, a storm much weaker than Carrington's caused the collapse of the power grid across the Canadian province of Quebec,"
+        },
+        {
+          "start": 230.4,
+          "end": 234.8,
+          "text": "leaving around six million people without electricity for about nine hours."
+        },
+        {
+          "start": 234.8,
+          "end": 241.2,
+          "text": "And in July twenty twelve, a coronal mass ejection of roughly Carrington strength crossed Earth's orbit."
+        },
+        {
+          "start": 241.2,
+          "end": 249.6,
+          "text": "It missed us by about nine days. That's why space weather is now forecast, and why grid operators take it seriously."
+        },
+        {
+          "start": 249.6,
+          "end": 252.4,
+          "text": "The Carrington Event isn't just a curiosity."
+        },
+        {
+          "start": 252.4,
+          "end": 259.6,
+          "text": "It's a measurement, the best one we have, of what the Sun can do on a bad day."
+        },
+        {
+          "start": 259.6,
+          "end": 267.2,
+          "text": "And it started with one man sketching sunspots, who had the discipline to write down exactly what he saw,"
+        },
+        {
+          "start": 267.2,
+          "end": 271.2,
+          "text": "and the humility not to claim more than he knew."
+        }
+      ]
+    }
+  }
+}

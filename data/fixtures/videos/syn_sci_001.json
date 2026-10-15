@@ -1,0 +1,247 @@
+{
+  "video_id": "syn_sci_001",
+  "synthetic": true,
+  "title": "Why Does Ice Float? Hydrogen Bonds and Water's Density Anomaly",
+  "description": "Water is one of the few substances whose solid floats on its liquid. We go from the bent shape of the molecule to hydrogen bonds, the open lattice of ice, the 4 °C density maximum, and why lakes freeze from the top down.",
+  "channel": {
+    "channel_id": "syn_ch_quietbench",
+    "title": "Quiet Bench Physics",
+    "subscriber_count": 640
+  },
+  "published_at": "2025-01-19T09:00:00Z",
+  "duration_seconds": 234,
+  "language": "en",
+  "youtube_category_id": "28",
+  "tags": [
+    "physics",
+    "chemistry",
+    "water",
+    "ice",
+    "hydrogen bond",
+    "density"
+  ],
+  "popularity": {
+    "view_count": 2210,
+    "like_count": 205,
+    "comment_count": 23
+  },
+  "content": {
+    "source_type": "synthetic_fixture",
+    "license": "CC0-1.0",
+    "authorization_basis": "Original synthetic transcript authored for the AI Video Discovery project. No real video exists.",
+    "modalities": [
+      "transcript"
+    ],
+    "audio_fixture": null,
+    "transcript": {
+      "language": "en",
+      "segments": [
+        {
+          "start": 0.0,
+          "end": 5.6,
+          "text": "Here's a question that sounds too simple to be interesting. Why does ice float?"
+        },
+        {
+          "start": 5.6,
+          "end": 10.8,
+          "text": "Almost every other substance is denser as a solid than as a liquid."
+        },
+        {
+          "start": 10.8,
+          "end": 15.6,
+          "text": "Solid wax sinks in melted wax. Solid iron sinks in molten iron."
+        },
+        {
+          "start": 15.6,
+          "end": 22.8,
+          "text": "Water is the odd one out, and the reason comes down to the shape of a single molecule."
+        },
+        {
+          "start": 22.8,
+          "end": 30.4,
+          "text": "A water molecule is one oxygen atom bonded to two hydrogens, and those bonds aren't in a straight line."
+        },
+        {
+          "start": 30.4,
+          "end": 36.4,
+          "text": "They meet at an angle of about one hundred and four and a half degrees."
+        },
+        {
+          "start": 36.4,
+          "end": 39.2,
+          "text": "Oxygen pulls the shared electrons toward itself,"
+        },
+        {
+          "start": 39.2,
+          "end": 46.0,
+          "text": "so the oxygen end carries a slight negative charge and the hydrogen ends carry slight positive charges."
+        },
+        {
+          "start": 46.0,
+          "end": 52.4,
+          "text": "That lets a hydrogen on one molecule be attracted to the oxygen on a neighbouring molecule."
+        },
+        {
+          "start": 52.4,
+          "end": 54.8,
+          "text": "That attraction is a hydrogen bond."
+        },
+        {
+          "start": 54.8,
+          "end": 61.6,
+          "text": "It's much weaker than the covalent bonds inside the molecule, but it's strong enough to organise things."
+        },
+        {
+          "start": 61.6,
+          "end": 67.2,
+          "text": "In liquid water, hydrogen bonds are constantly forming and breaking, on timescales of picoseconds."
+        },
+        {
+          "start": 67.2,
+          "end": 71.6,
+          "text": "Molecules can tumble, slide past each other, and pack fairly closely."
+        },
+        {
+          "start": 71.6,
+          "end": 80.0,
+          "text": "When water freezes into ordinary ice, the form called ice one h, each molecule locks into four hydrogen bonds arranged tetrahedrally."
+        },
+        {
+          "start": 80.0,
+          "end": 86.4,
+          "text": "That tetrahedral network builds an open hexagonal lattice with a lot of empty space in it."
+        },
+        {
+          "start": 86.4,
+          "end": 89.2,
+          "text": "More space per molecule means lower density."
+        },
+        {
+          "start": 89.2,
+          "end": 94.0,
+          "text": "Liquid water near zero degrees is about one gram per cubic centimetre."
+        },
+        {
+          "start": 94.0,
+          "end": 97.2,
+          "text": "Ice is about zero point nine one seven."
+        },
+        {
+          "start": 97.2,
+          "end": 105.6,
+          "text": "So ice is roughly nine percent less dense, which is why about ninety percent of an iceberg sits below the waterline."
+        },
+        {
+          "start": 105.6,
+          "end": 107.6,
+          "text": "There's a second, subtler anomaly."
+        },
+        {
+          "start": 107.6,
+          "end": 114.4,
+          "text": "As you cool liquid water, it gets denser, like a normal liquid, until about four degrees Celsius."
+        },
+        {
+          "start": 114.4,
+          "end": 119.2,
+          "text": "Below that, it starts getting less dense again, even before it freezes."
+        },
+        {
+          "start": 119.2,
+          "end": 126.0,
+          "text": "What's happening is that as the water gets colder, more short-lived, ice-like clusters appear in the liquid,"
+        },
+        {
+          "start": 126.0,
+          "end": 129.6,
+          "text": "and those open clusters push the average density down."
+        },
+        {
+          "start": 129.6,
+          "end": 135.2,
+          "text": "So water has its maximum density at about four degrees. This has real consequences."
+        },
+        {
+          "start": 135.2,
+          "end": 143.2,
+          "text": "In a lake in winter, water at four degrees sinks to the bottom, and colder water stays near the top,"
+        },
+        {
+          "start": 143.2,
+          "end": 148.4,
+          "text": "where it eventually freezes. The ice layer then insulates the water below it."
+        },
+        {
+          "start": 148.4,
+          "end": 153.6,
+          "text": "So the lake freezes from the top down and the bottom stays liquid,"
+        },
+        {
+          "start": 153.6,
+          "end": 158.0,
+          "text": "which is a big part of why fish survive the winter."
+        },
+        {
+          "start": 158.0,
+          "end": 164.4,
+          "text": "If ice sank, many lakes would fill with ice from the bottom up. One more twist."
+        },
+        {
+          "start": 164.4,
+          "end": 169.2,
+          "text": "Because ice is less dense than water, squeezing ice favours the liquid."
+        },
+        {
+          "start": 169.2,
+          "end": 172.4,
+          "text": "That means pressure slightly lowers the melting point."
+        },
+        {
+          "start": 172.4,
+          "end": 176.8,
+          "text": "You'll often hear this given as the reason ice skates glide."
+        },
+        {
+          "start": 176.8,
+          "end": 180.4,
+          "text": "It's a nice story, but the numbers don't work."
+        },
+        {
+          "start": 180.4,
+          "end": 188.8,
+          "text": "A skater's weight lowers the melting point by only a fraction of a degree, nowhere near enough on a cold day."
+        },
+        {
+          "start": 188.8,
+          "end": 197.2,
+          "text": "The better current explanation involves a thin, disordered, liquid-like layer that exists on the surface of ice anyway, plus frictional heating."
+        },
+        {
+          "start": 197.2,
+          "end": 203.6,
+          "text": "That's still an active research area, so be suspicious of anyone who says it's fully settled."
+        },
+        {
+          "start": 203.6,
+          "end": 209.2,
+          "text": "Quick summary. The bent shape of water makes it polar. Polarity allows hydrogen bonds."
+        },
+        {
+          "start": 209.2,
+          "end": 216.4,
+          "text": "In ice, hydrogen bonds lock molecules into an open hexagonal lattice, which is less dense than the liquid."
+        },
+        {
+          "start": 216.4,
+          "end": 222.0,
+          "text": "And that one quirk is why lakes freeze from the top and icebergs float."
+        },
+        {
+          "start": 222.0,
+          "end": 232.0,
+          "text": "Next time I want to look at the other forms of ice that exist at high pressure, some of which do sink. Thanks for watching."
+        }
+      ]
+    }
+  }
+}

@@ -1,0 +1,164 @@
+[
+  {
+    "persona_id": "curious_science_generalist",
+    "description": "Adult non-specialist who enjoys understanding how the physical world and everyday technology work; wants accurate explanations, not hype.",
+    "interests": [
+      "physics of everyday things",
+      "astronomy and space weather",
+      "how GPS and other technology works",
+      "history of science"
+    ],
+    "genre_weights": {
+      "science": 1.0,
+      "documentary": 0.8,
+      "technology": 0.6,
+      "education": 0.6,
+      "howto": 0.2,
+      "entertainment": 0.1,
+      "gaming": 0.0,
+      "art": 0.1,
+      "music": 0.0,
+      "news_commentary": 0.2
+    },
+    "depth_preference": "intermediate",
+    "languages": [
+      "en"
+    ],
+    "relevant_video_ids": [
+      "syn_sci_001",
+      "syn_sci_002",
+      "syn_doc_001"
+    ],
+    "label_source": "synthetic_design_intent"
+  },
+  {
+    "persona_id": "cs_math_student_advanced",
+    "description": "Upper-level computer science student who wants rigorous material on algorithms, data structures and the mathematics behind them; tolerates poor production for good content.",
+    "interests": [
+      "data structures",
+      "algorithm analysis",
+      "linear algebra",
+      "numerical methods"
+    ],
+    "genre_weights": {
+      "technology": 1.0,
+      "education": 1.0,
+      "science": 0.6,
+      "documentary": 0.2,
+      "howto": 0.2,
+      "entertainment": 0.0,
+      "gaming": 0.1,
+      "art": 0.0,
+      "music": 0.0,
+      "news_commentary": 0.0
+    },
+    "depth_preference": "advanced",
+    "languages": [
+      "en"
+    ],
+    "relevant_video_ids": [
+      "syn_tech_001",
+      "syn_edu_001",
+      "syn_sci_002"
+    ],
+    "label_source": "synthetic_design_intent"
+  },
+  {
+    "persona_id": "estudiante_hispanohablante",
+    "description": "Spanish-speaking secondary-school student preparing for exams; prefers Spanish but follows clear English science videos.",
+    "interests": [
+      "técnicas de estudio",
+      "memoria y aprendizaje",
+      "ciencia básica",
+      "física del día a día"
+    ],
+    "genre_weights": {
+      "education": 1.0,
+      "science": 0.8,
+      "technology": 0.3,
+      "documentary": 0.4,
+      "howto": 0.3,
+      "entertainment": 0.2,
+      "gaming": 0.2,
+      "art": 0.1,
+      "music": 0.2,
+      "news_commentary": 0.0
+    },
+    "depth_preference": "intro",
+    "languages": [
+      "es",
+      "en"
+    ],
+    "relevant_video_ids": [
+      "syn_edu_002",
+      "syn_sci_001",
+      "syn_sci_002"
+    ],
+    "label_source": "synthetic_design_intent"
+  },
+  {
+    "persona_id": "creative_hobbyist",
+    "description": "Amateur painter and writer who looks for original creative work and craft insight: narrative games, fiction, songwriting, painting studies.",
+    "interests": [
+      "painting technique and colour",
+      "narrative video games",
+      "short fiction",
+      "singer-songwriter music"
+    ],
+    "genre_weights": {
+      "art": 1.0,
+      "entertainment": 0.8,
+      "gaming": 0.7,
+      "music": 0.8,
+      "documentary": 0.3,
+      "howto": 0.3,
+      "education": 0.2,
+      "science": 0.1,
+      "technology": 0.1,
+      "news_commentary": 0.0
+    },
+    "depth_preference": "intermediate",
+    "languages": [
+      "en"
+    ],
+    "relevant_video_ids": [
+      "syn_art_001",
+      "syn_game_001",
+      "syn_ent_002",
+      "syn_music_001"
+    ],
+    "label_source": "synthetic_design_intent"
+  },
+  {
+    "persona_id": "history_and_civics_follower",
+    "description": "Retired engineer interested in history, infrastructure and local policy debates; values sourced, balanced reporting.",
+    "interests": [
+      "history of technology",
+      "infrastructure and power grids",
+      "local transport policy",
+      "space weather"
+    ],
+    "genre_weights": {
+      "documentary": 1.0,
+      "news_commentary": 0.8,
+      "science": 0.6,
+      "technology": 0.4,
+      "education": 0.4,
+      "howto": 0.2,
+      "entertainment": 0.1,
+      "gaming": 0.0,
+      "art": 0.1,
+      "music": 0.1
+    },
+    "depth_preference": "intermediate",
+    "languages": [
+      "en"
+    ],
+    "relevant_video_ids": [
+      "syn_doc_001",
+      "syn_news_001",
+      "syn_sci_002"
+    ],
+    "label_source": "synthetic_design_intent"
+  }
+]

@@ -1,0 +1,236 @@
+{
+  "video_id": "syn_tech_003",
+  "synthetic": true,
+  "title": "Tallowmere TK75 Review After 3 Weeks: Good Budget Hot-Swap Keyboard?",
+  "description": "My honest thoughts on the Tallowmere TK75 after three weeks of daily use: build, switches, sound, software and battery. Unit provided by the manufacturer; no payment and no review approval.",
+  "channel": {
+    "channel_id": "syn_ch_deskdrift",
+    "title": "Desk Drift",
+    "subscriber_count": 14200
+  },
+  "published_at": "2026-10-09T18:00:00Z",
+  "duration_seconds": 188,
+  "language": "en",
+  "youtube_category_id": "28",
+  "tags": [
+    "mechanical keyboard",
+    "review",
+    "hot-swap",
+    "75 percent",
+    "desk setup"
+  ],
+  "popularity": {
+    "view_count": 140,
+    "like_count": 9,
+    "comment_count": 4
+  },
+  "content": {
+    "source_type": "synthetic_fixture",
+    "license": "CC0-1.0",
+    "authorization_basis": "Original synthetic transcript authored for the AI Video Discovery project. No real video exists.",
+    "modalities": [
+      "transcript"
+    ],
+    "audio_fixture": null,
+    "transcript": {
+      "language": "en",
+      "segments": [
+        {
+          "start": 0.0,
+          "end": 2.7,
+          "text": "Alright, so this is the Tallowmere TK75."
+        },
+        {
+          "start": 2.7,
+          "end": 7.3,
+          "text": "I've been using it for about three weeks as my main keyboard,"
+        },
+        {
+          "start": 7.3,
+          "end": 10.8,
+          "text": "and I want to give you my honest thoughts."
+        },
+        {
+          "start": 10.8,
+          "end": 14.2,
+          "text": "Quick disclaimer, they sent me this unit for free,"
+        },
+        {
+          "start": 14.2,
+          "end": 19.2,
+          "text": "but they haven't seen this video and they're not paying me for it."
+        },
+        {
+          "start": 19.2,
+          "end": 22.7,
+          "text": "So, first impressions. The box is fine, nothing special."
+        },
+        {
+          "start": 22.7,
+          "end": 30.0,
+          "text": "You get the keyboard, a braided cable, a keycap puller and a switch puller, which tells you it's hot-swappable."
+        },
+        {
+          "start": 30.0,
+          "end": 35.8,
+          "text": "That means you can pull the switches out and put different ones in without soldering."
+        },
+        {
+          "start": 35.8,
+          "end": 40.0,
+          "text": "If you're new to this, that's actually a pretty big deal,"
+        },
+        {
+          "start": 40.0,
+          "end": 45.4,
+          "text": "because it lets you experiment with different switches without buying a whole new board."
+        },
+        {
+          "start": 45.4,
+          "end": 47.3,
+          "text": "The layout is seventy-five percent."
+        },
+        {
+          "start": 47.3,
+          "end": 52.7,
+          "text": "So you lose the number pad and some of the keys on the right,"
+        },
+        {
+          "start": 52.7,
+          "end": 58.8,
+          "text": "but you keep the function row and the arrow keys. For me that's the sweet spot."
+        },
+        {
+          "start": 58.8,
+          "end": 64.6,
+          "text": "I used to have a full-size board and honestly I never touched the number pad."
+        },
+        {
+          "start": 64.6,
+          "end": 69.6,
+          "text": "Your mileage may vary if you do a lot of spreadsheets. Build quality."
+        },
+        {
+          "start": 69.6,
+          "end": 71.2,
+          "text": "The case is plastic."
+        },
+        {
+          "start": 71.2,
+          "end": 77.7,
+          "text": "It's not bad plastic, but if you press in the middle, there's a little bit of flex."
+        },
+        {
+          "start": 77.7,
+          "end": 81.5,
+          "text": "Not a dealbreaker at this price, but you'll notice it."
+        },
+        {
+          "start": 81.5,
+          "end": 87.3,
+          "text": "The switches it ships with are linear, which means there's no bump and no click,"
+        },
+        {
+          "start": 87.3,
+          "end": 91.9,
+          "text": "it just goes straight down. They're pretty smooth out of the box."
+        },
+        {
+          "start": 91.9,
+          "end": 99.2,
+          "text": "I'd say a bit scratchy on a few keys, and the space bar especially had a rattle at first."
+        },
+        {
+          "start": 99.2,
+          "end": 104.2,
+          "text": "I actually went down a rabbit hole about stabilizers for like two days."
+        },
+        {
+          "start": 104.2,
+          "end": 110.8,
+          "text": "Anyway, I ended up putting a little bit of lube on it and it's mostly fine now."
+        },
+        {
+          "start": 110.8,
+          "end": 113.8,
+          "text": "Sound. People care a lot about the sound."
+        },
+        {
+          "start": 113.8,
+          "end": 117.7,
+          "text": "Let me type a bit so you can hear it."
+        },
+        {
+          "start": 117.7,
+          "end": 123.8,
+          "text": "So it's kind of a muted thock, I'd call it. There's some foam inside, which helps."
+        },
+        {
+          "start": 123.8,
+          "end": 128.8,
+          "text": "It's not the deepest-sounding board I've tried, but it doesn't sound hollow either."
+        },
+        {
+          "start": 128.8,
+          "end": 131.2,
+          "text": "Software. This is the weak point."
+        },
+        {
+          "start": 131.2,
+          "end": 137.7,
+          "text": "The software to remap keys only works on one operating system, and it crashed on me twice."
+        },
+        {
+          "start": 137.7,
+          "end": 142.7,
+          "text": "You can do some remapping with function key shortcuts on the board itself,"
+        },
+        {
+          "start": 142.7,
+          "end": 146.2,
+          "text": "but the manual explaining them is pretty confusing. Battery."
+        },
+        {
+          "start": 146.2,
+          "end": 153.1,
+          "text": "It has a wireless dongle and Bluetooth, and they say around two hundred hours with the backlight off."
+        },
+        {
+          "start": 153.1,
+          "end": 156.2,
+          "text": "I haven't had it die on me yet."
+        },
+        {
+          "start": 156.2,
+          "end": 161.9,
+          "text": "I charge it maybe once every week and a half with the lights on low."
+        },
+        {
+          "start": 161.9,
+          "end": 163.8,
+          "text": "So, would I recommend it?"
+        },
+        {
+          "start": 163.8,
+          "end": 170.0,
+          "text": "If you're getting into mechanical keyboards and you want something hot-swappable without spending a lot, yeah,"
+        },
+        {
+          "start": 170.0,
+          "end": 172.3,
+          "text": "I think it's a solid pick."
+        },
+        {
+          "start": 172.3,
+          "end": 177.7,
+          "text": "If you're picky about software, or you want a heavy aluminum case, look elsewhere."
+        },
+        {
+          "start": 177.7,
+          "end": 184.6,
+          "text": "Let me know what keyboard you're using right now in the comments, I'm always curious. Thanks for watching."
+        }
+      ]
+    }
+  }
+}

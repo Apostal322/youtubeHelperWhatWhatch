@@ -1,0 +1,241 @@
+{
+  "video_id": "syn_sci_003",
+  "synthetic": true,
+  "title": "How Far Away Is the Sun? The Solar System to Scale",
+  "description": "One astronomical unit is about 150 million kilometres, but what does that actually mean? We scale the solar system down to a beach ball and a peppercorn and look at how the distance was first measured.",
+  "channel": {
+    "channel_id": "syn_ch_starpocket",
+    "title": "Star Pocket",
+    "subscriber_count": 1350000
+  },
+  "published_at": "2024-11-08T16:00:00Z",
+  "duration_seconds": 185,
+  "language": "en",
+  "youtube_category_id": "28",
+  "tags": [
+    "astronomy",
+    "solar system",
+    "space",
+    "planets",
+    "scale model"
+  ],
+  "popularity": {
+    "view_count": 690000,
+    "like_count": 24000,
+    "comment_count": 1100
+  },
+  "content": {
+    "source_type": "synthetic_fixture",
+    "license": "CC0-1.0",
+    "authorization_basis": "Original synthetic transcript authored for the AI Video Discovery project. No real video exists.",
+    "modalities": [
+      "transcript"
+    ],
+    "audio_fixture": null,
+    "transcript": {
+      "language": "en",
+      "segments": [
+        {
+          "start": 0.0,
+          "end": 4.5,
+          "text": "Hey everyone, welcome back. Today we're tackling a question that sounds easy."
+        },
+        {
+          "start": 4.5,
+          "end": 7.2,
+          "text": "How far away is the Sun, really?"
+        },
+        {
+          "start": 7.2,
+          "end": 11.3,
+          "text": "The short answer is about one hundred and fifty million kilometres."
+        },
+        {
+          "start": 11.3,
+          "end": 18.1,
+          "text": "Astronomers call that distance one astronomical unit, and it's the yardstick we use for the whole solar system."
+        },
+        {
+          "start": 18.1,
+          "end": 24.2,
+          "text": "But that number is so big it doesn't mean anything, so let's try to feel it."
+        },
+        {
+          "start": 24.2,
+          "end": 29.4,
+          "text": "If you drove a car at a hundred kilometres per hour, without ever stopping,"
+        },
+        {
+          "start": 29.4,
+          "end": 35.1,
+          "text": "it would take you about a hundred and seventy years to get to the Sun."
+        },
+        {
+          "start": 35.1,
+          "end": 40.4,
+          "text": "A passenger jet at nine hundred kilometres per hour would need around nineteen years."
+        },
+        {
+          "start": 40.4,
+          "end": 46.0,
+          "text": "Light is a lot faster. Light travels at about three hundred thousand kilometres every second,"
+        },
+        {
+          "start": 46.0,
+          "end": 49.8,
+          "text": "so sunlight only takes about eight seconds to reach us."
+        },
+        {
+          "start": 49.8,
+          "end": 54.7,
+          "text": "That means when you look at the Sun, which you shouldn't do directly,"
+        },
+        {
+          "start": 54.7,
+          "end": 60.0,
+          "text": "you're seeing it as it was eight seconds ago. Now let's shrink everything down."
+        },
+        {
+          "start": 60.0,
+          "end": 64.2,
+          "text": "Imagine the Sun is a beach ball, about thirty centimetres across."
+        },
+        {
+          "start": 64.2,
+          "end": 70.6,
+          "text": "On that scale, Earth is a peppercorn, a couple of millimetres wide, sitting about thirty-two metres away."
+        },
+        {
+          "start": 70.6,
+          "end": 73.6,
+          "text": "That's roughly a third of a football pitch."
+        },
+        {
+          "start": 73.6,
+          "end": 79.2,
+          "text": "The Moon would be a grain of sand less than ten centimetres from the peppercorn."
+        },
+        {
+          "start": 79.2,
+          "end": 84.9,
+          "text": "Jupiter would be a marble about a hundred and sixty-five metres from the beach ball."
+        },
+        {
+          "start": 84.9,
+          "end": 88.7,
+          "text": "And Neptune would be a pea nearly a kilometre away."
+        },
+        {
+          "start": 88.7,
+          "end": 91.3,
+          "text": "That's the thing classroom models get wrong."
+        },
+        {
+          "start": 91.3,
+          "end": 96.2,
+          "text": "They have to squash the distances to fit the planets on a poster,"
+        },
+        {
+          "start": 96.2,
+          "end": 100.8,
+          "text": "so we end up imagining the solar system as crowded. It's not."
+        },
+        {
+          "start": 100.8,
+          "end": 102.6,
+          "text": "It is overwhelmingly empty space."
+        },
+        {
+          "start": 102.6,
+          "end": 108.3,
+          "text": "Another thing people often get wrong is that the distance to the Sun isn't constant."
+        },
+        {
+          "start": 108.3,
+          "end": 111.7,
+          "text": "Earth's orbit is a slightly squashed circle, an ellipse."
+        },
+        {
+          "start": 111.7,
+          "end": 117.7,
+          "text": "We're closest to the Sun in early January, at about one hundred and forty-seven million kilometres,"
+        },
+        {
+          "start": 117.7,
+          "end": 122.3,
+          "text": "and farthest in early July, at about one hundred and fifty-two million."
+        },
+        {
+          "start": 122.3,
+          "end": 125.3,
+          "text": "And no, that's not what causes the seasons."
+        },
+        {
+          "start": 125.3,
+          "end": 129.8,
+          "text": "If it were, both hemispheres would have summer at the same time."
+        },
+        {
+          "start": 129.8,
+          "end": 135.1,
+          "text": "Seasons come from the tilt of Earth's axis, about twenty-three and a half degrees."
+        },
+        {
+          "start": 135.1,
+          "end": 139.6,
+          "text": "So how did we figure out this distance in the first place?"
+        },
+        {
+          "start": 139.6,
+          "end": 145.7,
+          "text": "Historically, one clever method used transits of Venus, when Venus passes in front of the Sun."
+        },
+        {
+          "start": 145.7,
+          "end": 149.4,
+          "text": "Observers in different parts of the world timed the transit,"
+        },
+        {
+          "start": 149.4,
+          "end": 153.6,
+          "text": "and the tiny differences let them calculate the distance using geometry."
+        },
+        {
+          "start": 153.6,
+          "end": 159.2,
+          "text": "Expeditions went all over the world for the transits of seventeen sixty-one and seventeen sixty-nine."
+        },
+        {
+          "start": 159.2,
+          "end": 165.3,
+          "text": "Today we bounce radar off planets and measure how long the echo takes to come back,"
+        },
+        {
+          "start": 165.3,
+          "end": 167.5,
+          "text": "which gives the distance incredibly precisely."
+        },
+        {
+          "start": 167.5,
+          "end": 173.6,
+          "text": "So, one astronomical unit, a hundred and fifty million kilometres, and about eight seconds for light."
+        },
+        {
+          "start": 173.6,
+          "end": 177.0,
+          "text": "Remember that number next time you see a sunset."
+        },
+        {
+          "start": 177.0,
+          "end": 183.0,
+          "text": "Let me know in the comments what other space distances you want me to scale down."
+        },
+        {
+          "start": 183.0,
+          "end": 184.5,
+          "text": "See you next time."
+        }
+      ]
+    }
+  }
+}

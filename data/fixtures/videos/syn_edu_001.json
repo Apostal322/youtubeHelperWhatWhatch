@@ -1,0 +1,260 @@
+{
+  "video_id": "syn_edu_001",
+  "synthetic": true,
+  "title": "Linear Algebra Lecture 7: Eigenvectors, Eigenvalues and Diagonalization",
+  "description": "Lecture 7 of an undergraduate linear algebra course: eigenvectors as invariant directions, computing eigenvalues from the characteristic polynomial, diagonalization, and when it fails. Recorded in a temporary room with a faulty clip-on mic, so apologies for the audio. Written notes are on the course page.",
+  "channel": {
+    "channel_id": "syn_ch_room214",
+    "title": "Room 214 Math Lectures",
+    "subscriber_count": 340
+  },
+  "published_at": "2025-02-11T15:30:00Z",
+  "duration_seconds": 289,
+  "language": "en",
+  "youtube_category_id": "27",
+  "tags": [
+    "linear algebra",
+    "eigenvalues",
+    "eigenvectors",
+    "diagonalization",
+    "lecture",
+    "math"
+  ],
+  "popularity": {
+    "view_count": 1180,
+    "like_count": 97,
+    "comment_count": 14
+  },
+  "content": {
+    "source_type": "synthetic_fixture",
+    "license": "CC0-1.0",
+    "authorization_basis": "Original synthetic transcript authored for the AI Video Discovery project. No real video exists.",
+    "modalities": [
+      "transcript",
+      "audio"
+    ],
+    "audio_fixture": {
+      "profile": "noisy_clipped"
+    },
+    "transcript": {
+      "language": "en",
+      "segments": [
+        {
+          "start": 0.0,
+          "end": 3.3,
+          "text": "Okay, can everyone in the back hear me?"
+        },
+        {
+          "start": 3.3,
+          "end": 11.4,
+          "text": "Sorry about the echo in this room, the usual lecture hall was booked, and the clip-on microphone keeps cutting out,"
+        },
+        {
+          "start": 11.4,
+          "end": 17.1,
+          "text": "so if the recording sounds rough, that's why. The board should still be readable."
+        },
+        {
+          "start": 17.1,
+          "end": 21.6,
+          "text": "Today is lecture seven, and the topic is eigenvectors and eigenvalues."
+        },
+        {
+          "start": 21.6,
+          "end": 26.5,
+          "text": "I want to start not with the definition but with a picture."
+        },
+        {
+          "start": 26.5,
+          "end": 35.5,
+          "text": "Take a matrix, any two by two matrix, and think of it as a machine that moves every point in the plane."
+        },
+        {
+          "start": 35.5,
+          "end": 38.4,
+          "text": "Most vectors get knocked off their line."
+        },
+        {
+          "start": 38.4,
+          "end": 44.5,
+          "text": "You feed in a vector pointing northeast and it comes out pointing somewhere else entirely."
+        },
+        {
+          "start": 44.5,
+          "end": 50.2,
+          "text": "But for many matrices there are a few special directions where that doesn't happen."
+        },
+        {
+          "start": 50.2,
+          "end": 57.1,
+          "text": "A vector on that line comes out on the same line, only stretched, or shrunk, or flipped."
+        },
+        {
+          "start": 57.1,
+          "end": 62.0,
+          "text": "Those directions are the eigenvectors, and the stretch factor is the eigenvalue."
+        },
+        {
+          "start": 62.0,
+          "end": 66.5,
+          "text": "Written as an equation, A times v equals lambda times v."
+        },
+        {
+          "start": 66.5,
+          "end": 73.9,
+          "text": "The matrix acting on v does nothing more than scale it. Let's do an example on the board."
+        },
+        {
+          "start": 73.9,
+          "end": 79.2,
+          "text": "Take A equal to the matrix with rows two, one and one, two."
+        },
+        {
+          "start": 79.2,
+          "end": 86.9,
+          "text": "To find the eigenvalues, we want a nonzero v with A minus lambda I, times v, equal to zero."
+        },
+        {
+          "start": 86.9,
+          "end": 95.1,
+          "text": "A nonzero vector in the null space means A minus lambda I is singular, which means its determinant is zero."
+        },
+        {
+          "start": 95.1,
+          "end": 99.6,
+          "text": "So we compute two minus lambda, squared, minus one, equals zero."
+        },
+        {
+          "start": 99.6,
+          "end": 108.6,
+          "text": "Expand that and you get lambda squared minus four lambda plus three, which factors as lambda minus one times lambda minus three."
+        },
+        {
+          "start": 108.6,
+          "end": 112.7,
+          "text": "Eigenvalues one and three. Now plug each one back in."
+        },
+        {
+          "start": 112.7,
+          "end": 122.9,
+          "text": "For lambda equals three, A minus three I has rows minus one, one and one, minus one, so the null space is spanned by one,"
+        },
+        {
+          "start": 122.9,
+          "end": 131.4,
+          "text": "one. For lambda equals one, A minus I has rows one, one and one, one, so we get one, minus one."
+        },
+        {
+          "start": 131.4,
+          "end": 135.9,
+          "text": "Notice something. Those two eigenvectors are perpendicular. That's not a coincidence."
+        },
+        {
+          "start": 135.9,
+          "end": 145.3,
+          "text": "Our matrix is symmetric, and the spectral theorem says a real symmetric matrix always has real eigenvalues and an orthogonal set of eigenvectors."
+        },
+        {
+          "start": 145.3,
+          "end": 152.7,
+          "text": "We'll prove that next week. Here's why this matters. In the eigenvector basis, the matrix is just diagonal."
+        },
+        {
+          "start": 152.7,
+          "end": 160.8,
+          "text": "Along the one, one direction it multiplies by three, and along the one, minus one direction it multiplies by one."
+        },
+        {
+          "start": 160.8,
+          "end": 167.3,
+          "text": "So if I ask you for A to the tenth power, you don't multiply ten matrices."
+        },
+        {
+          "start": 167.3,
+          "end": 173.1,
+          "text": "You write your vector in the eigenbasis and raise each eigenvalue to the tenth."
+        },
+        {
+          "start": 173.1,
+          "end": 179.2,
+          "text": "Three to the tenth and one to the tenth. That's the whole idea behind diagonalization."
+        },
+        {
+          "start": 179.2,
+          "end": 186.9,
+          "text": "A equals P D P inverse, and A to the k equals P D to the k P inverse."
+        },
+        {
+          "start": 186.9,
+          "end": 194.3,
+          "text": "A quick warning, because this trips people up on the exam every year. Not every matrix is diagonalizable."
+        },
+        {
+          "start": 194.3,
+          "end": 198.8,
+          "text": "Take the shear matrix with rows one, one and zero, one."
+        },
+        {
+          "start": 198.8,
+          "end": 204.1,
+          "text": "Its only eigenvalue is one, repeated, but it only has one independent eigenvector."
+        },
+        {
+          "start": 204.1,
+          "end": 212.7,
+          "text": "You can't build a basis out of eigenvectors, so diagonalization fails. The algebraic multiplicity is two, the geometric multiplicity is one."
+        },
+        {
+          "start": 212.7,
+          "end": 220.8,
+          "text": "Also, a rotation of the plane by ninety degrees has no real eigenvectors at all, because every vector gets turned."
+        },
+        {
+          "start": 220.8,
+          "end": 229.0,
+          "text": "Its eigenvalues are i and minus i. Complex eigenvalues are the algebra's way of telling you there's rotation going on."
+        },
+        {
+          "start": 229.0,
+          "end": 234.7,
+          "text": "Sorry, the mic just clipped again, let me repeat that. Complex eigenvalues signal rotation."
+        },
+        {
+          "start": 234.7,
+          "end": 238.8,
+          "text": "Last thing, a connection to where you'll actually see this."
+        },
+        {
+          "start": 238.8,
+          "end": 247.3,
+          "text": "If you have a system that evolves step by step, like a population model where x next equals A times x,"
+        },
+        {
+          "start": 247.3,
+          "end": 255.9,
+          "text": "then the long-run behaviour is controlled by the eigenvalue with the largest absolute value. If it's bigger than one, things grow."
+        },
+        {
+          "start": 255.9,
+          "end": 263.7,
+          "text": "If it's less than one, they decay. And the corresponding eigenvector tells you the shape the system settles into."
+        },
+        {
+          "start": 263.7,
+          "end": 271.0,
+          "text": "Ranking pages by the links between them can be phrased exactly this way, as finding a dominant eigenvector."
+        },
+        {
+          "start": 271.0,
+          "end": 279.6,
+          "text": "For homework, problems four through nine in section six point one, and please try the shear example by hand before Thursday."
+        },
+        {
+          "start": 279.6,
+          "end": 288.2,
+          "text": "And if the audio on this recording is unusable, the written notes are posted on the course page. See you Thursday."
+        }
+      ]
+    }
+  }
+}

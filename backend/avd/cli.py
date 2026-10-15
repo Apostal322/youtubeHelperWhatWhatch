@@ -1,0 +1,219 @@
+"""Command-line entry point: ``avd <command>``."""
+
+from __future__ import annotations
+
+import argparse
+import json
+import sys
+from pathlib import Path
+
+from avd.config import REPO_ROOT, get_settings
+from avd.logging import configure_logging
+
+
+def _migrate() -> None:
+    from alembic import command
+    from alembic.config import Config
+
+    # Migrations ship inside the package, so this works for any install layout.
+    cfg = Config()
+    cfg.set_main_option("script_location", str(Path(__file__).resolve().parent / "migrations"))
+    command.upgrade(cfg, "head")
+
+
+def cmd_migrate(args: argparse.Namespace) -> None:
+    _migrate()
+    print("database migrated to head")
+
+
+def cmd_seed_demo(args: argparse.Namespace) -> None:
+    from avd.db.session import session_scope
+    from avd.services import seed_demo
+
+    with session_scope() as s:
+        n = seed_demo(s, get_settings())
+    print(f"seeded {n} synthetic fixture videos and queued Stage A")
+
+
+def cmd_worker(args: argparse.Namespace) -> None:
+    from avd.workers.context import build_context
+    from avd.workers.runner import run_forever, run_until_idle
+
+    ctx = build_context()
+    if args.once:
+        print(json.dumps(run_until_idle(ctx, max_jobs=args.max_jobs, job_types=args.types)))
+    else:
+        run_forever(ctx)
+
+
+def cmd_demo(args: argparse.Namespace) -> None:
+    """Migrate, seed fixtures, process them, and print a summary table."""
+    from sqlalchemy import select
+
+    from avd.db.models import Evaluation, Video
+    from avd.db.session import session_scope
+    from avd.services import seed_demo
+    from avd.workers.context import build_context
+    from avd.workers.runner import run_until_idle
+
+    settings = get_settings()
+    _migrate()
+    with session_scope() as s:
+        seed_demo(s, settings)
+    outcomes = run_until_idle(build_context())
+    print(f"job outcomes: {outcomes}")
+    mode = "SYNTHETIC DEMO (heuristic baseline, not AI)" if settings.demo_mode else "LLM"
+    print(f"\nEvaluation mode: {mode}\n")
+    print(f"{'video':16} {'genre':16} {'overall':>8} {'content':>8} {'present.':>8} {'technical':>9}  status")
+    with session_scope() as s:
+        rows = s.execute(
+            select(Video.id, Video.genre, Evaluation).join(
+                Evaluation, (Evaluation.video_id == Video.id) & Evaluation.is_current.is_(True)
+            )
+        ).all()
+        for vid, genre, ev in sorted(rows, key=lambda r: -(r[2].overall_score or 0)):
+            g = {k: v.get("score") for k, v in ev.group_scores.items()}
+
+            def f(x: float | None) -> str:
+                return "   —" if x is None else f"{x:.2f}"
+
+            print(
+                f"{vid:16} {genre or '?':16} {f(ev.overall_score):>8} {f(g.get('content')):>8} "
+                f"{f(g.get('presentation')):>8} {f(g.get('technical')):>9}  {ev.status}"
+            )
+
+
+def cmd_discover(args: argparse.Namespace) -> None:
+    from avd.db.session import session_scope
+    from avd.services import plan_discovery
+
+    if get_settings().youtube_api_key is None:
+        sys.exit("AVD_YOUTUBE_API_KEY is not set; discovery uses the official YouTube Data API")
+    with session_scope() as s:
+        print(f"enqueued {plan_discovery(s, args.n)} discovery jobs")
+
+
+def cmd_import_dataset(args: argparse.Namespace) -> None:
+    from avd.db.session import session_scope
+    from avd.ingest import import_licensed_dataset
+    from avd.services import enqueue_stage_a
+
+    with session_scope() as s:
+        stats, video_ids = import_licensed_dataset(s, Path(args.path))
+        for vid in video_ids:
+            enqueue_stage_a(s, vid, force=True)
+    print(json.dumps(stats))
+
+
+def cmd_reevaluate_stale(args: argparse.Namespace) -> None:
+    from datetime import UTC, datetime
+
+    from avd.db.session import session_scope
+    from avd.workers.queue import enqueue
+
+    with session_scope() as s:
+        enqueue(s, "reevaluate_stale", f"reevaluate_stale:{datetime.now(UTC):%Y%m%d%H%M%S}", priority=2.0)
+    print("queued; run a worker to process")
+
+
+def cmd_stats(args: argparse.Namespace) -> None:
+    from avd.db.session import session_scope
+    from avd.workers.budget import llm_spent_today, youtube_units_today
+    from avd.workers.queue import stats
+
+    with session_scope() as s:
+        print(
+            json.dumps(
+                {
+                    "jobs": stats(s),
+                    "llm_usd_today": llm_spent_today(s),
+                    "youtube_units_today": youtube_units_today(s),
+                },
+                indent=2,
+            )
+        )
+
+
+def cmd_serve(args: argparse.Namespace) -> None:
+    import uvicorn
+
+    uvicorn.run("avd.api.app:app", host=args.host, port=args.port, reload=args.reload)
+
+
+def cmd_train_ranker(args: argparse.Namespace) -> None:
+    from avd.db.session import session_scope
+    from avd.recsys.ltr_data import build_pairs
+    from avd.recsys.ranker import DEFAULT_WEIGHTS, LinearRanker, pairwise_accuracy, train_pairwise_ranker
+
+    with session_scope() as s:
+        pairs = build_pairs(s)
+    if len(pairs) < args.min_pairs:
+        sys.exit(f"only {len(pairs)} preference pairs from feedback; need >= {args.min_pairs}")
+    split = int(len(pairs) * 0.8)
+    model = train_pairwise_ranker(pairs[:split])
+    held = pairs[split:]
+    baseline = LinearRanker(dict(DEFAULT_WEIGHTS))
+    print(
+        json.dumps(
+            {
+                "pairs": len(pairs),
+                "version": model.version,
+                "weights": model.weights,
+                "heldout_pairwise_accuracy": pairwise_accuracy(model, held),
+                "baseline_heldout_pairwise_accuracy": pairwise_accuracy(baseline, held),
+            },
+            indent=2,
+        )
+    )
+    model.save(Path(args.out))
+
+
+def cmd_bench(args: argparse.Namespace) -> None:
+    from avd.bench.harness import main as bench_main
+
+    bench_main(args)
+
+
+def main(argv: list[str] | None = None) -> None:
+    settings = get_settings()
+    configure_logging(settings.log_level, settings.log_json)
+    p = argparse.ArgumentParser(prog="avd", description="AI Video Discovery")
+    sub = p.add_subparsers(dest="cmd", required=True)
+    sub.add_parser("migrate").set_defaults(fn=cmd_migrate)
+    sub.add_parser("seed-demo").set_defaults(fn=cmd_seed_demo)
+    sub.add_parser("demo", help="migrate + seed fixtures + process + summary").set_defaults(fn=cmd_demo)
+    w = sub.add_parser("worker")
+    w.add_argument("--once", action="store_true", help="drain the queue and exit")
+    w.add_argument("--max-jobs", type=int, default=None)
+    w.add_argument("--types", nargs="*", default=None)
+    w.set_defaults(fn=cmd_worker)
+    d = sub.add_parser("discover")
+    d.add_argument("--n", type=int, default=4)
+    d.set_defaults(fn=cmd_discover)
+    i = sub.add_parser("import-dataset")
+    i.add_argument("path")
+    i.set_defaults(fn=cmd_import_dataset)
+    sub.add_parser("reevaluate-stale").set_defaults(fn=cmd_reevaluate_stale)
+    sub.add_parser("stats").set_defaults(fn=cmd_stats)
+    sv = sub.add_parser("serve")
+    sv.add_argument("--host", default="127.0.0.1")
+    sv.add_argument("--port", type=int, default=8000)
+    sv.add_argument("--reload", action="store_true")
+    sv.set_defaults(fn=cmd_serve)
+    t = sub.add_parser("train-ranker")
+    t.add_argument("--out", default="ranker.json")
+    t.add_argument("--min-pairs", type=int, default=50)
+    t.set_defaults(fn=cmd_train_ranker)
+    b = sub.add_parser("bench", help="run the evaluation benchmark harness")
+    b.add_argument("--dataset", default=str(REPO_ROOT / "benchmarks" / "datasets" / "synthetic_v1"))
+    b.add_argument("--fixtures", default=str(REPO_ROOT / "data" / "fixtures"))
+    b.add_argument("--out", default=str(REPO_ROOT / "benchmarks" / "reports"))
+    b.add_argument("--evaluator", choices=["heuristic", "configured"], default="heuristic")
+    b.add_argument("--tag", default=None)
+    b.set_defaults(fn=cmd_bench)
+    args = p.parse_args(argv)
+    args.fn(args)
+
+
+if __name__ == "__main__":
+    main()

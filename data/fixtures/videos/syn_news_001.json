@@ -1,0 +1,251 @@
+{
+  "video_id": "syn_news_001",
+  "synthetic": true,
+  "title": "Pellingford Voted to Remove Its Bike Lanes. Here's Why That's a Mistake.",
+  "description": "Pellingford's council voted 5–4 to remove the Mill Road bike lanes after an 18-month trial. I go through what the review actually found and why I think the all-or-nothing vote was the wrong call.",
+  "channel": {
+    "channel_id": "syn_ch_civicdesk",
+    "title": "The Civic Desk Weekly",
+    "subscriber_count": 6300
+  },
+  "published_at": "2026-10-12T18:00:00Z",
+  "duration_seconds": 211,
+  "language": "en",
+  "youtube_category_id": "25",
+  "tags": [
+    "local news",
+    "commentary",
+    "cycling",
+    "transport policy",
+    "town council"
+  ],
+  "popularity": {
+    "view_count": 75,
+    "like_count": 6,
+    "comment_count": 5
+  },
+  "content": {
+    "source_type": "synthetic_fixture",
+    "license": "CC0-1.0",
+    "authorization_basis": "Original synthetic transcript authored for the AI Video Discovery project. No real video exists.",
+    "modalities": [
+      "transcript"
+    ],
+    "audio_fixture": null,
+    "transcript": {
+      "language": "en",
+      "segments": [
+        {
+          "start": 0.0,
+          "end": 2.0,
+          "text": "Welcome to the Civic Desk."
+        },
+        {
+          "start": 2.0,
+          "end": 9.4,
+          "text": "This week, the Pellingford town council voted five to four to remove the protected bike lanes on Mill Road,"
+        },
+        {
+          "start": 9.4,
+          "end": 12.2,
+          "text": "just eighteen months after they were installed."
+        },
+        {
+          "start": 12.2,
+          "end": 16.9,
+          "text": "I think that's a mistake, and I want to walk through why."
+        },
+        {
+          "start": 16.9,
+          "end": 23.5,
+          "text": "But let's start with what actually happened, because a lot of the coverage has been pretty sloppy."
+        },
+        {
+          "start": 23.5,
+          "end": 27.5,
+          "text": "The lanes went in two springs ago as a trial."
+        },
+        {
+          "start": 27.5,
+          "end": 31.8,
+          "text": "They took away about forty on-street parking spaces along Mill Road"
+        },
+        {
+          "start": 31.8,
+          "end": 38.0,
+          "text": "and replaced them with a kerb-separated lane in each direction. The trial came with a promise."
+        },
+        {
+          "start": 38.0,
+          "end": 42.7,
+          "text": "The council would review traffic, safety and business data after a year."
+        },
+        {
+          "start": 42.7,
+          "end": 47.1,
+          "text": "That review came out last month, and here's what it found."
+        },
+        {
+          "start": 47.1,
+          "end": 51.8,
+          "text": "Cycling trips on Mill Road, measured by the automatic counters, roughly doubled."
+        },
+        {
+          "start": 51.8,
+          "end": 56.5,
+          "text": "Reported collisions involving cyclists on that stretch went from seven in the"
+        },
+        {
+          "start": 56.5,
+          "end": 60.8,
+          "text": "year before the lanes to two in the first year after."
+        },
+        {
+          "start": 60.8,
+          "end": 68.6,
+          "text": "Car journey times through the corridor at rush hour went up by about a minute and a half on average."
+        },
+        {
+          "start": 68.6,
+          "end": 72.2,
+          "text": "And this is the one that drove the vote."
+        },
+        {
+          "start": 72.2,
+          "end": 78.8,
+          "text": "Four of the eleven shops on the lower half of Mill Road said their takings had fallen."
+        },
+        {
+          "start": 78.8,
+          "end": 84.3,
+          "text": "Now, I want to be fair to the councillors who voted to remove them."
+        },
+        {
+          "start": 84.3,
+          "end": 86.7,
+          "text": "The shopkeepers aren't making that up."
+        },
+        {
+          "start": 86.7,
+          "end": 94.5,
+          "text": "Losing parking right outside your door is a real cost, and when you run a small business on thin margins,"
+        },
+        {
+          "start": 94.5,
+          "end": 96.5,
+          "text": "a bad year is frightening."
+        },
+        {
+          "start": 96.5,
+          "end": 103.1,
+          "text": "And a minute and a half every morning adds up if you drive that road every day."
+        },
+        {
+          "start": 103.1,
+          "end": 106.3,
+          "text": "Those are legitimate concerns. But here's my problem."
+        },
+        {
+          "start": 106.3,
+          "end": 111.4,
+          "text": "First, the business data in the review was a survey, not sales figures."
+        },
+        {
+          "start": 111.4,
+          "end": 117.6,
+          "text": "Four shops said takings had fallen. Two said they'd gone up. The rest said no change."
+        },
+        {
+          "start": 117.6,
+          "end": 120.4,
+          "text": "That's not evidence the lanes hurt business."
+        },
+        {
+          "start": 120.4,
+          "end": 126.7,
+          "text": "It's evidence that it's mixed, in a year when, let's remember, prices went up for everyone."
+        },
+        {
+          "start": 126.7,
+          "end": 132.2,
+          "text": "Second, the safety numbers. Going from seven collisions to two is a big drop."
+        },
+        {
+          "start": 132.2,
+          "end": 136.5,
+          "text": "Yes, with numbers that small, some of that could be chance."
+        },
+        {
+          "start": 136.5,
+          "end": 144.3,
+          "text": "But honestly, every town that has done this has seen the same thing, so I don't think it's a fluke."
+        },
+        {
+          "start": 144.3,
+          "end": 151.0,
+          "text": "Third, nobody seems to have asked the obvious question. What happens to the people who started cycling?"
+        },
+        {
+          "start": 151.0,
+          "end": 155.7,
+          "text": "If the lanes come out, some of them go back to driving,"
+        },
+        {
+          "start": 155.7,
+          "end": 160.0,
+          "text": "which puts more cars on the very road we're worried about."
+        },
+        {
+          "start": 160.0,
+          "end": 163.9,
+          "text": "Now, could the council have done something in between? Absolutely."
+        },
+        {
+          "start": 163.9,
+          "end": 167.8,
+          "text": "They could have added short-stay loading bays for the shops,"
+        },
+        {
+          "start": 167.8,
+          "end": 172.5,
+          "text": "or kept the lanes and moved some parking to the side streets."
+        },
+        {
+          "start": 172.5,
+          "end": 178.4,
+          "text": "None of those options were in the motion. It was keep everything or remove everything."
+        },
+        {
+          "start": 178.4,
+          "end": 183.1,
+          "text": "And that's what frustrates me most. So, where does this leave us?"
+        },
+        {
+          "start": 183.1,
+          "end": 186.7,
+          "text": "The lanes are scheduled to come out in March."
+        },
+        {
+          "start": 186.7,
+          "end": 190.6,
+          "text": "There's a public comment period until the end of January."
+        },
+        {
+          "start": 190.6,
+          "end": 196.1,
+          "text": "If you live in Pellingford, whatever you think, write in. Councils do read those."
+        },
+        {
+          "start": 196.1,
+          "end": 202.4,
+          "text": "That's it for this week. Let me know what you think in the comments, and yes,"
+        },
+        {
+          "start": 202.4,
+          "end": 207.1,
+          "text": "I'm sure some of you are going to tell me I'm wrong."
+        }
+      ]
+    }
+  }
+}
