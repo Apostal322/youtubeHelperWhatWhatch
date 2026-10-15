@@ -173,13 +173,20 @@ def test_fact_checker_scores_only_grounded_verdicts() -> None:
                         "claim": "Chlorophyll absorbs red and blue light",
                         "segment_index": 1,
                         "quote": "Chlorophyll absorbs red and blue light",
+                        "claim_type": "factual_assertion",
                     },
                     {
                         "claim": "RuBisCO fixes carbon",
                         "segment_index": 4,
                         "quote": "the key enzyme is RuBisCO",
+                        "claim_type": "factual_assertion",
                     },
-                    {"claim": "Made-up claim", "segment_index": 0, "quote": "Today we will learn"},
+                    {
+                        "claim": "Made-up claim",
+                        "segment_index": 0,
+                        "quote": "Today we will learn",
+                        "claim_type": "factual_assertion",
+                    },
                 ]
             }
         return {
@@ -204,17 +211,27 @@ def test_fact_checker_scores_only_grounded_verdicts() -> None:
     out = ev.evaluate(make_input(), get_profile(Genre.SCIENCE))
     d = out.dimensions[0]
     assert d.status == DimensionStatus.SCORED
-    assert "2 claims supported and 0 contradicted" in d.justification  # ungrounded verdict ignored
+    # The contradicted verdict cites a passage that was never retrieved: downgraded, not counted.
+    assert "2 claims supported, 0 contradicted" in d.justification
     assert len(out.usage) == 2
 
 
 def test_fact_checker_abstains_with_too_few_checkable_claims() -> None:
     def respond(req: LLMRequest, i: int) -> dict[str, Any]:
         if req.schema_name == "claim_extraction":
-            return {"claims": [{"claim": "x", "segment_index": 0, "quote": "Today we will learn"}]}
+            return {
+                "claims": [
+                    {
+                        "claim": "x",
+                        "segment_index": 0,
+                        "quote": "Today we will learn",
+                        "claim_type": "factual_assertion",
+                    }
+                ]
+            }
         return {
             "verdicts": [
-                {"claim_index": 0, "verdict": "not_enough_info", "passage_ids": [], "explanation": "-"}
+                {"claim_index": 0, "verdict": "insufficient_evidence", "passage_ids": [], "explanation": "-"}
             ]
         }
 

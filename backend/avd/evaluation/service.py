@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from datetime import datetime
 from typing import Any
 
 from sqlalchemy import select, update
@@ -11,6 +12,7 @@ from avd.db.models import (
     DimensionScoreRow,
     Evaluation,
     EvidenceRow,
+    FactualClaim,
     Video,
 )
 from avd.evaluation.profiles import get_profile
@@ -148,6 +150,8 @@ def persist_evaluation(session: Session, result: EvaluationResult, job_id: str |
         ]
         ev.dimensions.append(row)
     session.add(ev)
+    session.flush()
+    _persist_claims(session, ev)
     # Model calls are recorded per attempt by LoggingProvider (cost_ledger); only the evaluation
     # total is stored here so failed and retried attempts are never double counted.
     video = session.get(Video, result.video_id)
@@ -245,11 +249,51 @@ def serialize_evaluation(ev: Evaluation, include_evidence: bool = True) -> dict[
     }
 
 
+def _persist_claims(session: Session, ev: Evaluation) -> None:
+    """Claims become queryable rows: verified ones from the fact checker (with verdict and source
+    provenance) and, otherwise, the claims the Stage-B map step extracted (verdict ``unchecked``)."""
+    evaluators = (ev.coverage_report or {}).get("evaluators") or {}
+    checked = (evaluators.get("fact_check") or {}).get("claims") or []
+    seen: set[tuple[int | None, str]] = set()
+    for c in checked:
+        seen.add((c.get("segment_index"), c.get("quote") or ""))
+        session.add(
+            FactualClaim(
+                evaluation_id=ev.id,
+                segment_index=c.get("segment_index"),
+                quote=c.get("quote"),
+                claim=c["claim"],
+                claim_type=c["claim_type"],
+                verdict=c.get("verdict", "unchecked"),
+                domain_risk=c.get("domain_risk", "standard"),
+                sources=c.get("sources", []),
+                explanation=c.get("explanation"),
+                checked_at=datetime.fromisoformat(c["checked_at"]) if c.get("checked_at") else None,
+            )
+        )
+    for name, r in evaluators.items():
+        for c in (r or {}).get("claims_extracted") or []:
+            key = (c.get("segment_index"), c.get("quote") or "")
+            if name == "fact_check" or key in seen:
+                continue
+            seen.add(key)
+            session.add(
+                FactualClaim(
+                    evaluation_id=ev.id,
+                    segment_index=c.get("segment_index"),
+                    quote=c.get("quote"),
+                    claim=c.get("claim", ""),
+                    claim_type=c.get("claim_type", "factual_assertion"),
+                    verdict="unchecked",
+                )
+            )
+
+
 def _public_coverage(report: dict[str, Any]) -> dict[str, Any]:
     out = dict(report or {})
     evaluators = {}
     for name, r in (out.get("evaluators") or {}).items():
-        evaluators[name] = {k: v for k, v in r.items() if k != "claims_extracted"}
+        evaluators[name] = {k: v for k, v in r.items() if k not in ("claims_extracted", "claims")}
     out["evaluators"] = evaluators
     return out
 

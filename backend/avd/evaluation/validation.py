@@ -9,7 +9,8 @@
   applied (there is no empirical basis for its size).
 * If >= 4 quotes were claimed and < 50 % verify, all model-scored dimensions are invalidated — a
   strong hallucination signal. They are not re-scored or replaced.
-* Citations of segments flagged as prompt-injection attempts are rejected.
+* Citations of segments flagged as prompt-injection attempts are rejected, and so are quotes that
+  are popularity statements ("10 million views", "most viewed"): popularity is not evidence.
 * Degenerate outputs (identical scores across many dimensions) are flagged.
 """
 
@@ -19,6 +20,7 @@ import re
 from difflib import SequenceMatcher
 
 from avd.content.models import Transcript
+from avd.evaluation.sanitize import is_popularity_statement
 from avd.evaluation.schema import (
     DimensionScore,
     DimensionStatus,
@@ -96,14 +98,14 @@ def validate_dimensions(
     """Verify model-supplied evidence. ``blocked_segments`` are segments flagged as prompt-injection
     attempts; citing them is rejected (an instruction to the grader is not evidence of quality)."""
     warnings: list[str] = []
-    claimed = verified_total = injection_rejected = 0
+    claimed = verified_total = injection_rejected = popularity_rejected = 0
     ungrounded: list[str] = []
     out: list[DimensionScore] = []
     model_scored: list[int] = []
     seg_prefix = transcript.content_hash()[:16] if transcript is not None else None
 
     def check(e: EvidenceRef) -> EvidenceRef | None:
-        nonlocal injection_rejected
+        nonlocal injection_rejected, popularity_rejected
         if transcript is None:
             return None
         v = verify_quote(e, transcript)
@@ -111,6 +113,10 @@ def validate_dimensions(
             return None
         if v.segment_index in blocked_segments:
             injection_rejected += 1
+            return None
+        if e.quote and is_popularity_statement(e.quote):
+            # "This video has 2M views" is never evidence of quality (popularity leakage).
+            popularity_rejected += 1
             return None
         return v.model_copy(update={"segment_id": f"{seg_prefix}#{v.segment_index}"})
 
@@ -189,6 +195,7 @@ def validate_dimensions(
         passed=not invalidated,
         warnings=warnings,
         injection_citations_rejected=injection_rejected,
+        popularity_citations_rejected=popularity_rejected,
         ungrounded_dimensions=ungrounded,
         evidence_claimed=claimed,
         evidence_verified=verified_total,

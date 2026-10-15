@@ -38,8 +38,11 @@ _BRACKETED = re.compile(rf"[\[(][^\])]*\b({_UNITS}|viral|trending)\b[^\])]*[\])]
 _SENTENCE_SPLIT = re.compile(r"(?<=[.!?])\s+|\n+")
 
 
-def _is_popularity(sentence: str) -> bool:
+def is_popularity_statement(sentence: str) -> bool:
     return bool(_COUNT.search(sentence) or _CLAIM.search(sentence) or _MILESTONE.search(sentence))
+
+
+_is_popularity = is_popularity_statement
 
 
 def sanitize_description(text: str) -> tuple[str, int]:

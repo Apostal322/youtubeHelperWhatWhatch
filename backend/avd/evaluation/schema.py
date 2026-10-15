@@ -314,6 +314,7 @@ class ValidationReport(BaseModel):
     evidence_verified: int = 0
     dimensions_invalidated: list[Dimension] = Field(default_factory=list)
     injection_citations_rejected: int = 0
+    popularity_citations_rejected: int = 0
     ungrounded_dimensions: list[str] = Field(default_factory=list)
     injection_findings: list[dict[str, Any]] = Field(default_factory=list)
 

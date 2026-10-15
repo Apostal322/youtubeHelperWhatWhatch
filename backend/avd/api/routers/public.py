@@ -9,7 +9,7 @@ from sqlalchemy.orm import Session
 from avd.api.deps import db, embedder
 from avd.config import Settings, get_settings
 from avd.content.store import active_sources
-from avd.db.models import Evaluation, Video
+from avd.db.models import Evaluation, FactualClaim, Video
 from avd.embeddings.base import Embedder
 from avd.evaluation.profiles import PROFILES
 from avd.evaluation.rubric import RUBRIC
@@ -128,6 +128,38 @@ def evaluation_history(video_id: str, session: Session = Depends(db)) -> dict[st
             }
             for e in rows
         ]
+    }
+
+
+@router.get("/videos/{video_id}/claims")
+def claims(video_id: str, session: Session = Depends(db)) -> dict[str, Any]:
+    """Claims from the video's current evaluation(s). ``verdict`` is one of supported,
+    contradicted, mixed, unverifiable, insufficient_evidence, not_applicable, or ``unchecked``
+    (extracted but not verified against references). Verdicts come only from licensed reference
+    passages, never from model knowledge."""
+    rows = session.execute(
+        select(FactualClaim, Evaluation.stage)
+        .join(Evaluation, Evaluation.id == FactualClaim.evaluation_id)
+        .where(Evaluation.video_id == video_id, Evaluation.is_current.is_(True))
+        .order_by(FactualClaim.segment_index)
+    ).all()
+    return {
+        "video_id": video_id,
+        "items": [
+            {
+                "segment_index": c.segment_index,
+                "quote": c.quote,
+                "claim": c.claim,
+                "claim_type": c.claim_type,
+                "verdict": c.verdict,
+                "domain_risk": c.domain_risk,
+                "sources": c.sources,
+                "explanation": c.explanation,
+                "checked_at": c.checked_at.isoformat() if c.checked_at else None,
+                "stage": stage,
+            }
+            for c, stage in rows
+        ],
     }
 
 

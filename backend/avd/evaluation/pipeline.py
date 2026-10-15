@@ -228,6 +228,9 @@ class EvaluationPipeline:
             review.append(f"model samples disagree on: {', '.join(disagreeing)}")
         if transcript_report and transcript_report["language_mismatch"]:
             review.append("declared transcript language differs from detected language")
+        high_stakes = (evaluator_reports.get("fact_check") or {}).get("high_stakes_contradicted", 0)
+        if high_stakes:
+            review.append(f"contradicted high-stakes claims (health/finance/legal/safety): {high_stakes}")
 
         scored_any = any(d.status == DimensionStatus.SCORED for d in final)
         failed_any = any(d.status == DimensionStatus.FAILED for d in final)
@@ -302,7 +305,15 @@ def build_pipeline(
             AudioSignalEvaluator(),
         ]
         if retriever is not None:
-            evaluators.append(FactualVerificationEvaluator(provider, settings.llm_model_stage_c, retriever))
+            evaluators.append(
+                FactualVerificationEvaluator(
+                    provider,
+                    settings.llm_model_stage_c,
+                    retriever,
+                    chunk_target_tokens=settings.llm_chunk_target_tokens,
+                    single_pass_max_tokens=settings.llm_single_pass_max_tokens,
+                )
+            )
         return EvaluationPipeline(evaluators, stage, EvaluationMode.LLM)
     return EvaluationPipeline(
         [
