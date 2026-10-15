@@ -112,14 +112,15 @@ passages that were not retrieved are discarded. Scored only when ≥ 2 claims we
   relevant video ids
 * Fixture videos with transcripts in `data/fixtures/videos/`
 
-### Annotation protocol (for real human labels)
+### Real-world dataset and annotation (Phase 2)
 
-1. Raters see the transcript, title and description — **never** view counts or channel size.
-2. Score each dimension with the anchors from `/v1/meta`, or mark *cannot judge*.
-3. ≥ 3 raters per item; record rater id and time spent; include ~10 % duplicate items to measure
-   intra-rater consistency.
-4. Pairwise judgements for items within 1 point of each other.
-5. Stratify sampling by genre × channel-size bucket × language; report coverage.
+* `benchmarks/datasets/real_pilot_v1/` is a manifest of 29 licensed real episodes (Changelog CC BY-SA
+  4.0, Talk Python GPL-3.0), split by show into calibration / dev / test. Its datasheet is the
+  `README.md` next to the manifest. It contains **no labels**.
+* Labels come only from the blind annotation workflow (`docs/annotation.md`): pseudonymous raters,
+  onboarding on calibration items, 3 independent ratings per item, server-side timing, verified
+  evidence, QC flags, blind test–retest repeats, and adjudication by an adjudicator who did not
+  rate the item. Export with `avd annotate export`.
 
 ### Metrics
 
@@ -137,6 +138,43 @@ passages that were not retrieved are discarded. Scored only when ≥ 2 claims we
 | What does it cost? | Cost per evaluated video (ledger) |
 
 Run: `avd bench [--evaluator configured]`. Reports: `benchmarks/reports/<run>.{json,md}`.
+
+### Real-data benchmark (v2): `avd bench-real`
+
+`avd bench-real --labels <export dir> [--split dev|test --confirm-test] [--evaluator configured]`
+runs the production pipeline on the dataset manifest in an isolated database. It reports two
+kinds of measurement.
+
+**Label-free (always available)**
+* evaluation status and assessment state;
+* dimension status by reason code;
+* evidence: claimed vs verified citations, invalid-citation rate, scored-but-ungrounded dimensions;
+* injection flags on presumed-benign content;
+* predicted genre distribution;
+* latency, cost and token percentiles (p50/p95), and LLM call errors;
+* popularity invariance.
+
+**Human-grounded (only with human labels for the split)**
+
+| Question | Metric |
+|---|---|
+| How reliable are people? (the ceiling) | Krippendorff's α (ordinal, interval); ICC(1,1) per dimension; each rater vs the mean of the others (leave-one-out) |
+| Does the model agree with people? | Spearman, Kendall τb, MAE, quadratic-weighted κ per dimension, pooled, and for content dimensions. The reference is the adjudicated score, else the mean of ≥ 2 ratings whose range is < 2; disputed cells are excluded |
+| Is it as good as one more rater? | Model MAE − human MAE against the *same* leave-one-out references |
+| Does it abstain when people cannot judge? | Abstention agreement, incl. the rate of scoring where most humans did not |
+| Are confidences meaningful? | ECE (correct = within ±1); risk–coverage curve, AURC vs oracle, `aurc_gain` |
+| Does it order items like people? | Tie-aware pairwise accuracy (label ties count when the model is within 0.25) |
+
+All intervals are 95 % percentile bootstraps that resample **whole groups** (shows/creators), with
+a fixed seed. Items from one creator are not independent evidence. Non-human label sources are
+refused.
+
+**Release gates.** `benchmarks/release_gates.json` holds 12 gates (precondition, validity, safety
+and operational), each with a rationale. It is locked in `release_gates.lock` (sha256 + time)
+*before* any human annotation exists. A test-split run requires `--confirm-test`, a valid lock,
+and labels newer than the lock. Changed gates can only be re-locked together with a new test set
+(`avd gates lock --new-test-set`). A gate without human labels is *not evaluable*, never passed,
+and a release needs every gate evaluable and passing on a binding test-split run.
 
 ## 6. Results so far, and what they do not show
 
@@ -160,6 +198,18 @@ Committed baseline: [`benchmarks/reports/baseline-heuristic-synthetic_v1.md`](..
 | Recommendations (5 personas) | nDCG@5 0.88, nDCG@10 0.91, P@5 0.60, 1 low-quality item in 25 top-5 slots |
 | Top-5 exposure by channel size | micro 9, small 5, medium 4, huge 7 (of 25) |
 | Cost | $0 (no LLM) |
+
+**Real pilot, dev split, heuristic baseline**
+([`baseline-heuristic-real_pilot_v1-dev.md`](../benchmarks/reports/baseline-heuristic-real_pilot_v1-dev.md)).
+These are label-free numbers only: no human has annotated the pilot, so **no accuracy or agreement
+figure exists for real content**.
+* 10/10 items were evaluated, all as `heuristic_baseline`.
+* An overall score is available for 8/10. Originality and factual accuracy always abstain;
+  title consistency abstains on placeholder titles.
+* The heuristic genre classifier labels these interview podcasts as technology 5, entertainment 2,
+  education 1, how-to 1 and gaming 1. A tech podcast labelled "gaming" is a real misclassification,
+  and it changes the aggregation profile (genre v2 addresses this).
+* Popularity invariance passed. No injection flags.
 
 The LLM evaluator has **no benchmark numbers yet**: it was tested with scripted responses (parsing,
 validation, grounding, abstention, retries, refusal, self-consistency, caching), not run against a

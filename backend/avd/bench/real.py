@@ -696,6 +696,7 @@ def render_markdown(r: dict[str, Any]) -> str:
     for k in (
         "run_at",
         "git_commit",
+        "git_dirty",
         "dataset",
         "split",
         "items",

@@ -6,6 +6,7 @@ baselines (`baseline-*`) are committed so regressions are visible in review.
 | Report | Evaluator | Dataset | Labels |
 |---|---|---|---|
 | `baseline-heuristic-synthetic_v1.{md,json}` | deterministic heuristic baseline | synthetic_v1 (20 synthetic videos) | synthetic design intent, single rater |
+| `baseline-heuristic-real_pilot_v1-dev.{md,json}` | heuristic baseline (`avd bench-real`) | real_pilot_v1, dev split (10 licensed episodes) | **none yet**: human-grounded section reports "not available" |
 
 Notes:
 * Every report starts with warnings when labels are synthetic or single-rater.
