@@ -29,7 +29,7 @@ evaluation — not as features, not in prompts, not through priorities. This is 
   to run it for real.
 * **Benchmark labels are synthetic** (design intent of the fixture author, single rater). Reported
   numbers test the harness; they do not establish real-world accuracy. See
-  [`docs/evaluation.md`](docs/evaluation.md#5-results-so-far-and-what-they-do-not-show).
+  [`docs/evaluation.md`](docs/evaluation.md#6-results-so-far-and-what-they-do-not-show).
 
 ## Quick start
 

@@ -1,0 +1,398 @@
+{
+  "job_outcomes": {
+    "succeeded": 40
+  },
+  "evaluation": {
+    "per_dimension": {
+      "information_density": {
+        "n_compared": 18,
+        "spearman": 0.7268,
+        "kendall_tau_b": 0.5637,
+        "mae": 1.2761,
+        "abstained_where_label_exists": 0,
+        "scored_where_label_is_null": 1
+      },
+      "depth": {
+        "n_compared": 20,
+        "spearman": 0.452,
+        "kendall_tau_b": 0.3117,
+        "mae": 1.706,
+        "abstained_where_label_exists": 0,
+        "scored_where_label_is_null": 0
+      },
+      "factual_accuracy": {
+        "n_compared": 0,
+        "spearman": null,
+        "kendall_tau_b": null,
+        "mae": null,
+        "abstained_where_label_exists": 13,
+        "scored_where_label_is_null": 0
+      },
+      "originality": {
+        "n_compared": 0,
+        "spearman": null,
+        "kendall_tau_b": null,
+        "mae": null,
+        "abstained_where_label_exists": 20,
+        "scored_where_label_is_null": 0
+      },
+      "informational_value": {
+        "n_compared": 18,
+        "spearman": 0.722,
+        "kendall_tau_b": 0.5507,
+        "mae": 1.1294,
+        "abstained_where_label_exists": 0,
+        "scored_where_label_is_null": 2
+      },
+      "clarity": {
+        "n_compared": 20,
+        "spearman": 0.3028,
+        "kendall_tau_b": 0.2362,
+        "mae": 1.3685,
+        "abstained_where_label_exists": 0,
+        "scored_where_label_is_null": 0
+      },
+      "structure": {
+        "n_compared": 20,
+        "spearman": 0.4849,
+        "kendall_tau_b": 0.3385,
+        "mae": 1.2725,
+        "abstained_where_label_exists": 0,
+        "scored_where_label_is_null": 0
+      },
+      "pacing": {
+        "n_compared": 20,
+        "spearman": 0.2291,
+        "kendall_tau_b": 0.1878,
+        "mae": 1.5395,
+        "abstained_where_label_exists": 0,
+        "scored_where_label_is_null": 0
+      },
+      "storytelling": {
+        "n_compared": 20,
+        "spearman": -0.0814,
+        "kendall_tau_b": -0.0705,
+        "mae": 1.4485,
+        "abstained_where_label_exists": 0,
+        "scored_where_label_is_null": 0
+      },
+      "title_consistency": {
+        "n_compared": 20,
+        "spearman": 0.3089,
+        "kendall_tau_b": 0.2749,
+        "mae": 0.9715,
+        "abstained_where_label_exists": 0,
+        "scored_where_label_is_null": 0
+      },
+      "audio_quality": {
+        "n_compared": 2,
+        "spearman": null,
+        "kendall_tau_b": null,
+        "mae": 0.5,
+        "abstained_where_label_exists": 0,
+        "scored_where_label_is_null": 0
+      },
+      "visual_quality": {
+        "n_compared": 0,
+        "spearman": null,
+        "kendall_tau_b": null,
+        "mae": null,
+        "abstained_where_label_exists": 0,
+        "scored_where_label_is_null": 0
+      },
+      "editing": {
+        "n_compared": 0,
+        "spearman": null,
+        "kendall_tau_b": null,
+        "mae": null,
+        "abstained_where_label_exists": 0,
+        "scored_where_label_is_null": 0
+      },
+      "visual_readability": {
+        "n_compared": 0,
+        "spearman": null,
+        "kendall_tau_b": null,
+        "mae": null,
+        "abstained_where_label_exists": 0,
+        "scored_where_label_is_null": 0
+      }
+    },
+    "overall_vs_label_reference": {
+      "n": 14,
+      "spearman": 0.5912,
+      "mae": 0.9687,
+      "overall_abstentions": 6
+    },
+    "pairwise": {
+      "overall": {
+        "accuracy": 0.875,
+        "decided": 8,
+        "abstained": 3,
+        "coverage": 0.7272727272727273
+      },
+      "factual_accuracy": {
+        "accuracy": NaN,
+        "decided": 0,
+        "abstained": 2,
+        "coverage": 0.0
+      },
+      "depth": {
+        "accuracy": 0.5,
+        "decided": 2,
+        "abstained": 0,
+        "coverage": 1.0
+      },
+      "storytelling": {
+        "accuracy": 1.0,
+        "decided": 3,
+        "abstained": 0,
+        "coverage": 1.0
+      },
+      "title_consistency": {
+        "accuracy": 1.0,
+        "decided": 2,
+        "abstained": 0,
+        "coverage": 1.0
+      },
+      "originality": {
+        "accuracy": NaN,
+        "decided": 0,
+        "abstained": 5,
+        "coverage": 0.0
+      },
+      "information_density": {
+        "accuracy": 1.0,
+        "decided": 2,
+        "abstained": 0,
+        "coverage": 1.0
+      },
+      "audio_quality": {
+        "accuracy": 1.0,
+        "decided": 1,
+        "abstained": 0,
+        "coverage": 1.0
+      },
+      "structure": {
+        "accuracy": 0.0,
+        "decided": 1,
+        "abstained": 0,
+        "coverage": 1.0
+      },
+      "_all": {
+        "decided": 19,
+        "accuracy": 0.8421
+      }
+    },
+    "inter_rater": {
+      "raters": 1,
+      "krippendorff_alpha_interval": null
+    },
+    "calibration": {
+      "criterion": "|model - label| <= 1",
+      "ece": 0.0858,
+      "bins": [
+        {
+          "range": [
+            0.2,
+            0.4
+          ],
+          "n": 82,
+          "mean_confidence": 0.333,
+          "accuracy": 0.463
+        },
+        {
+          "range": [
+            0.4,
+            0.6
+          ],
+          "n": 76,
+          "mean_confidence": 0.436,
+          "accuracy": 0.474
+        }
+      ]
+    },
+    "evaluation_status_counts": {
+      "complete": 14,
+      "partial": 6
+    }
+  },
+  "genre_classification": {
+    "accuracy": 0.85,
+    "n": 20,
+    "errors": [
+      {
+        "video_id": "syn_doc_001",
+        "expected": "documentary",
+        "predicted": "education"
+      },
+      {
+        "video_id": "syn_doc_002",
+        "expected": "documentary",
+        "predicted": "entertainment"
+      },
+      {
+        "video_id": "syn_edu_002",
+        "expected": "education",
+        "predicted": "howto"
+      }
+    ]
+  },
+  "popularity_invariance": {
+    "videos_checked": 20,
+    "fingerprint_changes": 0,
+    "max_score_delta": 0.0,
+    "passed": true
+  },
+  "recommendation": {
+    "per_persona": [
+      {
+        "persona": "curious_science_generalist",
+        "ndcg@5": 0.8855,
+        "ndcg@10": 0.8855,
+        "precision@5": 0.6,
+        "recall@10": 1.0,
+        "intra_list_diversity@10": 0.9844,
+        "low_quality_in_top5": 0,
+        "top5": [
+          "syn_sci_002",
+          "syn_sci_003",
+          "syn_sci_001",
+          "syn_tech_003",
+          "syn_doc_001"
+        ]
+      },
+      {
+        "persona": "cs_math_student_advanced",
+        "ndcg@5": 0.7654,
+        "ndcg@10": 0.9134,
+        "precision@5": 0.4,
+        "recall@10": 1.0,
+        "intra_list_diversity@10": 0.9973,
+        "low_quality_in_top5": 1,
+        "top5": [
+          "syn_edu_001",
+          "syn_tech_001",
+          "syn_doc_001",
+          "syn_sci_001",
+          "syn_game_002"
+        ]
+      },
+      {
+        "persona": "estudiante_hispanohablante",
+        "ndcg@5": 0.906,
+        "ndcg@10": 0.906,
+        "precision@5": 0.6,
+        "recall@10": 1.0,
+        "intra_list_diversity@10": 1.0015,
+        "low_quality_in_top5": 0,
+        "top5": [
+          "syn_edu_002",
+          "syn_art_002",
+          "syn_sci_002",
+          "syn_sci_001",
+          "syn_tech_003"
+        ]
+      },
+      {
+        "persona": "creative_hobbyist",
+        "ndcg@5": 0.9558,
+        "ndcg@10": 0.9558,
+        "precision@5": 0.8,
+        "recall@10": 1.0,
+        "intra_list_diversity@10": 0.9805,
+        "low_quality_in_top5": 0,
+        "top5": [
+          "syn_art_001",
+          "syn_ent_002",
+          "syn_art_002",
+          "syn_music_001",
+          "syn_game_001"
+        ]
+      },
+      {
+        "persona": "history_and_civics_follower",
+        "ndcg@5": 0.8855,
+        "ndcg@10": 0.8855,
+        "precision@5": 0.6,
+        "recall@10": 1.0,
+        "intra_list_diversity@10": 0.9841,
+        "low_quality_in_top5": 0,
+        "top5": [
+          "syn_news_001",
+          "syn_sci_003",
+          "syn_sci_002",
+          "syn_tech_003",
+          "syn_doc_001"
+        ]
+      }
+    ],
+    "mean": {
+      "ndcg@5": 0.8796,
+      "ndcg@10": 0.9092,
+      "precision@5": 0.6,
+      "recall@10": 1.0,
+      "intra_list_diversity@10": 0.9896
+    },
+    "low_quality_in_top5_total": 1,
+    "top5_exposure_by_channel_size": {
+      "huge": 7,
+      "micro": 9,
+      "medium": 4,
+      "small": 5
+    }
+  },
+  "cost": {
+    "total_usd": 0.0,
+    "per_evaluated_video_usd": 0.0,
+    "evaluated_videos": 20
+  },
+  "coverage": {
+    "by_genre": {
+      "education": 2,
+      "art": 2,
+      "entertainment": 3,
+      "howto": 3,
+      "music": 1,
+      "science": 3,
+      "gaming": 2,
+      "news_commentary": 1,
+      "technology": 3
+    },
+    "by_channel_size": {
+      "micro": 5,
+      "small": 4,
+      "huge": 8,
+      "large": 1,
+      "medium": 2
+    },
+    "by_language": {
+      "en": 18,
+      "es": 1,
+      "de": 1
+    },
+    "genres_without_evaluations": [
+      "documentary"
+    ]
+  },
+  "meta": {
+    "run_at": "2026-10-15T20:57:02.345386+00:00",
+    "framework_version": "2026.10.0",
+    "evaluator": "heuristic",
+    "evaluation_mode": "synthetic_demo",
+    "llm_provider": "heuristic",
+    "models": [],
+    "embedding_model": "hashing-uni-bigram-v1",
+    "git_commit": "3aeaa9bf7a33439d7f7ccbc930de0035b46a445b",
+    "dataset": "synthetic_v1",
+    "dataset_sha256": "68d437566906710c319081b0bea2bba8132e75dfca9750cf09ca2b3f0da3b8f4",
+    "fixtures_sha256": "3f2891d6cb954df5c96f25283bec9048c39c2b7518d7d416a71576ea952b2137",
+    "label_sources": [
+      "synthetic_design_intent"
+    ],
+    "python": "3.12.3",
+    "warnings": [
+      "Labels are SYNTHETIC design-intent labels written by the fixture author, not human annotations. These numbers test the harness and catch regressions; they say nothing about real-world accuracy.",
+      "Single rater: inter-rater agreement cannot be estimated."
+    ]
+  }
+}
