@@ -88,7 +88,7 @@ def list_candidates(source: LicensedSource, clone_dir: Path, group: str) -> list
         check=True,
         capture_output=True,
         text=True,
-    ).stdout.split()
+    ).stdout.splitlines()  # paths may contain spaces
     suffix = ".md" if source.key == "changelog" else ".vtt"
     return sorted(
         p for p in out if p.endswith(suffix) and not any(p.startswith(x) for x in source.excluded_prefixes)

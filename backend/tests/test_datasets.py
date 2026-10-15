@@ -283,3 +283,31 @@ def test_placeholder_titles_are_not_judged_for_consistency() -> None:
         placeholder_input.fingerprint()
         != make_input().model_copy(update={"title": "Go Time #226"}).fingerprint()
     )
+
+
+def test_candidate_listing_keeps_paths_with_spaces(tmp_path: Path) -> None:
+    import dataclasses
+    import subprocess
+
+    from avd.datasets.pilot import list_candidates
+
+    repo = tmp_path / "repo"
+    (repo / "youtube_transcripts").mkdir(parents=True)
+    for name in ("001-a.vtt", "002-b and c.vtt", "notes.txt"):
+        (repo / "youtube_transcripts" / name).write_text("WEBVTT\n")
+    env = {
+        "GIT_AUTHOR_NAME": "t",
+        "GIT_AUTHOR_EMAIL": "t@example.org",
+        "GIT_COMMITTER_NAME": "t",
+        "GIT_COMMITTER_EMAIL": "t@example.org",
+        "PATH": "/usr/bin:/bin",
+    }
+    subprocess.run(["git", "init", "-q", str(repo)], check=True, env=env)
+    subprocess.run(["git", "-C", str(repo), "add", "."], check=True, env=env)
+    subprocess.run(["git", "-C", str(repo), "commit", "-qm", "x"], check=True, env=env)
+    commit = subprocess.check_output(["git", "-C", str(repo), "rev-parse", "HEAD"], text=True).strip()
+    src = dataclasses.replace(TALKPYTHON, commit=commit)
+    assert list_candidates(src, repo, "youtube_transcripts") == [
+        "youtube_transcripts/001-a.vtt",
+        "youtube_transcripts/002-b and c.vtt",
+    ]

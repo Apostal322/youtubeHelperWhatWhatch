@@ -11,11 +11,11 @@ that gap with model output or authored labels.
 | | |
 |---|---|
 | Items | 29 episodes from 10 shows (2 publishers) |
-| Words | 344,328 in total; per episode median 11,904 (range 8,905–18,251) |
-| Length | median 67 min of transcript (49–98 min); 20 items over 60 min |
+| Words | 332,967 in total; per episode median 11,330 (range 8,146–18,251) |
+| Length | median 64 min of transcript (49–98 min); 20 items over 60 min |
 | Language | English (identified per item; all `en`) |
 | Splits (by show) | calibration 2 · dev 10 · test 17 |
-| Manifest | `manifest.json`, items digest `5bc30338ce62614125be0bcf42df89d3a1f7238bede318a9472d11c30eaf92dc` |
+| Manifest | `manifest.json`, items digest `19039096dcc201ac06bc81b076a2a93d29a3137781371722eeb0ea5f88ae20c0` |
 | Selection seed | 20261015 |
 
 ## Motivation
@@ -59,6 +59,11 @@ timing granularity, normalisation counts, validation issues, split, and stratum.
 
 Exclusions: Changelog `bigtent/` (Grafana Labs copyright, not CC), `news/` and `afk/` (no
 timestamps), `scripts/`. Talk Python: only `youtube_transcripts/` (the video editions).
+
+Correction (before any annotation): the first build split `git ls-tree` output on whitespace. The
+one Talk Python file with a space in its name was therefore replaced by a bogus fragment, which
+shifted that group's seeded shuffle. The fixed build selects 5 different Talk Python episodes. The
+Changelog items are identical, and no labels existed at the time.
 
 Shortfall: `changelog:brainscience` yielded 2 of its quota of 3, because only 2 of its 34 episodes
 have at least 15 timestamps. The pilot therefore has 29 items, not 30.
@@ -116,7 +121,7 @@ assignment of the item.
   document how they were produced. Transcript errors may affect clarity judgements.
 * **Titles.** Changelog titles are unavailable offline and are derived ("Go Time #226"), so
   title consistency is not assessable for those items. Talk Python titles are the creator's
-  file slugs (including the source's own misspelling "syntatic").
+  file slugs (lower-cased, punctuation lost).
 * **Split shift.** All Talk Python (WebVTT, cue timing) items fall in the test split. Dev has
   only Changelog-format items.
 * **Annotation cost.** Each item takes about 45–75 minutes to read carefully. With 3 raters per
