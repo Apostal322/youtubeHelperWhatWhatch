@@ -49,6 +49,7 @@ def build_context(
     session_factory: Callable[[], Session] | None = None,
     llm: LLMProvider | None = None,
     providers: list[ContentProvider] | None = None,
+    embedder: Embedder | None = None,
 ) -> WorkerContext:
     settings = settings or get_settings()
     sf: Callable[[], Session] = session_factory or get_sessionmaker()
@@ -64,7 +65,7 @@ def build_context(
         session_factory=sf,
         llm=llm if llm is not None else build_llm_provider(settings, sf),
         providers=providers if providers is not None else build_providers(),
-        embedder=get_embedder(),
+        embedder=embedder if embedder is not None else get_embedder(),
         classifier=KeywordGenreClassifier(),
         budget=BudgetManager(settings),
         retriever=load_reference_corpus(settings.reference_corpus_dir),

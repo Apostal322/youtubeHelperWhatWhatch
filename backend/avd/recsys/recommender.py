@@ -32,11 +32,26 @@ from avd.db.models import (
 from avd.embeddings.base import Embedder, calibrated_relevance
 from avd.evaluation.profiles import get_profile
 from avd.evaluation.schema import Dimension, expand_genres, genre_preference
-from avd.evaluation.service import genre_or_other, summary
+from avd.evaluation.service import assessment_state, genre_or_other, summary
 from avd.recsys.index import SearchFilters, vector_search
 from avd.recsys.ranker import DEFAULT_WEIGHTS, LinearRanker, Ranker
 
 DEPTH_TARGET = {"intro": 2.5, "intermediate": 3.5, "advanced": 4.5}
+# Cold start: a stated intent supplies genre priors when the user has not weighted genres.
+INTENT_GENRES: dict[str, dict[str, float]] = {
+    "learn": {
+        g: 1.0
+        for g in ("education", "lecture", "science", "howto", "programming", "technology", "documentary")
+    },
+    "stay_informed": {
+        g: 1.0 for g in ("news_commentary", "documentary", "interview_podcast", "science", "technology")
+    },
+    "be_entertained": {
+        g: 1.0 for g in ("entertainment", "comedy", "gaming", "music", "personal_storytelling", "art")
+    },
+    "deep_dive": {g: 1.0 for g in ("lecture", "documentary", "interview_podcast", "science", "programming")},
+}
+UNUSABLE_STATES = {"failed", "insufficient_evidence"}
 POSITIVE = {"recommendation_useful"}
 NEGATIVE = {"recommendation_not_useful", "not_interested"}
 MAX_PER_CHANNEL = 2
@@ -52,7 +67,10 @@ class UserProfile:
     genre_weights: dict[str, float] = field(default_factory=dict)
     dimension_weights: dict[str, float] = field(default_factory=dict)
     depth_preference: str = "any"
+    intent: str = "any"
+    genre_weights_source: str = "none"  # "user" | "intent" | "none"
     languages: list[str] = field(default_factory=list)
+    min_duration_minutes: int | None = None
     max_duration_minutes: int | None = None
     diversity: float = 0.3
     min_quality: float = 0.0
@@ -72,12 +90,20 @@ def build_profile(session: Session, user_id: str, embedder: Embedder) -> UserPro
         p.genre_weights = {k: float(v) for k, v in (prefs.genre_weights or {}).items()}
         p.dimension_weights = {k: float(v) for k, v in (prefs.dimension_weights or {}).items()}
         p.depth_preference = prefs.depth_preference
+        p.intent = prefs.intent or "any"
         p.languages = list(prefs.languages or [])
+        p.min_duration_minutes = prefs.min_duration_minutes
         p.max_duration_minutes = prefs.max_duration_minutes
         p.diversity = prefs.diversity
         p.min_quality = prefs.min_quality
         p.small_creator_boost = prefs.small_creator_boost
         p.include_synthetic = prefs.include_synthetic
+    if p.genre_weights:
+        p.genre_weights_source = "user"
+    elif p.intent in INTENT_GENRES:
+        p.genre_weights, p.genre_weights_source = dict(INTENT_GENRES[p.intent]), "intent"
+    if p.intent == "deep_dive" and p.depth_preference == "any":
+        p.depth_preference = "advanced"
     if p.interests:
         p.interest_vectors = embedder.embed(p.interests)
     for vid, kind in session.execute(
@@ -157,6 +183,7 @@ def recommend(
         languages=prof.languages or None,
         include_synthetic=prof.include_synthetic,
         max_duration_seconds=prof.max_duration_minutes * 60 if prof.max_duration_minutes else None,
+        min_duration_seconds=prof.min_duration_minutes * 60 if prof.min_duration_minutes else None,
         exclude_ids=prof.excluded or None,
     )
     # ---- retrieval: per-interest vector search + quality-based candidates for preferred genres
@@ -179,6 +206,14 @@ def recommend(
         q = q.where(Video.language.in_(prof.languages))
     if not prof.include_synthetic:
         q = q.where(Video.is_synthetic.is_(False))
+    if prof.max_duration_minutes:
+        q = q.where(
+            (Video.duration_seconds.is_(None)) | (Video.duration_seconds <= prof.max_duration_minutes * 60)
+        )
+    if prof.min_duration_minutes:
+        q = q.where(
+            (Video.duration_seconds.is_(None)) | (Video.duration_seconds >= prof.min_duration_minutes * 60)
+        )
     for (vid,) in session.execute(q).all():
         if vid not in prof.excluded:
             relevance.setdefault(vid, (0.0, None))
@@ -188,6 +223,7 @@ def recommend(
             "request_id": None,
             "ranker_version": ranker.version,
             "items": [],
+            "eligibility": {"candidates": 0, "ineligible": {}},
             "notes": ["no analyzed videos match your filters yet"],
         }
 
@@ -201,14 +237,27 @@ def recommend(
         ).all()
     }
     scored: list[dict[str, Any]] = []
+    # Eligibility is explicit: every candidate that is dropped is counted under a reason.
+    ineligible: dict[str, int] = {}
+
+    def drop(reason: str) -> None:
+        ineligible[reason] = ineligible.get(reason, 0) + 1
+
     for vid, (sim, matched_interest) in relevance.items():
         v, ev = videos.get(vid), evals.get(vid)
         if v is None or ev is None:
+            drop("no_current_evaluation")
+            continue
+        state = assessment_state(ev)[0]
+        if state in UNUSABLE_STATES:
+            drop(f"assessment_{state}")
             continue
         pq = personal_quality(ev, prof.dimension_weights)
         if pq is not None and pq < prof.min_quality:
+            drop("below_min_quality")
             continue
         if pq is None and prof.min_quality > 0:
+            drop("no_quality_estimate_with_min_quality_set")
             continue
         depth = _dim(ev, "depth")
         target = DEPTH_TARGET.get(prof.depth_preference)
@@ -247,6 +296,7 @@ def recommend(
                 "contrib": contrib,
                 "personal_quality": pq,
                 "depth": depth,
+                "state": state,
             }
         )
 
@@ -308,7 +358,16 @@ def recommend(
                 "explanations": _explain(c, prof),
             }
         )
-    return {"request_id": request_id, "ranker_version": ranker.version, "items": items, "notes": []}
+    notes = []
+    if prof.genre_weights_source == "intent":
+        notes.append(f"Genre priorities come from your stated intent '{prof.intent}' (no genre weights set).")
+    return {
+        "request_id": request_id,
+        "ranker_version": ranker.version,
+        "items": items,
+        "eligibility": {"candidates": len(relevance), "eligible": len(scored), "ineligible": ineligible},
+        "notes": notes,
+    }
 
 
 def _mmr(
@@ -352,12 +411,14 @@ def _mmr(
 
 
 def _explain(c: dict[str, Any], prof: UserProfile) -> list[str]:
+    """Factual reasons only: each line restates data the ranking actually used."""
     out = []
+    v: Video = c["video"]
+    ev: Evaluation = c["evaluation"]
     if c.get("exploration"):
-        out.append("Exploration pick: well rated, outside your stated interests.")
+        out.append("Exploration pick: outside your stated interests, included to broaden results.")
     elif c["interest"]:
         out.append(f"Matches your interest “{c['interest']}”.")
-    ev: Evaluation = c["evaluation"]
     best = sorted(
         (d for d in ev.dimensions if d.status == "scored" and d.score is not None and d.group != "technical"),
         key=lambda d: -(d.score or 0),
@@ -366,10 +427,29 @@ def _explain(c: dict[str, Any], prof: UserProfile) -> list[str]:
         out.append(
             "Strongest: " + ", ".join(f"{d.dimension.replace('_', ' ')} {d.score:.1f}/5" for d in best) + "."
         )
+    genre_note = f"Genre: {(v.genre or 'unknown').replace('_', ' ')}"
+    if v.genre_status in ("mixed", "ambiguous", "unknown"):
+        genre_note += f" ({v.genre_status})"
+    if prof.genre_weights and v.genre:
+        w = genre_preference(prof.genre_weights, v.genre, default=0.5)
+        src = "your intent" if prof.genre_weights_source == "intent" else "your genre priorities"
+        genre_note += f"; weight {w:.1f} from {src}"
+    out.append(genre_note + ".")
+    if prof.languages and v.language:
+        out.append(f"Language: {v.language} (one of your languages).")
+    if v.duration_seconds and (prof.min_duration_minutes or prof.max_duration_minutes):
+        lo, hi = prof.min_duration_minutes, prof.max_duration_minutes
+        rng = f"{lo or 0}–{hi} min" if hi else f"at least {lo} min"
+        out.append(f"Duration {v.duration_seconds // 60} min, within your {rng} range.")
     if prof.depth_preference in DEPTH_TARGET and c["depth"] is not None:
         out.append(f"Depth {c['depth']:.1f}/5 vs. your '{prof.depth_preference}' preference.")
     if c["features"]["feedback_affinity"] > 0.2:
         out.append("Similar to videos you marked useful.")
+    conf = c["features"]["confidence"]
+    state = c.get("state") or assessment_state(ev)[0]
+    out.append(
+        f"Assessment: {state.replace('_', ' ')}; confidence {conf:.2f} (not calibrated against people yet)."
+    )
     if ev.is_synthetic:
         out.append("Synthetic demo item with a heuristic (non-AI) evaluation.")
     elif ev.mode == "heuristic_baseline":

@@ -145,31 +145,65 @@ def cmd_serve(args: argparse.Namespace) -> None:
 
 
 def cmd_train_ranker(args: argparse.Namespace) -> None:
+    """Pairwise LTR from logged impressions + explicit feedback, verified on a *temporal* hold-out
+    (later requests), with a user-grouped bootstrap CI. The trained model is only described as an
+    improvement when the CI of its accuracy gain over the default ranker excludes zero."""
+    import hashlib
+    from collections.abc import Sequence
+    from datetime import UTC, datetime
+
+    import numpy as np
+
+    from avd.bench.stats import grouped_bootstrap
     from avd.db.session import session_scope
-    from avd.recsys.ltr_data import build_pairs
-    from avd.recsys.ranker import DEFAULT_WEIGHTS, LinearRanker, pairwise_accuracy, train_pairwise_ranker
+    from avd.recsys.ltr_data import build_labeled_pairs, temporal_split
+    from avd.recsys.ranker import DEFAULT_WEIGHTS, LinearRanker, train_pairwise_ranker
 
     with session_scope() as s:
-        pairs = build_pairs(s)
+        pairs = build_labeled_pairs(s)
     if len(pairs) < args.min_pairs:
         sys.exit(f"only {len(pairs)} preference pairs from feedback; need >= {args.min_pairs}")
-    split = int(len(pairs) * 0.8)
-    model = train_pairwise_ranker(pairs[:split])
-    held = pairs[split:]
+    train, held = temporal_split(pairs, args.holdout)
+    if not train or len(held) < 10:
+        sys.exit(f"temporal split too small (train {len(train)}, held-out {len(held)})")
+    model = train_pairwise_ranker([(p.preferred, p.other) for p in train])
     baseline = LinearRanker(dict(DEFAULT_WEIGHTS))
-    print(
-        json.dumps(
-            {
-                "pairs": len(pairs),
-                "version": model.version,
-                "weights": model.weights,
-                "heldout_pairwise_accuracy": pairwise_accuracy(model, held),
-                "baseline_heldout_pairwise_accuracy": pairwise_accuracy(baseline, held),
-            },
-            indent=2,
+    data_hash = hashlib.sha256(
+        "|".join(
+            f"{p.request_id}:{sorted(p.preferred.items())}:{sorted(p.other.items())}" for p in pairs
+        ).encode()
+    ).hexdigest()
+
+    def gain(us: Sequence[tuple[float, float, str]]) -> float:
+        return float(np.mean([m - b for m, b, _ in us])) if us else float("nan")
+
+    units = [
+        (
+            float(model.score(p.preferred)[0] > model.score(p.other)[0]),
+            float(baseline.score(p.preferred)[0] > baseline.score(p.other)[0]),
+            p.user_id,
         )
-    )
+        for p in held
+    ]
+    ci = grouped_bootstrap(units, lambda u: u[2], gain, n_boot=1000, seed=0)
+    report = {
+        "version": model.version,
+        "trained_at": datetime.now(UTC).isoformat(timespec="seconds"),
+        "pairs": len(pairs),
+        "train_pairs": len(train),
+        "heldout_pairs": len(held),
+        "split": "temporal by request (later requests held out)",
+        "train_until": str(train[-1].shown_at),
+        "data_sha256": data_hash,
+        "weights": model.weights,
+        "heldout_pairwise_accuracy": float(np.mean([u[0] for u in units])),
+        "baseline_heldout_pairwise_accuracy": float(np.mean([u[1] for u in units])),
+        "accuracy_gain_ci_by_user": ci,
+        "improvement_supported": bool(ci["ci_low"] is not None and ci["ci_low"] > 0),
+    }
+    print(json.dumps(report, indent=2))
     model.save(Path(args.out))
+    Path(args.out).with_suffix(".meta.json").write_text(json.dumps(report, indent=2))
 
 
 def cmd_llm_smoke(args: argparse.Namespace) -> None:
@@ -319,6 +353,7 @@ def main(argv: list[str] | None = None) -> None:
     t = sub.add_parser("train-ranker")
     t.add_argument("--out", default="ranker.json")
     t.add_argument("--min-pairs", type=int, default=50)
+    t.add_argument("--holdout", type=float, default=0.2, help="fraction of the latest requests held out")
     t.set_defaults(fn=cmd_train_ranker)
     ls = sub.add_parser("llm-smoke", help="cost-capped live check of the real LLM evaluation path")
     ls.add_argument("--fixture", default="syn_sci_001", help="fixture video id to evaluate")
@@ -399,6 +434,9 @@ def main(argv: list[str] | None = None) -> None:
     from avd.bench.retrieval import add_parser as add_retrieval_parser
 
     add_retrieval_parser(sub)
+    from avd.bench.recs_real import add_parser as add_recs_parser
+
+    add_recs_parser(sub)
     b = sub.add_parser("bench", help="run the evaluation benchmark harness")
     b.add_argument("--dataset", default=str(REPO_ROOT / "benchmarks" / "datasets" / "synthetic_v1"))
     b.add_argument("--fixtures", default=str(REPO_ROOT / "data" / "fixtures"))

@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 from collections import defaultdict
+from dataclasses import dataclass
+from datetime import datetime
 
 from sqlalchemy import select
 from sqlalchemy.orm import Session
@@ -15,7 +17,20 @@ NEGATIVE = {"recommendation_not_useful", "not_interested"}
 Pair = tuple[dict[str, float], dict[str, float]]
 
 
+@dataclass(frozen=True)
+class LabeledPair:
+    preferred: dict[str, float]
+    other: dict[str, float]
+    request_id: str
+    user_id: str
+    shown_at: datetime
+
+
 def build_pairs(session: Session) -> list[Pair]:
+    return [(p.preferred, p.other) for p in build_labeled_pairs(session)]
+
+
+def build_labeled_pairs(session: Session) -> list[LabeledPair]:
     """Pairs (preferred, other) within the same recommendation request:
 
     * explicit: a positively rated item vs. a negatively rated item;
@@ -34,7 +49,7 @@ def build_pairs(session: Session) -> list[Pair]:
     by_request: dict[str, list[RecommendationImpression]] = defaultdict(list)
     for imp in session.scalars(select(RecommendationImpression)).all():
         by_request[imp.request_id].append(imp)
-    pairs: list[Pair] = []
+    pairs: list[LabeledPair] = []
     for imps in by_request.values():
         imps.sort(key=lambda i: i.position)
 
@@ -46,5 +61,20 @@ def build_pairs(session: Session) -> list[Pair]:
                 if other is pos:
                     continue
                 if lab(other) < 0 or (lab(other) == 0 and other.position < pos.position):
-                    pairs.append((pos.features, other.features))
-    return pairs
+                    pairs.append(
+                        LabeledPair(pos.features, other.features, pos.request_id, pos.user_id, pos.created_at)
+                    )
+    return sorted(pairs, key=lambda p: (p.shown_at, p.request_id))
+
+
+def temporal_split(
+    pairs: list[LabeledPair], holdout: float = 0.2
+) -> tuple[list[LabeledPair], list[LabeledPair]]:
+    """Train on earlier requests, evaluate on later ones. A request never straddles the split, so
+    pairs from one recommendation list cannot leak between train and test."""
+    requests = list(dict.fromkeys(p.request_id for p in pairs))  # chronological (pairs are sorted)
+    cut = int(len(requests) * (1 - holdout))
+    train_ids = set(requests[:cut])
+    return [p for p in pairs if p.request_id in train_ids], [
+        p for p in pairs if p.request_id not in train_ids
+    ]

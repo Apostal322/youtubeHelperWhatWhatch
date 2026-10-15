@@ -20,6 +20,7 @@ class SearchFilters:
     languages: list[str] | None = None
     evaluated_only: bool = True
     include_synthetic: bool = True
+    min_duration_seconds: int | None = None
     max_duration_seconds: int | None = None
     exclude_ids: set[str] | None = None
 
@@ -38,6 +39,8 @@ def _apply_filters(q: Select, f: SearchFilters, embedding_model: str) -> Select:
         q = q.where(Video.is_synthetic.is_(False))
     if f.max_duration_seconds:
         q = q.where((Video.duration_seconds.is_(None)) | (Video.duration_seconds <= f.max_duration_seconds))
+    if f.min_duration_seconds:
+        q = q.where((Video.duration_seconds.is_(None)) | (Video.duration_seconds >= f.min_duration_seconds))
     if f.exclude_ids:
         q = q.where(Video.id.not_in(f.exclude_ids))
     return q

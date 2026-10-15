@@ -349,3 +349,64 @@ def test_video_urls_respect_platform_and_provenance() -> None:
     assert _video_url(licensed) == "https://changelog.com/x/1"
     assert _video_url(Video(id="tpy_1", platform="talkpython.fm", is_synthetic=False)) is None
     assert _video_url(Video(id="syn_1", platform="youtube", is_synthetic=True)) is None
+
+
+def test_recommendations_report_eligibility_intent_and_factual_explanations(tmp_path: Path) -> None:
+    """Recommender v2: cold-start intent priors, duration range, eligibility accounting."""
+    from sqlalchemy.orm import sessionmaker
+
+    from avd.db.models import Base, User, UserPreferences
+    from avd.db.session import make_engine
+    from avd.embeddings.base import HashingEmbedder
+    from avd.recsys.recommender import recommend
+    from avd.services import seed_demo
+    from avd.workers.context import build_context
+    from avd.workers.runner import run_until_idle
+
+    settings = make_settings(tmp_path)
+    engine = make_engine(settings.database_url)
+    Base.metadata.create_all(engine)
+    sf = sessionmaker(bind=engine, expire_on_commit=False)
+    with sf() as s:
+        seed_demo(s, settings)
+        s.commit()
+    emb = HashingEmbedder()
+    run_until_idle(build_context(settings=settings, session_factory=sf, embedder=emb))
+    with sf() as s:
+        u = User(token_hash="x")
+        u.preferences = UserPreferences(
+            interests=["photosynthesis and plant biology"],
+            intent="learn",
+            min_duration_minutes=3,
+            max_duration_minutes=30,
+            min_quality=2.5,
+        )
+        s.add(u)
+        s.flush()
+        rec = recommend(s, u.id, emb, limit=5, log_impressions=False)
+    assert rec["eligibility"]["candidates"] >= rec["eligibility"]["eligible"] > 0
+    assert any("intent 'learn'" in n for n in rec["notes"])
+    for it in rec["items"]:
+        d = it["video"]["duration_seconds"]
+        assert d is None or 180 <= d <= 1800
+        text = " ".join(it["explanations"])
+        assert "Assessment:" in text and "Genre:" in text and "from your intent" in text
+        q = it["intrinsic_quality"]["overall"]
+        assert q is None or q >= 0  # quality is reported separately from relevance
+
+
+def test_ltr_split_is_temporal_and_never_splits_a_request() -> None:
+    from datetime import datetime, timedelta
+
+    from avd.recsys.ltr_data import LabeledPair, temporal_split
+
+    t0 = datetime(2026, 1, 1)
+    pairs = [
+        LabeledPair({"quality": 1.0}, {"quality": 0.0}, f"req{r}", f"user{r % 3}", t0 + timedelta(hours=r))
+        for r in range(10)
+        for _ in range(3)
+    ]
+    train, held = temporal_split(pairs, holdout=0.2)
+    assert {p.request_id for p in train}.isdisjoint({p.request_id for p in held})
+    assert max(p.shown_at for p in train) < min(p.shown_at for p in held)
+    assert len(held) == 6 and len(train) == 24

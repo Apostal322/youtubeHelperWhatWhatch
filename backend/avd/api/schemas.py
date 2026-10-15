@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import Literal
 
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, Field, field_validator, model_validator
 
 from avd.evaluation.schema import Dimension, Genre
 
@@ -14,7 +14,9 @@ class PreferencesIn(BaseModel):
     genre_weights: dict[str, float] = Field(default_factory=dict)
     dimension_weights: dict[str, float] = Field(default_factory=dict)
     depth_preference: Literal["any", "intro", "intermediate", "advanced"] = "any"
+    intent: Literal["any", "learn", "stay_informed", "be_entertained", "deep_dive"] = "any"
     languages: list[str] = Field(default_factory=list, max_length=20)
+    min_duration_minutes: int | None = Field(default=None, ge=1, le=600)
     max_duration_minutes: int | None = Field(default=None, ge=1, le=600)
     diversity: float = Field(default=0.3, ge=0.0, le=1.0)
     min_quality: float = Field(default=0.0, ge=0.0, le=5.0)
@@ -44,6 +46,13 @@ class PreferencesIn(BaseModel):
             if not 0.0 <= w <= 3.0:
                 raise ValueError("dimension priorities must be within [0, 3]")
         return v
+
+    @model_validator(mode="after")
+    def _duration_range(self) -> PreferencesIn:
+        lo, hi = self.min_duration_minutes, self.max_duration_minutes
+        if lo and hi and lo > hi:
+            raise ValueError("min_duration_minutes must not exceed max_duration_minutes")
+        return self
 
 
 FeedbackKind = Literal[

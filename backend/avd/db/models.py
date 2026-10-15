@@ -273,7 +273,11 @@ class UserPreferences(Base):
     genre_weights: Mapped[dict[str, Any]] = mapped_column(JSON, default=dict)
     dimension_weights: Mapped[dict[str, Any]] = mapped_column(JSON, default=dict)
     depth_preference: Mapped[str] = mapped_column(String(16), default="any")
+    # Cold start: what the user wants from a session (learn | stay_informed | be_entertained |
+    # deep_dive | any) and an acceptable duration range.
+    intent: Mapped[str] = mapped_column(String(24), default="any")
     languages: Mapped[list[Any]] = mapped_column(JSON, default=list)
+    min_duration_minutes: Mapped[int | None] = mapped_column(Integer, nullable=True)
     max_duration_minutes: Mapped[int | None] = mapped_column(Integer, nullable=True)
     diversity: Mapped[float] = mapped_column(Float, default=0.3)
     min_quality: Mapped[float] = mapped_column(Float, default=0.0)
