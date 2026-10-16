@@ -30,3 +30,4 @@ benchmarks/reports/*
 !benchmarks/reports/README.md
 !benchmarks/reports/baseline-*
 !benchmarks/reports/retrieval-*
+!benchmarks/reports/recs-*

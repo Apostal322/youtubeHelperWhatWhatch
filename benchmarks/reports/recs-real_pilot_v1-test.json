@@ -1,0 +1,255 @@
+{
+  "meta": {
+    "run_at": "2026-10-15T23:14:18+00:00",
+    "git_commit": "cab6bd2fe04743a0360ca6760523e7ed044a9b86",
+    "dataset": "real_pilot@v1",
+    "manifest_items_sha256": "19039096dcc201ac06bc81b076a2a93d29a3137781371722eeb0ea5f88ae20c0",
+    "split": "test (held out)",
+    "k": 5,
+    "evaluator": "heuristic baseline (quality features are heuristic, not AI or human)",
+    "labels": "topical proxy: persona's matching publisher show; no human relevance or quality labels",
+    "personas": [
+      {
+        "id": "frontend_dev",
+        "interests": [
+          "building web user interfaces with JavaScript frameworks"
+        ],
+        "group": "changelog:jsparty"
+      },
+      {
+        "id": "sre",
+        "interests": [
+          "running and deploying infrastructure reliably in production"
+        ],
+        "group": "changelog:shipit"
+      },
+      {
+        "id": "pythonista",
+        "interests": [
+          "Python libraries, tooling and data science workflows"
+        ],
+        "group": "talkpython"
+      },
+      {
+        "id": "mind_curious",
+        "interests": [
+          "psychology of habits, emotions and the brain"
+        ],
+        "group": "changelog:brainscience"
+      },
+      {
+        "id": "oss_generalist",
+        "interests": [
+          "open source maintainers and the software industry"
+        ],
+        "group": "changelog:podcast"
+      }
+    ]
+  },
+  "results": {
+    "hashing": {
+      "model_id": "hashing-uni-bigram-v1",
+      "per_persona": [
+        {
+          "persona": "frontend_dev",
+          "relevant": 3,
+          "ndcg@5": 0.7653606369886217,
+          "precision@5": 0.4,
+          "recall@5": 0.6666666666666666,
+          "top": [
+            "chl_jsparty_114",
+            "chl_jsparty_187",
+            "tpy_420"
+          ],
+          "shows_in_top": {
+            "changelog:jsparty": 2,
+            "talkpython": 1
+          },
+          "exploration_picks": 1
+        },
+        {
+          "persona": "sre",
+          "relevant": 2,
+          "ndcg@5": 0.8503449055347546,
+          "precision@5": 0.4,
+          "recall@5": 1.0,
+          "top": [
+            "chl_shipit_73",
+            "tpy_511",
+            "tpy_484",
+            "chl_jsparty_187",
+            "chl_shipit_37"
+          ],
+          "shows_in_top": {
+            "changelog:shipit": 2,
+            "talkpython": 2,
+            "changelog:jsparty": 1
+          },
+          "exploration_picks": 1
+        },
+        {
+          "persona": "pythonista",
+          "relevant": 7,
+          "ndcg@5": 0.5531464700081437,
+          "precision@5": 0.4,
+          "recall@5": 0.2857142857142857,
+          "top": [
+            "tpy_511",
+            "tpy_486",
+            "chl_brainscience_25",
+            "chl_jsparty_114"
+          ],
+          "shows_in_top": {
+            "talkpython": 2,
+            "changelog:brainscience": 1,
+            "changelog:jsparty": 1
+          },
+          "exploration_picks": 1
+        },
+        {
+          "persona": "mind_curious",
+          "relevant": 2,
+          "ndcg@5": 1.0,
+          "precision@5": 0.4,
+          "recall@5": 1.0,
+          "top": [
+            "chl_brainscience_32",
+            "chl_brainscience_25",
+            "tpy_420"
+          ],
+          "shows_in_top": {
+            "changelog:brainscience": 2,
+            "talkpython": 1
+          },
+          "exploration_picks": 1
+        },
+        {
+          "persona": "oss_generalist",
+          "relevant": 3,
+          "ndcg@5": 0.7653606369886217,
+          "precision@5": 0.4,
+          "recall@5": 0.6666666666666666,
+          "top": [
+            "chl_podcast_445",
+            "chl_podcast_232",
+            "tpy_420"
+          ],
+          "shows_in_top": {
+            "changelog:podcast": 2,
+            "talkpython": 1
+          },
+          "exploration_picks": 1
+        }
+      ],
+      "mean": {
+        "ndcg@5": 0.7868,
+        "precision@5": 0.4,
+        "recall@5": 0.7238
+      }
+    },
+    "minilm_onnx": {
+      "model_id": "all-MiniLM-L6-v2-onnx@4f148ba8ae9c",
+      "per_persona": [
+        {
+          "persona": "frontend_dev",
+          "relevant": 3,
+          "ndcg@5": 0.7039180890341347,
+          "precision@5": 0.4,
+          "recall@5": 0.6666666666666666,
+          "top": [
+            "chl_jsparty_114",
+            "tpy_484",
+            "chl_jsparty_191",
+            "tpy_511",
+            "chl_shipit_37"
+          ],
+          "shows_in_top": {
+            "changelog:jsparty": 2,
+            "talkpython": 2,
+            "changelog:shipit": 1
+          },
+          "exploration_picks": 1
+        },
+        {
+          "persona": "sre",
+          "relevant": 2,
+          "ndcg@5": 0.6509209298071326,
+          "precision@5": 0.4,
+          "recall@5": 1.0,
+          "top": [
+            "tpy_511",
+            "chl_shipit_73",
+            "tpy_420",
+            "chl_shipit_37",
+            "chl_jsparty_114"
+          ],
+          "shows_in_top": {
+            "talkpython": 2,
+            "changelog:shipit": 2,
+            "changelog:jsparty": 1
+          },
+          "exploration_picks": 1
+        },
+        {
+          "persona": "pythonista",
+          "relevant": 7,
+          "ndcg@5": 0.5531464700081437,
+          "precision@5": 0.4,
+          "recall@5": 0.2857142857142857,
+          "top": [
+            "tpy_511",
+            "tpy_486",
+            "chl_jsparty_114"
+          ],
+          "shows_in_top": {
+            "talkpython": 2,
+            "changelog:jsparty": 1
+          },
+          "exploration_picks": 1
+        },
+        {
+          "persona": "mind_curious",
+          "relevant": 2,
+          "ndcg@5": 1.0,
+          "precision@5": 0.4,
+          "recall@5": 1.0,
+          "top": [
+            "chl_brainscience_25",
+            "chl_brainscience_32",
+            "tpy_420"
+          ],
+          "shows_in_top": {
+            "changelog:brainscience": 2,
+            "talkpython": 1
+          },
+          "exploration_picks": 1
+        },
+        {
+          "persona": "oss_generalist",
+          "relevant": 3,
+          "ndcg@5": 0.5307212739772434,
+          "precision@5": 0.4,
+          "recall@5": 0.6666666666666666,
+          "top": [
+            "tpy_511",
+            "chl_podcast_644",
+            "chl_podcast_445",
+            "tpy_420",
+            "chl_jsparty_114"
+          ],
+          "shows_in_top": {
+            "talkpython": 2,
+            "changelog:podcast": 2,
+            "changelog:jsparty": 1
+          },
+          "exploration_picks": 1
+        }
+      ],
+      "mean": {
+        "ndcg@5": 0.6877,
+        "precision@5": 0.4,
+        "recall@5": 0.7238
+      }
+    }
+  }
+}
