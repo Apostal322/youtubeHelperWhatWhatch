@@ -7,8 +7,8 @@
 
 | key | value |
 |---|---|
-| run_at | `2026-10-15T22:57:22+00:00` |
-| git_commit | `ceb0b77dfb3a112df69ba479b0189e3b54ef9dd2` |
+| run_at | `2026-10-16T01:35:11+00:00` |
+| git_commit | `2507f77d7fffc65b9bc17ecaa007e522942b78a7` |
 | git_dirty | `False` |
 | dataset | `real_pilot@v1` |
 | split | `dev` |
@@ -18,10 +18,10 @@
 | human_label_rows | `0` |
 | evaluator | `heuristic` |
 | llm_provider | `heuristic` |
-| pipeline_config_hash | `966b7b1b98e2a10a2de5cc00c309747c8d9014d71cfc7b412de1008fecf0dad4` |
+| pipeline_config_hash | `463df1cd5bb086318ad094c96de5df8274cfe5866d6af2df0c9b0411984c14df` |
 | seed | `0` |
 | n_boot | `2000` |
-| runtime_seconds | `1.43` |
+| runtime_seconds | `1.39` |
 | gates_file_sha256 | `2d3f4651056975909d498fc0c22521b8b32169a813f083403e3f7e3a26c7016a` |
 | gates_lock_valid | `True` |
 | python | `3.12.3` |
@@ -29,19 +29,19 @@
 
 ## Label-free measurements
 
-* Items evaluated: 10/10; status {'partial': 2, 'complete': 8}; assessment state {'heuristic_baseline': 10}
-* Overall score available: 0.8; needs review: 0.0
+* Items evaluated: 10/10; status {'complete': 10}; assessment state {'heuristic_baseline': 10}
+* Overall score available: 1.0; needs review: 0.0
 * Evidence: {'citations_claimed': 0, 'citations_verified': 0, 'invalid_citation_rate': None, 'ungrounded_scored_dimensions': 0}
 * Injection flags (presumed-benign data): 0 items, 0 findings
-* Predicted genre: {'entertainment': 2, 'education': 1, 'technology': 5, 'howto': 1, 'gaming': 1}
-* Latency (ms): {'p50': 58.0, 'p95': 86.25}; cost (USD): {'total': 0.0, 'per_video_mean': 0.0, 'p50': 0.0, 'p95': 0.0}; tokens/video: {'input': {'p50': 0.0, 'p95': 0.0}, 'output': {'p50': 0.0, 'p95': 0.0}}; LLM calls: {'total': 0, 'errors': 0, 'cached': 0}
+* Predicted genre: {'interview_podcast': 8, 'technology': 2}
+* Latency (ms): {'p50': 57.0, 'p95': 71.4}; cost (USD): {'total': 0.0, 'per_video_mean': 0.0, 'p50': 0.0, 'p95': 0.0}; tokens/video: {'input': {'p50': 0.0, 'p95': 0.0}, 'output': {'p50': 0.0, 'p95': 0.0}}; LLM calls: {'total': 0, 'errors': 0, 'cached': 0}
 * Popularity invariance: PASSED ({'videos_checked': 10, 'fingerprint_changes': 0, 'max_score_delta': 0.0, 'passed': True})
 
 ### Dimension status (scored / abstained:reason)
 
 * clarity: {'scored': 10}
 * depth: {'scored': 10}
-* factual_accuracy: {'not_applicable:genre_not_applicable': 2, 'insufficient_evidence:method_cannot_judge': 8}
+* factual_accuracy: {'insufficient_evidence:method_cannot_judge': 10}
 * information_density: {'scored': 10}
 * informational_value: {'scored': 10}
 * originality: {'insufficient_evidence:method_cannot_judge': 10}
@@ -69,4 +69,4 @@
 | popularity_invariance | safety | pass | True == True |
 | injection_benign_flag_rate | safety | pass | 0.0 <= 0.05 |
 | cost_per_video | operational | pass | 0.0 <= 0.5 |
-| latency_p95 | operational | pass | 86.25 <= 300000 |
+| latency_p95 | operational | pass | 71.4 <= 300000 |

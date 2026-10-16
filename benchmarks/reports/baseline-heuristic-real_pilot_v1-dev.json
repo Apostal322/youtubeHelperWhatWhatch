@@ -4,13 +4,12 @@
     "items_evaluated": 10,
     "items_not_evaluated": [],
     "evaluation_status": {
-      "partial": 2,
-      "complete": 8
+      "complete": 10
     },
     "assessment_state": {
       "heuristic_baseline": 10
     },
-    "overall_score_available_rate": 0.8,
+    "overall_score_available_rate": 1.0,
     "dimension_status": {
       "clarity": {
         "scored": 10
@@ -19,8 +18,7 @@
         "scored": 10
       },
       "factual_accuracy": {
-        "not_applicable:genre_not_applicable": 2,
-        "insufficient_evidence:method_cannot_judge": 8
+        "insufficient_evidence:method_cannot_judge": 10
       },
       "information_density": {
         "scored": 10
@@ -58,15 +56,12 @@
     },
     "needs_review_rate": 0.0,
     "predicted_genre": {
-      "entertainment": 2,
-      "education": 1,
-      "technology": 5,
-      "howto": 1,
-      "gaming": 1
+      "interview_podcast": 8,
+      "technology": 2
     },
     "latency_ms": {
-      "p50": 58.0,
-      "p95": 86.25
+      "p50": 57.0,
+      "p95": 71.4
     },
     "cost_usd": {
       "total": 0.0,
@@ -176,14 +171,14 @@
       {
         "id": "latency_p95",
         "status": "pass",
-        "detail": "86.25 <= 300000",
+        "detail": "71.4 <= 300000",
         "kind": "operational"
       }
     ],
     "release_ready": false
   },
   "meta": {
-    "run_at": "2026-10-15T22:57:22+00:00",
+    "run_at": "2026-10-16T01:35:11+00:00",
     "dataset": "real_pilot@v1",
     "split": "dev",
     "items": 10,
@@ -198,7 +193,7 @@
     "labels_sha256": null,
     "human_label_rows": 0,
     "human_pair_rows": 0,
-    "git_commit": "ceb0b77dfb3a112df69ba479b0189e3b54ef9dd2",
+    "git_commit": "2507f77d7fffc65b9bc17ecaa007e522942b78a7",
     "git_dirty": false,
     "evaluator": "heuristic",
     "llm_provider": "heuristic",
@@ -221,10 +216,14 @@
         {
           "evaluator": "audio_signal",
           "version": "audio_signal_metrics_v1"
+        },
+        {
+          "evaluator": "visual_signal",
+          "version": "visual_signal_v1"
         }
       ]
     },
-    "pipeline_config_hash": "966b7b1b98e2a10a2de5cc00c309747c8d9014d71cfc7b412de1008fecf0dad4",
+    "pipeline_config_hash": "463df1cd5bb086318ad094c96de5df8274cfe5866d6af2df0c9b0411984c14df",
     "settings": {
       "llm_model_stage_b": "claude-opus-5-5",
       "llm_effort_stage_b": "medium",
@@ -236,7 +235,7 @@
     },
     "seed": 0,
     "n_boot": 2000,
-    "runtime_seconds": 1.43,
+    "runtime_seconds": 1.39,
     "gates_file_sha256": "2d3f4651056975909d498fc0c22521b8b32169a813f083403e3f7e3a26c7016a",
     "gates_lock_valid": true,
     "python": "3.12.3",

@@ -204,11 +204,12 @@ Committed baseline: [`benchmarks/reports/baseline-heuristic-synthetic_v1.md`](..
 These are label-free numbers only: no human has annotated the pilot, so **no accuracy or agreement
 figure exists for real content**.
 * 10/10 items were evaluated, all as `heuristic_baseline`.
-* An overall score is available for 8/10. Originality and factual accuracy always abstain;
+* An overall score is available for 10/10. Originality and factual accuracy always abstain;
   title consistency abstains on placeholder titles.
-* The heuristic genre classifier labels these interview podcasts as technology 5, entertainment 2,
-  education 1, how-to 1 and gaming 1. A tech podcast labelled "gaming" is a real misclassification,
-  and it changes the aggregation profile (genre v2 addresses this).
+* Genre v2 labels 8/10 as `interview_podcast` and 2/10 as `technology`. Before genre v2 the same
+  items were spread over technology 5, entertainment 2, education 1, how-to 1 and gaming 1. A tech
+  podcast labelled "gaming" was a real misclassification that changed the aggregation profile.
+  These are in-sample observations on the dev split, with no human genre labels.
 * Popularity invariance passed. No injection flags.
 
 The LLM evaluator has **no benchmark numbers yet**: it was tested with scripted responses (parsing,
