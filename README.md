@@ -20,16 +20,19 @@ evaluation — not as features, not in prompts, not through priorities. This is 
 
 ## Status — read this first
 
-* **Demo mode is synthetic.** Without credentials, evaluations come from a deterministic
-  *heuristic baseline* over 20 *synthetic* fixture videos written for this project. Every such
-  evaluation is labelled `synthetic_demo` in the API and with a banner in the extension. It is
-  **not** an AI assessment, and the fixture videos do not exist on YouTube.
-* **The LLM evaluator is implemented and tested with scripted responses**, not validated against a
-  live model in this repository. Set `AVD_LLM_PROVIDER=anthropic` (or `openai_compatible`) and a key
-  to run it for real.
-* **Benchmark labels are synthetic** (design intent of the fixture author, single rater). Reported
-  numbers test the harness; they do not establish real-world accuracy. See
-  [`docs/evaluation.md`](docs/evaluation.md#6-results-so-far-and-what-they-do-not-show).
+* **No AI evaluator has been run against a live model in this repository.** The LLM path
+  (`AVD_LLM_PROVIDER=anthropic`) is implemented and tested with scripted responses. Without
+  credentials, scores come from a keyword/structure *heuristic baseline*: the API reports
+  `evaluation_mode: heuristic_baseline` and the extension header says *Heuristic mode (not AI)*.
+* **Real, licensed content is in the repo; real human labels are not.** `real_pilot_v1` holds 29
+  podcast episodes (Changelog CC BY-SA 4.0, Talk Python GPL-3.0) fetched at pinned commits with
+  checksums. A blind annotation workflow exists, but nobody has annotated yet. **There is no
+  evidence yet about accuracy on real content.**
+* **Synthetic fixtures** (20 videos written for this project) still back the zero-key demo. They are
+  labelled `synthetic_demo` everywhere and do not exist on YouTube. Their labels are the fixture
+  author's design intent, so benchmark numbers on them test the harness only.
+* Phase 2's audit, acceptance criteria and measured results are in
+  [`docs/phase2.md`](docs/phase2.md).
 
 ## Quick start
 
@@ -60,7 +63,18 @@ cd extension && npm ci && npm run build
 Chrome → `chrome://extensions` → enable *Developer mode* → *Load unpacked* → select `extension/dist`.
 The extension talks to `http://localhost:8000` by default (configurable under *Preferences*).
 
-### 4. Real evaluations
+### 4. Licensed pilot data and annotation
+
+```bash
+cd backend
+avd dataset import --evaluate && avd worker --once   # fetch at pinned commits, verify, evaluate
+avd annotate create-rater r1                         # token printed once; rater UI at /annotate
+avd bench-real                                       # dev split; human-grounded metrics need labels
+```
+See [`docs/annotation.md`](docs/annotation.md) and the dataset datasheet in
+[`benchmarks/datasets/real_pilot_v1/`](benchmarks/datasets/real_pilot_v1/).
+
+### 5. Real evaluations
 
 ```bash
 export AVD_LLM_PROVIDER=anthropic AVD_ANTHROPIC_API_KEY=sk-ant-...   # model: claude-opus-5-5 by default
@@ -87,6 +101,9 @@ cd extension && npm run typecheck && npm test && npm run build
 * [Evaluation framework & research](docs/evaluation.md) — dimensions, rubric, aggregation, confidence,
   validation, benchmark design, metrics, results, **biases and limitations**.
 * [Permissions & content access](docs/permissions.md) — what uses which API, what needs which grant.
+* [Annotation protocol](docs/annotation.md) — blind human rating, QC, adjudication, export.
+* [Security review](docs/security.md) — trust boundaries, controls, audits, known gaps.
+* [Phase 2 record](docs/phase2.md) — audit, acceptance criteria, measured results, blockers.
 * [API reference](docs/api.md)
 * [Roadmap](docs/roadmap.md) — the path to large-scale continuous analysis.
 
