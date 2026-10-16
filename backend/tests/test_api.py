@@ -64,8 +64,9 @@ def _user(client: TestClient) -> dict[str, str]:
 def test_health_and_meta(client: TestClient) -> None:
     assert client.get("/health").json()["status"] == "ok"
     meta = client.get("/v1/meta").json()
-    assert meta["demo_mode"] is True and meta["evaluation_mode"] == "synthetic_demo"
-    assert "NOT an AI assessment" in meta["disclaimer"]
+    assert meta["demo_mode"] is True and meta["evaluation_mode"] == "heuristic_baseline"
+    assert "No AI evaluator is configured" in meta["disclaimer"]
+    assert "not been validated against human judgement" in meta["disclaimer"]
     assert len(meta["dimensions"]) == 14 and "science" in meta["genre_profiles"]
 
 

@@ -33,7 +33,7 @@ from avd.evaluation.schema import (
 
 METHOD = "heuristic_baseline_v1"
 MODEL = "heuristic-baseline"
-PREFIX = "[Synthetic heuristic baseline — not an AI assessment] "
+PREFIX = "[Heuristic baseline — not an AI assessment] "
 
 _WORD = re.compile(r"[\w'’]+", re.UNICODE)
 

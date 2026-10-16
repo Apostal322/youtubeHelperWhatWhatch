@@ -93,7 +93,7 @@ human labels; the harness reports ECE to track this.
 diversity, filler/hype/promo rates, trigram repetition, explanatory connectives, caveats,
 examples/definitions, structure markers, speaking rate, title-term overlap (English, Spanish,
 German lexicons). It abstains on originality and factual accuracy. Every justification starts with
-"[Synthetic heuristic baseline — not an AI assessment]".
+"[Heuristic baseline — not an AI assessment]".
 
 **Audio** — 50 ms frame RMS: 90th percentile = speech level, 10th = noise floor, SNR = difference;
 clipping ratio. Penalties for clipping > 0.1 % / 1 %, SNR < 25 / 15 dB, level < −35 dBFS.

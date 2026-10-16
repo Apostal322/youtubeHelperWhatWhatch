@@ -15,8 +15,8 @@ from avd.evaluation.profiles import PROFILES
 from avd.evaluation.rubric import RUBRIC
 from avd.evaluation.schema import FRAMEWORK_VERSION, Dimension
 from avd.evaluation.service import (
+    HEURISTIC_MODE_DISCLAIMER,
     LLM_DISCLAIMER,
-    SYNTHETIC_DISCLAIMER,
     current_evaluation,
     serialize_evaluation,
     summary,
@@ -32,8 +32,9 @@ def meta(settings: Settings = Depends(get_settings), emb: Embedder = Depends(emb
     return {
         "framework_version": FRAMEWORK_VERSION,
         "demo_mode": settings.demo_mode,
-        "evaluation_mode": "synthetic_demo" if settings.demo_mode else "llm",
-        "disclaimer": SYNTHETIC_DISCLAIMER if settings.demo_mode else LLM_DISCLAIMER,
+        # The evaluator kind, not the content: real items can be evaluated in heuristic mode too.
+        "evaluation_mode": "heuristic_baseline" if settings.demo_mode else "llm",
+        "disclaimer": HEURISTIC_MODE_DISCLAIMER if settings.demo_mode else LLM_DISCLAIMER,
         "llm_provider": settings.llm_provider.value,
         "models": {}
         if settings.demo_mode

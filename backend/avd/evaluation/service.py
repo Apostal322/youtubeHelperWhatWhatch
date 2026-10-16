@@ -32,6 +32,10 @@ HEURISTIC_DISCLAIMER = (
     "Heuristic baseline (keyword and structure features) applied to real content. It is NOT an AI "
     "assessment and has not been validated against human judgement."
 )
+HEURISTIC_MODE_DISCLAIMER = (
+    "No AI evaluator is configured: scores come from a keyword and structure heuristic baseline and "
+    "have not been validated against human judgement. Synthetic demo videos are labelled individually."
+)
 LLM_DISCLAIMER = (
     "Automated LLM-based assessment. Scores are model judgements against a published rubric, not "
     "ground truth; their agreement with human raters is measured by the benchmark harness and "

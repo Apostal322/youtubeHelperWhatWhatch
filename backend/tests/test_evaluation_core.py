@@ -153,7 +153,7 @@ class TestHeuristicBaseline:
         assert a.mode == EvaluationMode.SYNTHETIC_DEMO and a.is_synthetic
         for d in a.dimensions:
             if d.status == DimensionStatus.SCORED and d.method.startswith("heuristic"):
-                assert d.justification.startswith("[Synthetic heuristic baseline")
+                assert d.justification.startswith("[Heuristic baseline — not an AI assessment]")
 
     def test_abstains_on_what_text_statistics_cannot_judge(self) -> None:
         r = build_pipeline("B", get_settings(), None).run(make_input())
