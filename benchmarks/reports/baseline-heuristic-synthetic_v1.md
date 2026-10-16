@@ -7,14 +7,14 @@
 
 | key | value |
 |---|---|
-| run_at | `2026-10-15T20:57:02.345386+00:00` |
-| framework_version | `2026.10.0` |
+| run_at | `2026-10-16T01:35:34.186487+00:00` |
+| framework_version | `2026.10.1` |
 | evaluator | `heuristic` |
 | evaluation_mode | `synthetic_demo` |
 | llm_provider | `heuristic` |
 | models | `[]` |
 | embedding_model | `hashing-uni-bigram-v1` |
-| git_commit | `3aeaa9bf7a33439d7f7ccbc930de0035b46a445b` |
+| git_commit | `7a2ace4279b6d42310fcfb5f9c226daf1e50aa12` |
 | dataset_sha256 | `68d437566906710c319081b0bea2bba8132e75dfca9750cf09ca2b3f0da3b8f4` |
 | fixtures_sha256 | `3f2891d6cb954df5c96f25283bec9048c39c2b7518d7d416a71576ea952b2137` |
 | label_sources | `['synthetic_design_intent']` |
@@ -39,13 +39,13 @@
 | editing | 0 | None | None | None | 0 | 0 |
 | visual_readability | 0 | None | None | None | 0 | 0 |
 
-**Overall vs label reference** (labels aggregated with the same genre profiles): n=14, Spearman=0.5912, MAE=0.9687, overall abstentions=6
+**Overall vs label reference** (labels aggregated with the same genre profiles): n=14, Spearman=0.5473, MAE=0.9529, overall abstentions=6
 
 ## Pairwise ranking accuracy
 
 | criterion | accuracy | decided | abstained |
 |---|---:|---:|---:|
-| overall | 0.875 | 8 | 3 |
+| overall | 0.75 | 8 | 3 |
 | factual_accuracy | None | 0 | 2 |
 | depth | 0.5 | 2 | 0 |
 | storytelling | 1.0 | 3 | 0 |
@@ -54,7 +54,7 @@
 | information_density | 1.0 | 2 | 0 |
 | audio_quality | 1.0 | 1 | 0 |
 | structure | 0.0 | 1 | 0 |
-| **all** | 0.8421 | 19 | |
+| **all** | 0.7895 | 19 | |
 
 ## Calibration
 
@@ -84,15 +84,15 @@ views/likes/subscribers ×1000 on 20 videos → fingerprint changes: 0, max scor
 | curious_science_generalist | 0.8855 | 0.8855 | 0.6 | 1.0 | 0.9844 | 0 |
 | cs_math_student_advanced | 0.7654 | 0.9134 | 0.4 | 1.0 | 0.9973 | 1 |
 | estudiante_hispanohablante | 0.906 | 0.906 | 0.6 | 1.0 | 1.0015 | 0 |
-| creative_hobbyist | 0.9558 | 0.9558 | 0.8 | 1.0 | 0.9805 | 0 |
+| creative_hobbyist | 0.8048 | 0.9439 | 0.6 | 1.0 | 0.9805 | 0 |
 | history_and_civics_follower | 0.8855 | 0.8855 | 0.6 | 1.0 | 0.9841 | 0 |
-| **mean** | 0.8796 | 0.9092 | 0.6 | 1.0 | 0.9896 | 1 |
+| **mean** | 0.8494 | 0.9069 | 0.56 | 1.0 | 0.9896 | 1 |
 
-Top-5 exposure by channel size: {'huge': 7, 'micro': 9, 'medium': 4, 'small': 5}
+Top-5 exposure by channel size: {'huge': 8, 'micro': 9, 'medium': 4, 'small': 4}
 
 ## Coverage and cost
 
-Evaluated by genre: {'education': 2, 'art': 2, 'entertainment': 3, 'howto': 3, 'music': 1, 'science': 3, 'gaming': 2, 'news_commentary': 1, 'technology': 3}
+Evaluated by genre: {'lecture': 1, 'art': 2, 'education': 1, 'entertainment': 3, 'howto': 3, 'music': 1, 'science': 3, 'gaming': 2, 'news_commentary': 1, 'product_review': 1, 'technology': 2}
 
 Evaluated by channel size: {'micro': 5, 'small': 4, 'huge': 8, 'large': 1, 'medium': 2}
 

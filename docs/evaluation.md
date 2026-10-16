@@ -179,24 +179,28 @@ and a release needs every gate evaluable and passing on a binding test-split run
 ## 6. Results so far, and what they do not show
 
 Committed baseline: [`benchmarks/reports/baseline-heuristic-synthetic_v1.md`](../benchmarks/reports/baseline-heuristic-synthetic_v1.md)
-(heuristic baseline, synthetic_v1, commit `3aeaa9b`).
+(heuristic baseline, synthetic_v1, commit `7a2ace4`, framework 2026.10.1 with genre v2).
 
 > **All labels in synthetic_v1 are synthetic design-intent labels written by the fixture author
 > (an AI assistant), single rater.** They test the harness and catch regressions. They say nothing
 > about accuracy on real videos or agreement with real people.
+>
+> Genre v2 made these synthetic numbers slightly worse. That was not tuned away: the labels are
+> synthetic, n is tiny (8 decided overall pairs), and tuning to them would be overfitting to the
+> fixture author's intent rather than to people.
 
 | Measurement | Heuristic baseline |
 |---|---|
 | Popularity invariance (20 videos, popularity ×1000) | **passed** — 0 fingerprint changes, max score delta 0.0 |
-| Overall vs label reference | Spearman 0.59, MAE 0.97 (n = 14; 6 overall abstentions) |
-| Pairwise accuracy, all criteria | 0.84 (19 decided pairs); overall 0.875 (8 decided, 3 abstained) |
+| Overall vs label reference | Spearman 0.55, MAE 0.95 (n = 14; 6 overall abstentions). Before genre v2: 0.59 / 0.97 |
+| Pairwise accuracy, all criteria | 0.79 (19 decided pairs); overall 0.75 (8 decided, 3 abstained). Before genre v2: 0.84 / 0.875 — one overall pair flipped (score gap 0.06) after two items moved to the `lecture` and `product_review` profiles |
 | Strongest dimensions | information density ρ = 0.73, informational value ρ = 0.72 |
 | Weakest dimensions | storytelling ρ = −0.08 (no signal), pacing ρ = 0.23, clarity ρ = 0.30 |
 | Abstention | originality and factual accuracy always abstain (by design) |
 | Calibration | ECE 0.086; confidences (0.33–0.44) are slightly *under*-confident vs 46–47 % within ±1 |
-| Genre accuracy | 0.85 — both documentaries and the Spanish lesson misclassified |
-| Recommendations (5 personas) | nDCG@5 0.88, nDCG@10 0.91, P@5 0.60, 1 low-quality item in 25 top-5 slots |
-| Top-5 exposure by channel size | micro 9, small 5, medium 4, huge 7 (of 25) |
+| Genre accuracy | 0.85 (v2 child genres count as their parent) — both documentaries and the Spanish lesson misclassified |
+| Recommendations (5 personas) | nDCG@5 0.85, nDCG@10 0.91, P@5 0.56, 1 low-quality item in 25 top-5 slots. Before genre v2: 0.88 / 0.91 / 0.60 |
+| Top-5 exposure by channel size | micro 9, small 4, medium 4, huge 8 (of 25) |
 | Cost | $0 (no LLM) |
 
 **Real pilot, dev split, heuristic baseline**

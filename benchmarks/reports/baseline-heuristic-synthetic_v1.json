@@ -119,13 +119,13 @@
     },
     "overall_vs_label_reference": {
       "n": 14,
-      "spearman": 0.5912,
-      "mae": 0.9687,
+      "spearman": 0.5473,
+      "mae": 0.9529,
       "overall_abstentions": 6
     },
     "pairwise": {
       "overall": {
-        "accuracy": 0.875,
+        "accuracy": 0.75,
         "decided": 8,
         "abstained": 3,
         "coverage": 0.7272727272727273
@@ -180,7 +180,7 @@
       },
       "_all": {
         "decided": 19,
-        "accuracy": 0.8421
+        "accuracy": 0.7895
       }
     },
     "inter_rater": {
@@ -295,9 +295,9 @@
       },
       {
         "persona": "creative_hobbyist",
-        "ndcg@5": 0.9558,
-        "ndcg@10": 0.9558,
-        "precision@5": 0.8,
+        "ndcg@5": 0.8048,
+        "ndcg@10": 0.9439,
+        "precision@5": 0.6,
         "recall@10": 1.0,
         "intra_list_diversity@10": 0.9805,
         "low_quality_in_top5": 0,
@@ -306,7 +306,7 @@
           "syn_ent_002",
           "syn_art_002",
           "syn_music_001",
-          "syn_game_001"
+          "syn_sci_002"
         ]
       },
       {
@@ -327,18 +327,18 @@
       }
     ],
     "mean": {
-      "ndcg@5": 0.8796,
-      "ndcg@10": 0.9092,
-      "precision@5": 0.6,
+      "ndcg@5": 0.8494,
+      "ndcg@10": 0.9069,
+      "precision@5": 0.56,
       "recall@10": 1.0,
       "intra_list_diversity@10": 0.9896
     },
     "low_quality_in_top5_total": 1,
     "top5_exposure_by_channel_size": {
-      "huge": 7,
+      "huge": 8,
       "micro": 9,
       "medium": 4,
-      "small": 5
+      "small": 4
     }
   },
   "cost": {
@@ -348,15 +348,17 @@
   },
   "coverage": {
     "by_genre": {
-      "education": 2,
+      "lecture": 1,
       "art": 2,
+      "education": 1,
       "entertainment": 3,
       "howto": 3,
       "music": 1,
       "science": 3,
       "gaming": 2,
       "news_commentary": 1,
-      "technology": 3
+      "product_review": 1,
+      "technology": 2
     },
     "by_channel_size": {
       "micro": 5,
@@ -371,18 +373,22 @@
       "de": 1
     },
     "genres_without_evaluations": [
-      "documentary"
+      "comedy",
+      "documentary",
+      "interview_podcast",
+      "personal_storytelling",
+      "programming"
     ]
   },
   "meta": {
-    "run_at": "2026-10-15T20:57:02.345386+00:00",
-    "framework_version": "2026.10.0",
+    "run_at": "2026-10-16T01:35:34.186487+00:00",
+    "framework_version": "2026.10.1",
     "evaluator": "heuristic",
     "evaluation_mode": "synthetic_demo",
     "llm_provider": "heuristic",
     "models": [],
     "embedding_model": "hashing-uni-bigram-v1",
-    "git_commit": "3aeaa9bf7a33439d7f7ccbc930de0035b46a445b",
+    "git_commit": "7a2ace4279b6d42310fcfb5f9c226daf1e50aa12",
     "dataset": "synthetic_v1",
     "dataset_sha256": "68d437566906710c319081b0bea2bba8132e75dfca9750cf09ca2b3f0da3b8f4",
     "fixtures_sha256": "3f2891d6cb954df5c96f25283bec9048c39c2b7518d7d416a71576ea952b2137",
