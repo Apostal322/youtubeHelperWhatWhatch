@@ -1,6 +1,7 @@
 """Token pricing for cost tracking and budget estimates (USD per million tokens).
 
-Prices are first-party list prices at the time of writing and can be overridden with
+Prices are first-party list prices (verified 2026-10-16 for Opus 5.5, Sonnet 5.5, Haiku 5.5 and
+Fable 5.1). Cache-read discounts are not modelled, so costs err high. Prices are and can be overridden with
 ``AVD_LLM_PRICE_OVERRIDES="model=in:out,..."``. Unknown models are priced conservatively high so
 budget enforcement errs on the safe side.
 """
@@ -18,6 +19,11 @@ DEFAULT_PRICES: dict[str, tuple[float, float]] = {
     "heuristic-baseline": (0.0, 0.0),
 }
 UNKNOWN_MODEL_PRICE = (15.0, 75.0)
+# Long-prompt tiers: (input-token threshold, (in, out) price above it). Verified 2026-10-16 against
+# the Claude API reference (Haiku 5.5 prices prompts over 100K tokens at $0.50 / $2.50).
+LONG_PROMPT_TIERS: dict[str, tuple[int, tuple[float, float]]] = {
+    "claude-haiku-5-5": (100_000, (0.50, 2.50)),
+}
 
 
 def _overrides() -> dict[str, tuple[float, float]]:
@@ -38,6 +44,9 @@ def price_for(model: str) -> tuple[float, float]:
 
 def cost_usd(model: str, input_tokens: int, output_tokens: int) -> float:
     pin, pout = price_for(model)
+    tier = LONG_PROMPT_TIERS.get(model)
+    if tier is not None and input_tokens > tier[0] and model not in _overrides():
+        pin, pout = tier[1]
     return round(input_tokens / 1e6 * pin + output_tokens / 1e6 * pout, 6)
 
 

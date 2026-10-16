@@ -437,6 +437,9 @@ def main(argv: list[str] | None = None) -> None:
     from avd.bench.recs_real import add_parser as add_recs_parser
 
     add_recs_parser(sub)
+    from avd.bench.throughput import add_parser as add_throughput_parser
+
+    add_throughput_parser(sub)
     b = sub.add_parser("bench", help="run the evaluation benchmark harness")
     b.add_argument("--dataset", default=str(REPO_ROOT / "benchmarks" / "datasets" / "synthetic_v1"))
     b.add_argument("--fixtures", default=str(REPO_ROOT / "data" / "fixtures"))

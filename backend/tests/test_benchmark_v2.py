@@ -410,3 +410,39 @@ def test_ltr_split_is_temporal_and_never_splits_a_request() -> None:
     assert {p.request_id for p in train}.isdisjoint({p.request_id for p in held})
     assert max(p.shown_at for p in train) < min(p.shown_at for p in held)
     assert len(held) == 6 and len(train) == 24
+
+
+def test_dry_run_call_plan_matches_pipeline_structure() -> None:
+    """The throughput experiment records the real call plan without any API: one rubric call for
+    a short transcript; map calls per chunk + reduce for a long one; 3 samples in Stage C."""
+    from avd.bench.throughput import DryRunProvider, _input
+    from avd.content.models import Transcript, TranscriptSegment
+    from avd.evaluation.pipeline import build_pipeline
+    from avd.llm.pricing import cost_usd
+    from tests.conftest import LECTURE, make_transcript
+
+    settings = make_settings(Path("/tmp"))
+    llm = settings.model_copy(
+        update={
+            "llm_provider": "anthropic",
+            "llm_single_pass_max_tokens": 2000,
+            "llm_chunk_target_tokens": 600,
+        }
+    )
+    dry = DryRunProvider()
+    build_pipeline("B", llm, dry).run(_input("v", make_transcript(LECTURE)))
+    assert [c.schema_name for c in dry.calls] == ["rubric_evaluation"]
+    long_t = Transcript(
+        segments=[
+            TranscriptSegment(start=i, end=i + 1, text=f"Point {i}: " + "word " * 60) for i in range(80)
+        ]
+    )
+    dry = DryRunProvider()
+    build_pipeline("B", llm, dry).run(_input("v", long_t))
+    kinds = [c.schema_name for c in dry.calls]
+    assert kinds.count("chunk_notes") > 1 and kinds[-1] == "rubric_evaluation"
+    assert not any("output contract" in c.user for c in dry.calls)  # no repair calls
+    dry = DryRunProvider()
+    build_pipeline("C", llm, dry).run(_input("v", make_transcript(LECTURE)))
+    assert len(dry.calls) == llm.llm_self_consistency_samples_stage_c
+    assert cost_usd("claude-haiku-5-5", 150_000, 0) > cost_usd("claude-haiku-5-5", 99_000, 0) * 1.5 * 5 - 1e-9
