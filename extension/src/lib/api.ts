@@ -1,5 +1,6 @@
 import { getItem, removeItem, setItem } from "./storage";
 import type {
+  Claim,
   Evaluation,
   FeedbackBody,
   Meta,
@@ -14,12 +15,36 @@ export const DEFAULT_API_BASE = "http://localhost:8000";
 const BASE_KEY = "avd.apiBase";
 const TOKEN_KEY = "avd.token";
 
+export const REQUEST_TIMEOUT_MS = 15_000;
+
+/** A failed API call. ``code`` follows the backend error taxonomy (``not_found``,
+ * ``rate_limited``, ``validation_error`` ...); network failures and timeouts use ``network`` and
+ * ``timeout``. ``requestId`` lets a user quote the failing request in a bug report. */
 export class ApiError extends Error {
   constructor(
     public status: number,
     message: string,
+    public code: string = "error",
+    public requestId: string | null = null,
+    public retryAfterSeconds: number | null = null,
   ) {
     super(message);
+  }
+}
+
+export function friendlyMessage(e: unknown): string {
+  if (!(e instanceof ApiError)) return e instanceof Error ? e.message : String(e);
+  switch (e.code) {
+    case "rate_limited":
+      return `Too many requests; try again in ${e.retryAfterSeconds ?? 10}s.`;
+    case "network":
+      return "Cannot reach the backend. Check that it is running and the API base URL in Preferences.";
+    case "timeout":
+      return "The backend took too long to respond. Try again.";
+    case "unavailable":
+      return `The backend is temporarily unavailable: ${e.message}`;
+    default:
+      return e.message;
   }
 }
 
@@ -43,17 +68,39 @@ export class ApiClient {
     const base = await getApiBase();
     const headers: Record<string, string> = { "Content-Type": "application/json" };
     if (auth) headers.Authorization = `Bearer ${await this.token()}`;
-    const res = await this.fetchImpl(`${base}${path}`, { ...init, headers: { ...headers, ...(init.headers ?? {}) } });
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+    let res: Response;
+    try {
+      res = await this.fetchImpl(`${base}${path}`, {
+        ...init,
+        signal: controller.signal,
+        headers: { ...headers, ...(init.headers ?? {}) },
+      });
+    } catch (err) {
+      const aborted = err instanceof DOMException && err.name === "AbortError";
+      throw new ApiError(0, aborted ? "request timed out" : "network error", aborted ? "timeout" : "network");
+    } finally {
+      clearTimeout(timer);
+    }
     if (!res.ok) {
       let detail = res.statusText;
+      let code = res.status === 429 ? "rate_limited" : "error";
+      let requestId = res.headers.get("X-Request-ID");
       try {
-        const body = (await res.json()) as { detail?: unknown };
-        detail = typeof body.detail === "string" ? body.detail : JSON.stringify(body.detail ?? body);
+        const body = (await res.json()) as {
+          detail?: unknown;
+          error?: { code?: string; message?: string; request_id?: string | null };
+        };
+        detail = body.error?.message ?? (typeof body.detail === "string" ? body.detail : JSON.stringify(body.detail ?? body));
+        code = body.error?.code ?? code;
+        requestId = body.error?.request_id ?? requestId;
       } catch {
         /* non-JSON error */
       }
       if (res.status === 401 && auth) await removeItem(TOKEN_KEY);
-      throw new ApiError(res.status, detail);
+      const retry = Number(res.headers.get("Retry-After"));
+      throw new ApiError(res.status, detail, code, requestId, Number.isFinite(retry) && retry > 0 ? retry : null);
     }
     return (await res.json()) as T;
   }
@@ -85,6 +132,9 @@ export class ApiClient {
   }
   evaluation(id: string): Promise<Evaluation> {
     return this.request(`/v1/videos/${encodeURIComponent(id)}/evaluation`);
+  }
+  claims(id: string): Promise<{ video_id: string; items: Claim[] }> {
+    return this.request(`/v1/videos/${encodeURIComponent(id)}/claims`);
   }
   search(q: string, opts: { minQuality?: number; genre?: string } = {}): Promise<{ items: SearchItem[] }> {
     const p = new URLSearchParams({ q });

@@ -3,7 +3,7 @@ import { ApiError, DEFAULT_API_BASE, api, getApiBase, setApiBase } from "../../l
 import { duration, fmtScore, humanize } from "../../lib/format";
 import type { Evaluation, FeedbackKind, Preferences, RecommendationItem, SearchItem, VideoCard } from "../../lib/types";
 import { QualityBreakdown } from "./QualityBreakdown";
-import { Empty, ErrorBox, QualityPill, Spinner } from "./common";
+import { AssessmentBadge, Empty, ErrorBox, QualityPill, Spinner } from "./common";
 
 type Select = (id: string) => void;
 
@@ -37,8 +37,9 @@ function RecCard({ item, onSelect }: { item: RecommendationItem; onSelect: Selec
         <QualityPill q={item.intrinsic_quality} />
       </div>
       <VideoMeta v={item.video} />
+      {item.ranking.exploration ? <span className="tag">exploration</span> : null}
       <ul className="why">
-        {item.explanations.slice(0, 2).map((e) => (
+        {item.explanations.slice(0, why ? undefined : 2).map((e) => (
           <li key={e}>{e}</li>
         ))}
       </ul>
@@ -92,9 +93,17 @@ function RecCard({ item, onSelect }: { item: RecommendationItem; onSelect: Selec
   );
 }
 
+/** Items whose quality comes from a heuristic, or that carry review caveats, can be hidden. */
+export function isReliable(item: RecommendationItem): boolean {
+  const s = item.intrinsic_quality?.assessment_state;
+  return s === "grounded";
+}
+
 export function DiscoverView({ onSelect }: { onSelect: Select }) {
   const [items, setItems] = useState<RecommendationItem[] | null>(null);
   const [notes, setNotes] = useState<string[]>([]);
+  const [ineligible, setIneligible] = useState<Record<string, number>>({});
+  const [onlyReliable, setOnlyReliable] = useState(false);
   const [error, setError] = useState<unknown>(null);
   const load = useCallback(() => {
     setItems(null);
@@ -104,25 +113,46 @@ export function DiscoverView({ onSelect }: { onSelect: Select }) {
       .then((r) => {
         setItems(r.items);
         setNotes(r.notes);
+        setIneligible(r.eligibility?.ineligible ?? {});
       })
       .catch(setError);
   }, []);
   useEffect(load, [load]);
-  if (error) return <ErrorBox error={error} />;
+  if (error) return <ErrorBox error={error} onRetry={load} />;
   if (!items) return <Spinner />;
+  const shown = onlyReliable ? items.filter(isReliable) : items;
+  const dropped = Object.values(ineligible).reduce((a, b) => a + b, 0);
   return (
     <div>
       <div className="toolbar">
         <span className="muted small">Ranked for you · quality is popularity-blind</span>
+        <label className="check small">
+          <input type="checkbox" checked={onlyReliable} onChange={(e) => setOnlyReliable(e.target.checked)} />
+          Evidence-checked only
+        </label>
         <button type="button" className="link" onClick={load}>
           Refresh
         </button>
       </div>
-      {items.length === 0 ? (
-        <Empty>{notes[0] ?? "No recommendations yet. Add interests in Preferences."}</Empty>
+      {notes.map((n) => (
+        <div key={n} className="muted small note">
+          {n}
+        </div>
+      ))}
+      {dropped > 0 ? (
+        <div className="muted small" title={Object.entries(ineligible).map(([k, v]) => `${humanize(k)}: ${v}`).join("\n")}>
+          {dropped} candidate{dropped === 1 ? "" : "s"} excluded by your filters or because their assessment was unusable.
+        </div>
+      ) : null}
+      {shown.length === 0 ? (
+        <Empty>
+          {items.length > 0 && onlyReliable
+            ? "None of the current recommendations has an evidence-checked assessment yet."
+            : notes[0] ?? "No recommendations yet. Add interests in Preferences."}
+        </Empty>
       ) : (
         <ul className="list">
-          {items.map((it) => (
+          {shown.map((it) => (
             <RecCard key={it.video.id} item={it} onSelect={onSelect} />
           ))}
         </ul>
@@ -219,6 +249,7 @@ export function VideoView({ videoId }: { videoId: string | null }) {
       ) : null}
       {missing ? (
         <>
+          <AssessmentBadge state="not_evaluated" />
           <Empty>
             Not analyzed yet ({missing}). Evaluations require authorized content such as a creator-provided or
             licensed transcript.
@@ -291,7 +322,23 @@ export function SearchView({ onSelect }: { onSelect: Select }) {
 // ---------------------------------------------------------------------------------- Preferences
 
 const PRIORITY_DIMS = ["depth", "factual_accuracy", "clarity", "information_density", "originality", "storytelling", "audio_quality"];
+// v1 genres; each v2 genre (lecture, programming, ...) inherits its parent's weight unless set.
 const GENRES = ["science", "education", "technology", "howto", "documentary", "news_commentary", "gaming", "entertainment", "art", "music"];
+const V2_GENRES = ["lecture", "programming", "product_review", "interview_podcast", "comedy", "personal_storytelling"];
+const PARENT: Record<string, string | undefined> = {
+  lecture: "education",
+  programming: "technology",
+  product_review: "technology",
+  comedy: "entertainment",
+  personal_storytelling: "entertainment",
+};
+const INTENTS: { value: NonNullable<Preferences["intent"]>; label: string }[] = [
+  { value: "any", label: "No preference" },
+  { value: "learn", label: "Learn something" },
+  { value: "stay_informed", label: "Stay informed" },
+  { value: "be_entertained", label: "Be entertained" },
+  { value: "deep_dive", label: "Deep dive" },
+];
 
 export function PreferencesView({ onSaved }: { onSaved: () => void }) {
   const [p, setP] = useState<Preferences | null>(null);
@@ -350,6 +397,28 @@ export function PreferencesView({ onSaved }: { onSaved: () => void }) {
             </select>
           </label>
           <label>
+            What are you here for? (used when no genre priorities are set)
+            <select value={p.intent ?? "any"} onChange={(e) => set("intent", e.target.value as Preferences["intent"])}>
+              {INTENTS.map((i) => (
+                <option key={i.value} value={i.value}>
+                  {i.label}
+                </option>
+              ))}
+            </select>
+          </label>
+          <div className="row">
+            <label>
+              Min minutes
+              <input type="number" min={1} max={600} value={p.min_duration_minutes ?? ""}
+                onChange={(e) => set("min_duration_minutes", e.target.value ? Number(e.target.value) : null)} />
+            </label>
+            <label>
+              Max minutes
+              <input type="number" min={1} max={600} value={p.max_duration_minutes ?? ""}
+                onChange={(e) => set("max_duration_minutes", e.target.value ? Number(e.target.value) : null)} />
+            </label>
+          </div>
+          <label>
             Languages (comma-separated codes, empty = any)
             <input value={p.languages.join(", ")} onChange={(e) => set("languages", e.target.value.split(",").map((s) => s.trim()).filter(Boolean))} />
           </label>
@@ -366,14 +435,21 @@ export function PreferencesView({ onSaved }: { onSaved: () => void }) {
           </fieldset>
           <fieldset>
             <legend>Genres</legend>
-            {GENRES.map((g) => (
-              <label key={g} className="slider">
-                <span>{humanize(g)}</span>
-                <input type="range" min={0} max={1} step={0.25} value={p.genre_weights[g] ?? 0.5}
-                  onChange={(e) => set("genre_weights", { ...p.genre_weights, [g]: Number(e.target.value) })} />
-                <span className="num">{(p.genre_weights[g] ?? 0.5).toFixed(2)}</span>
-              </label>
-            ))}
+            {[...GENRES, ...V2_GENRES].map((g) => {
+              const inherited = p.genre_weights[g] === undefined && PARENT[g] !== undefined;
+              const value = p.genre_weights[g] ?? (PARENT[g] ? p.genre_weights[PARENT[g]!] : undefined) ?? 0.5;
+              return (
+                <label key={g} className="slider">
+                  <span>
+                    {humanize(g)}
+                    {inherited ? <span className="muted small"> (as {humanize(PARENT[g]!).toLowerCase()})</span> : null}
+                  </span>
+                  <input type="range" min={0} max={1} step={0.25} value={value}
+                    onChange={(e) => set("genre_weights", { ...p.genre_weights, [g]: Number(e.target.value) })} />
+                  <span className="num">{value.toFixed(2)}</span>
+                </label>
+              );
+            })}
           </fieldset>
           <fieldset>
             <legend>Ranking</legend>
@@ -398,7 +474,7 @@ export function PreferencesView({ onSaved }: { onSaved: () => void }) {
             </label>
           </fieldset>
           <button type="submit">Save preferences</button>
-          {state === "saved" ? <span className="ok small"> Saved</span> : null}
+          <span role="status" aria-live="polite">{state === "saved" ? <span className="ok small"> Saved</span> : null}</span>
         </form>
       ) : state === "idle" ? (
         <Spinner />

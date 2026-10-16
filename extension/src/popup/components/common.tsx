@@ -1,6 +1,27 @@
 import type { ReactNode } from "react";
-import { band, fmtScore } from "../../lib/format";
-import type { QualitySummary } from "../../lib/types";
+import { ApiError, friendlyMessage } from "../../lib/api";
+import { ASSESSMENT, band, fmtScore } from "../../lib/format";
+import type { AssessmentState, QualitySummary } from "../../lib/types";
+
+/** The kind of assessment, always spelled out in text (colour is only a secondary cue). */
+// Reasons are listed only where they add information; for the other states the label says it all.
+const CAVEAT_STATES = new Set<string>(["preliminary", "insufficient_evidence", "failed"]);
+
+export function AssessmentBadge({ state, reasons }: { state: AssessmentState | "not_evaluated"; reasons?: string[] }) {
+  const info = ASSESSMENT[state] ?? ASSESSMENT.preliminary;
+  return (
+    <div className={`assessment assessment-${info.tone}`} role="note" aria-label={`Assessment: ${info.label}`}>
+      <strong>{info.label}</strong> <span className="small">{info.explain}</span>
+      {reasons && reasons.length > 0 && CAVEAT_STATES.has(state) ? (
+        <ul className="small reasons">
+          {reasons.slice(0, 4).map((r) => (
+            <li key={r}>{r}</li>
+          ))}
+        </ul>
+      ) : null}
+    </div>
+  );
+}
 
 export function ScoreBar({ score, label, sub }: { score: number | null; label: string; sub?: string }) {
   const width = score === null ? 0 : ((score - 1) / 4) * 100;
@@ -20,6 +41,8 @@ export function ScoreBar({ score, label, sub }: { score: number | null; label: s
 
 export function QualityPill({ q }: { q: QualitySummary | null }) {
   if (!q) return <span className="pill pill-none">not evaluated</span>;
+  const state = q.assessment_state;
+  const caveat = state && state !== "grounded" ? ASSESSMENT[state]?.label : null;
   if (q.overall === null) {
     return (
       <span className="pill pill-none" title="Not enough evidence for a genre-weighted overall score; see the breakdown">
@@ -28,8 +51,12 @@ export function QualityPill({ q }: { q: QualitySummary | null }) {
     );
   }
   return (
-    <span className={`pill pill-${band(q.overall)}`} title={`Overall (genre-weighted), confidence ${Math.round((q.overall_confidence ?? 0) * 100)}%`}>
+    <span
+      className={`pill pill-${band(q.overall)}`}
+      title={`Overall (genre-weighted), confidence ${Math.round((q.overall_confidence ?? 0) * 100)}%${caveat ? ` · ${caveat}` : ""}`}
+    >
       {q.overall.toFixed(1)}
+      {caveat ? <span className="pill-caveat"> · {caveat.toLowerCase()}</span> : null}
     </span>
   );
 }
@@ -42,11 +69,26 @@ export function Empty({ children }: { children: ReactNode }) {
   return <div className="empty">{children}</div>;
 }
 
-export function ErrorBox({ error }: { error: unknown }) {
-  const msg = error instanceof Error ? error.message : String(error);
-  return <div className="error">⚠ {msg}</div>;
+export function ErrorBox({ error, onRetry }: { error: unknown; onRetry?: () => void }) {
+  const requestId = error instanceof ApiError ? error.requestId : null;
+  return (
+    <div className="error" role="alert">
+      <span aria-hidden="true">⚠ </span>
+      {friendlyMessage(error)}
+      {requestId ? <div className="small muted">Request ID: {requestId}</div> : null}
+      {onRetry ? (
+        <button type="button" className="link" onClick={onRetry}>
+          Try again
+        </button>
+      ) : null}
+    </div>
+  );
 }
 
 export function Spinner() {
-  return <div className="muted small">Loading…</div>;
+  return (
+    <div className="muted small" role="status" aria-live="polite">
+      Loading…
+    </div>
+  );
 }

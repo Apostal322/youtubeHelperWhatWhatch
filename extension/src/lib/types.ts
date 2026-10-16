@@ -8,6 +8,15 @@ export type DimensionStatus =
   | "requires_media"
   | "failed";
 
+/** What kind of assessment an evaluation is (backend ``assessment_state``). */
+export type AssessmentState =
+  | "grounded"
+  | "preliminary"
+  | "insufficient_evidence"
+  | "failed"
+  | "heuristic_baseline"
+  | "synthetic_demo";
+
 export interface QualitySummary {
   evaluation_id: string;
   overall: number | null;
@@ -19,6 +28,8 @@ export interface QualitySummary {
   mode: string;
   genre: string;
   stage: string;
+  assessment_state?: AssessmentState;
+  needs_review?: boolean;
 }
 
 export interface VideoCard {
@@ -31,6 +42,7 @@ export interface VideoCard {
   topics: string[];
   published_at: string | null;
   is_synthetic: boolean;
+  platform?: string;
   url: string | null;
   status: string;
 }
@@ -48,6 +60,7 @@ export interface RecommendationItem {
     features: Record<string, number>;
     contributions: Record<string, number>;
     diversified: boolean;
+    exploration?: boolean;
   };
   explanations: string[];
 }
@@ -56,10 +69,12 @@ export interface RecommendationResponse {
   request_id: string | null;
   ranker_version: string;
   items: RecommendationItem[];
+  eligibility?: { candidates: number; eligible?: number; ineligible: Record<string, number> };
   notes: string[];
 }
 
 export interface Evidence {
+  kind?: "supporting" | "counter";
   segment_index: number | null;
   start_seconds: number | null;
   end_seconds: number | null;
@@ -79,6 +94,7 @@ export interface DimensionResult {
   model: string | null;
   missing_inputs: string[];
   evidence: Evidence[];
+  reason_code?: string | null;
 }
 
 export interface GroupScore {
@@ -114,6 +130,32 @@ export interface Evaluation {
   validation: { passed: boolean; warnings: string[] };
   missing_inputs: string[];
   created_at: string | null;
+  assessment_state?: AssessmentState;
+  assessment_state_reasons?: string[];
+  needs_review?: boolean;
+  review_reasons?: string[];
+}
+
+export type ClaimVerdict =
+  | "supported"
+  | "contradicted"
+  | "mixed"
+  | "unverifiable"
+  | "insufficient_evidence"
+  | "not_applicable"
+  | "unchecked";
+
+export interface Claim {
+  segment_index: number | null;
+  quote: string | null;
+  claim: string;
+  claim_type: string;
+  verdict: ClaimVerdict;
+  domain_risk: string;
+  sources: { passage_id: string; doc_id: string; title: string; license: string }[];
+  explanation: string | null;
+  checked_at: string | null;
+  stage: string;
 }
 
 export interface SearchItem {
@@ -127,7 +169,9 @@ export interface Preferences {
   genre_weights: Record<string, number>;
   dimension_weights: Record<string, number>;
   depth_preference: "any" | "intro" | "intermediate" | "advanced";
+  intent?: "any" | "learn" | "stay_informed" | "be_entertained" | "deep_dive";
   languages: string[];
+  min_duration_minutes?: number | null;
   max_duration_minutes: number | null;
   diversity: number;
   min_quality: number;

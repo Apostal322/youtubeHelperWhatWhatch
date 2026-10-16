@@ -1,8 +1,61 @@
 import { useState } from "react";
 import { api } from "../../lib/api";
-import { STATUS_LABEL, fmtScore, humanize, pct, timestamp } from "../../lib/format";
-import type { DimensionResult, Evaluation } from "../../lib/types";
-import { ErrorBox, ModeBanner, ScoreBar } from "./common";
+import { STATUS_LABEL, VERDICT_LABEL, fmtScore, humanize, pct, plainSummary, timestamp } from "../../lib/format";
+import type { Claim, DimensionResult, Evaluation } from "../../lib/types";
+import { AssessmentBadge, ErrorBox, ModeBanner, ScoreBar, Spinner } from "./common";
+
+/** Claims extracted from the transcript and, where checked, their verdicts from licensed reference
+ * passages (never from model knowledge). Loaded on demand. */
+export function ClaimsPanel({ videoId }: { videoId: string }) {
+  const [claims, setClaims] = useState<Claim[] | null>(null);
+  const [error, setError] = useState<unknown>(null);
+  const load = () => {
+    setError(null);
+    api
+      .claims(videoId)
+      .then((r) => setClaims(r.items))
+      .catch(setError);
+  };
+  return (
+    <details
+      className="claims"
+      onToggle={(e) => {
+        if ((e.target as HTMLDetailsElement).open && claims === null) load();
+      }}
+    >
+      <summary>Claims and fact checks</summary>
+      {error ? <ErrorBox error={error} onRetry={load} /> : null}
+      {claims === null && !error ? <Spinner /> : null}
+      {claims !== null && claims.length === 0 ? <div className="muted small">No claims were extracted.</div> : null}
+      {claims !== null && claims.length > 0 ? (
+        <ul className="claim-list">
+          {claims.map((c, i) => (
+            <li key={`${c.segment_index}-${i}`} className={`claim claim-${c.verdict}`}>
+              <span className="verdict">{VERDICT_LABEL[c.verdict] ?? c.verdict}</span>
+              {c.domain_risk === "high_stakes" ? <span className="tag">high stakes</span> : null}{" "}
+              <span>{c.claim}</span>
+              <div className="muted small">
+                {humanize(c.claim_type)}
+                {c.quote ? (
+                  <>
+                    {" · "}
+                    <q>{c.quote}</q>
+                  </>
+                ) : null}
+              </div>
+              {c.sources.length > 0 ? (
+                <div className="muted small">
+                  Sources: {c.sources.map((s) => `${s.title} (${s.license})`).join("; ")}
+                </div>
+              ) : null}
+              {c.explanation ? <div className="small">{c.explanation}</div> : null}
+            </li>
+          ))}
+        </ul>
+      ) : null}
+    </details>
+  );
+}
 
 const GROUP_ORDER = ["content", "presentation", "technical"];
 
@@ -27,7 +80,8 @@ function DimensionRow({ d, videoUrl }: { d: DimensionResult; videoUrl: string | 
           {d.evidence.length > 0 ? (
             <ul className="evidence">
               {d.evidence.map((e, i) => (
-                <li key={i}>
+                <li key={i} className={e.kind === "counter" ? "evidence-counter" : undefined}>
+                  {e.kind === "counter" ? <span className="tag">counter-evidence</span> : null}
                   {e.start_seconds !== null ? (
                     videoUrl ? (
                       <a href={`${videoUrl}&t=${Math.floor(e.start_seconds)}s`} target="_blank" rel="noreferrer">
@@ -119,7 +173,9 @@ export function QualityBreakdown({ ev, videoUrl }: { ev: Evaluation; videoUrl: s
   const groups = GROUP_ORDER.filter((g) => ev.groups[g]);
   return (
     <div className="breakdown">
+      <AssessmentBadge state={ev.assessment_state ?? (ev.synthetic ? "synthetic_demo" : "preliminary")} reasons={ev.assessment_state_reasons} />
       <ModeBanner synthetic={ev.synthetic} text={ev.disclaimer} />
+      <p className="summary">{plainSummary(ev)}</p>
       <div className="overall">
         <ScoreBar
           score={ev.overall.score}
@@ -165,6 +221,7 @@ export function QualityBreakdown({ ev, videoUrl }: { ev: Evaluation; videoUrl: s
         Framework {ev.framework_version} · stage {ev.stage}
         {ev.models.length ? ` · ${ev.models.join(", ")}` : ""}
       </div>
+      <ClaimsPanel videoId={ev.video_id} />
       <ReportIncorrect ev={ev} />
     </div>
   );

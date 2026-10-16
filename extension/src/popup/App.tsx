@@ -46,7 +46,7 @@ export function App() {
         <h1>AI Video Discovery</h1>
         {meta ? (
           <span className={meta.demo_mode ? "mode mode-demo" : "mode"} title={meta.disclaimer}>
-            {meta.demo_mode ? "Synthetic demo" : `LLM · ${meta.llm_provider}`}
+            {meta.demo_mode ? "Heuristic mode (not AI)" : `LLM · ${meta.llm_provider}`}
           </span>
         ) : null}
       </header>
