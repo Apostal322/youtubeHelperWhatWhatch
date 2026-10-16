@@ -4,7 +4,7 @@ import { ApiClient, ApiError, REQUEST_TIMEOUT_MS, api, friendlyMessage } from ".
 import { ASSESSMENT, plainSummary } from "../src/lib/format";
 import type { Evaluation, RecommendationItem } from "../src/lib/types";
 import { ClaimsPanel, QualityBreakdown } from "../src/popup/components/QualityBreakdown";
-import { isReliable } from "../src/popup/components/Views";
+import { genreText, isReliable } from "../src/popup/components/Views";
 import { AssessmentBadge } from "../src/popup/components/common";
 
 const dim = (dimension: string, group: string, status: Evaluation["dimensions"][number]["status"], score: number | null) => ({
@@ -70,6 +70,15 @@ describe("assessment states", () => {
   it("only evidence-checked items pass the reliability filter", () => {
     const item = (s?: string) => ({ intrinsic_quality: s ? { assessment_state: s } : null }) as unknown as RecommendationItem;
     expect([item("grounded"), item("preliminary"), item("heuristic_baseline"), item()].map(isReliable)).toEqual([true, false, false, false]);
+  });
+});
+
+describe("genre status", () => {
+  it("qualifies uncertain and corrected genres only", () => {
+    expect(genreText({ genre: "interview_podcast", genre_status: "confident" })).toBe("Interview podcast");
+    expect(genreText({ genre: "lecture", genre_status: "overridden" })).toBe("Lecture (corrected)");
+    expect(genreText({ genre: "other", genre_status: "ambiguous" })).toBe("Other (ambiguous)");
+    expect(genreText({ genre: null, genre_status: "unknown" })).toBeNull();
   });
 });
 

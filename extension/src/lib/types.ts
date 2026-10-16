@@ -39,6 +39,7 @@ export interface VideoCard {
   duration_seconds: number | null;
   language: string | null;
   genre: string | null;
+  genre_status?: "confident" | "mixed" | "ambiguous" | "unknown" | "overridden" | null;
   topics: string[];
   published_at: string | null;
   is_synthetic: boolean;

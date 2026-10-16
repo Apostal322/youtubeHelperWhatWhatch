@@ -7,10 +7,17 @@ import { AssessmentBadge, Empty, ErrorBox, QualityPill, Spinner } from "./common
 
 type Select = (id: string) => void;
 
+// Only uncertain or corrected genres are qualified; a confident genre needs no note.
+export function genreText(v: Pick<VideoCard, "genre" | "genre_status">): string | null {
+  if (!v.genre) return null;
+  const note = v.genre_status && v.genre_status !== "confident" ? ` (${v.genre_status === "overridden" ? "corrected" : v.genre_status})` : "";
+  return humanize(v.genre) + note;
+}
+
 function VideoMeta({ v }: { v: VideoCard }) {
   return (
     <div className="muted small">
-      {[v.channel_title, v.genre ? humanize(v.genre) : null, duration(v.duration_seconds), v.language?.toUpperCase()]
+      {[v.channel_title, genreText(v), duration(v.duration_seconds), v.language?.toUpperCase()]
         .filter(Boolean)
         .join(" · ")}
       {v.is_synthetic ? <span className="tag">synthetic demo</span> : null}

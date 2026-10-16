@@ -474,6 +474,7 @@ def video_card(session: Session, v: Video) -> dict[str, Any]:
         "duration_seconds": v.duration_seconds,
         "language": v.language,
         "genre": v.genre,
+        "genre_status": v.genre_status,  # confident / mixed / ambiguous / unknown / overridden
         "topics": v.topics,
         "published_at": v.published_at.isoformat() if v.published_at else None,
         "is_synthetic": v.is_synthetic,

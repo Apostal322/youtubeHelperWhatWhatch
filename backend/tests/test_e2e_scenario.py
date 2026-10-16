@@ -197,6 +197,7 @@ def test_licensed_item_to_account_deletion(
     corrected = client.get("/v1/videos/tpy_301/evaluation").json()
     assert corrected["genre"] == "lecture" and corrected["aggregation_profile"]["genre"] == "lecture"
     assert corrected["evaluation_id"] != ev["evaluation_id"]
+    assert client.get("/v1/videos/tpy_301").json()["video"]["genre_status"] == "overridden"
 
     # 4. Blind annotation: the rater sees transcript and rubric, never model scores or popularity.
     rater = client.post("/v1/annotation/raters", json={"pseudonym": "e2e-rater"}, headers=ADMIN).json()
