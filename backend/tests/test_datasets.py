@@ -311,3 +311,11 @@ def test_candidate_listing_keeps_paths_with_spaces(tmp_path: Path) -> None:
         "youtube_transcripts/001-a.vtt",
         "youtube_transcripts/002-b and c.vtt",
     ]
+
+
+@pytest.mark.parametrize(
+    "bad", ["../../etc/passwd", "/etc/passwd", "a/../../b.md", "a\\b.md", "podcast//x.md", "x\n.md"]
+)
+def test_manifest_paths_cannot_escape_the_cache(tmp_path: Path, bad: str) -> None:
+    with pytest.raises(PermissionError):
+        SourceFetcher(tmp_path, offline=True).get(CHANGELOG, bad)

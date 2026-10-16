@@ -169,3 +169,11 @@ def test_account_deletion_removes_user_data(api: TestClient) -> None:
             and src.transcript is None
             and src.provided_by_user_id is None
         )
+
+
+def test_security_headers_and_annotation_csp(api: TestClient) -> None:
+    r = api.get("/health")
+    assert r.headers["X-Content-Type-Options"] == "nosniff" and r.headers["X-Frame-Options"] == "DENY"
+    page = api.get("/annotate")
+    csp = page.headers["Content-Security-Policy"]
+    assert "connect-src 'self'" in csp and "frame-ancestors 'none'" in csp and "default-src 'none'" in csp

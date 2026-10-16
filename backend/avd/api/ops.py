@@ -97,6 +97,30 @@ class RequestContextMiddleware(BaseHTTPMiddleware):
         return response
 
 
+SECURITY_HEADERS = {
+    "X-Content-Type-Options": "nosniff",
+    "Referrer-Policy": "no-referrer",
+    "X-Frame-Options": "DENY",
+}
+# The annotation UI is one self-contained page: inline script/style, same-origin API calls only.
+ANNOTATE_CSP = (
+    "default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; connect-src 'self'; "
+    "img-src 'self'; base-uri 'none'; form-action 'self'; frame-ancestors 'none'"
+)
+
+
+class SecurityHeadersMiddleware(BaseHTTPMiddleware):
+    async def dispatch(
+        self, request: Request, call_next: Callable[[Request], Awaitable[Response]]
+    ) -> Response:
+        response = await call_next(request)
+        for k, v in SECURITY_HEADERS.items():
+            response.headers.setdefault(k, v)
+        if request.url.path == "/annotate":
+            response.headers["Content-Security-Policy"] = ANNOTATE_CSP
+        return response
+
+
 class TokenBucket:
     def __init__(self, rate_per_minute: int, burst: int) -> None:
         self.rate = rate_per_minute / 60.0
@@ -145,6 +169,7 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
 
 def install(app: FastAPI, settings: Settings) -> None:
     # Order: the request context wraps everything (added last = outermost).
+    app.add_middleware(SecurityHeadersMiddleware)
     app.add_middleware(RateLimitMiddleware, settings=settings)
     app.add_middleware(RequestContextMiddleware)
 
