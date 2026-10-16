@@ -24,6 +24,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from avd.db.models import PipelineJob
+from avd.observability import correlation_id
 from avd.workers.budget import BudgetManager
 
 TERMINAL = ("succeeded", "skipped", "dead")
@@ -69,6 +70,8 @@ def enqueue(
         estimated_cost_usd=estimated_cost_usd,
         next_attempt_at=run_at or _now(),
         max_attempts=max_attempts,
+        # Ties the job (and its model calls) to the API request or parent job that created it.
+        correlation_id=correlation_id.get(),
     )
     try:
         with session.begin_nested():

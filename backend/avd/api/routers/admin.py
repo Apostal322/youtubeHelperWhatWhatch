@@ -169,3 +169,51 @@ def override_genre(video_id: str, body: GenreOverrideIn, session: Session = Depe
         session, video_id, force=True, payload={"force_stage_b": True, "reason": "genre_override"}
     )
     return {"video_id": video_id, "genre_override": video.genre_override, "requeued": queued}
+
+
+@router.get("/dead-letters")
+def dead_letters(limit: int = Query(50, le=500), session: Session = Depends(db)) -> dict[str, Any]:
+    """Jobs that exhausted their retries, grouped by type and error class, newest first."""
+    rows = session.scalars(
+        select(PipelineJob).where(PipelineJob.status == "dead").order_by(PipelineJob.updated_at.desc())
+    ).all()
+    groups: dict[str, int] = {}
+    for j in rows:
+        err = (j.last_error or "unknown").split(":", 1)[0][:80]
+        key = f"{j.job_type} | {err}"
+        groups[key] = groups.get(key, 0) + 1
+    return {
+        "total": len(rows),
+        "by_type_and_error": dict(sorted(groups.items(), key=lambda kv: -kv[1])),
+        "items": [
+            {
+                "id": j.id,
+                "type": j.job_type,
+                "video_id": j.video_id,
+                "attempts": j.attempts,
+                "last_error": (j.last_error or "")[:500],
+                "correlation_id": j.correlation_id,
+                "updated_at": j.updated_at.isoformat() if j.updated_at else None,
+            }
+            for j in rows[:limit]
+        ],
+    }
+
+
+@router.post("/jobs/{job_id}/requeue")
+def requeue_job(job_id: str, session: Session = Depends(db)) -> dict[str, Any]:
+    """Return a dead job to the queue (attempts reset). Only dead jobs can be requeued."""
+    job = session.get(PipelineJob, job_id)
+    if job is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "job not found")
+    if job.status != "dead":
+        raise HTTPException(status.HTTP_409_CONFLICT, f"job is {job.status}, only dead jobs can be requeued")
+    job.status = "queued"
+    job.attempts = 0
+    job.last_error = None
+    job.next_attempt_at = datetime.now(UTC)
+    job.payload = {
+        **(job.payload or {}),
+        "requeued_by_admin_at": datetime.now(UTC).isoformat(timespec="seconds"),
+    }
+    return {"id": job.id, "status": job.status}

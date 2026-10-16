@@ -116,6 +116,10 @@ class Settings(BaseSettings):
 
     # --- API ---------------------------------------------------------------------------------
     admin_token: SecretStr | None = None
+    # API protection: per-caller token bucket (0 disables); /metrics needs the admin token unless public.
+    api_rate_limit_per_minute: int = 300
+    api_rate_limit_burst: int = 60
+    metrics_public: bool = False
     cors_allow_origins: list[str] = Field(
         default_factory=lambda: ["http://localhost:5173", "http://127.0.0.1:5173"]
     )

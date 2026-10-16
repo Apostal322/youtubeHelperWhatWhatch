@@ -5,6 +5,7 @@ from typing import Any
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from avd.api import ops
 from avd.api.routers import admin, annotation, public, users
 from avd.config import get_settings
 from avd.logging import configure_logging
@@ -18,12 +19,15 @@ def create_app() -> FastAPI:
         version="0.1.0",
         description="Popularity-blind, multidimensional video quality assessment and recommendations.",
     )
+    ops.install(app, settings)
+    # Added last = outermost, so error and 429 responses also carry CORS headers.
     app.add_middleware(
         CORSMiddleware,
         allow_origins=settings.cors_allow_origins,
         allow_origin_regex=settings.cors_allow_origin_regex,
-        allow_methods=["GET", "POST", "PUT"],
-        allow_headers=["Authorization", "Content-Type", "X-Admin-Token"],
+        allow_methods=["GET", "POST", "PUT", "DELETE"],
+        allow_headers=["Authorization", "Content-Type", "X-Admin-Token", "X-Request-ID"],
+        expose_headers=["X-Request-ID", "Retry-After"],
     )
 
     @app.get("/health")

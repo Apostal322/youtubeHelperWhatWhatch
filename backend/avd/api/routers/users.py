@@ -144,3 +144,44 @@ def submit_transcript(
         "created": created,
         "status": "queued for evaluation" if created else "identical transcript already on file",
     }
+
+
+@router.delete("/users/me")
+def delete_me(user: User = Depends(current_user), session: Session = Depends(db)) -> dict[str, Any]:
+    """Delete the account and everything tied to it: preferences, feedback, recommendation
+    impressions and transcripts the user submitted. Submitted transcripts are revoked and their
+    text erased, and evaluations derived from them stop being current (rows are kept without the
+    text for audit). Pseudonymous logs outside the database are not affected."""
+    from datetime import UTC, datetime
+
+    from sqlalchemy import delete, select
+
+    from avd.db.models import ContentSource, Evaluation, Feedback, RecommendationImpression
+
+    counts: dict[str, int] = {}
+    sources = session.scalars(select(ContentSource).where(ContentSource.provided_by_user_id == user.id)).all()
+    revoked_ids = set()
+    for src in sources:
+        revoked_ids.add(src.id)
+        src.status = "revoked"
+        src.revoked_at = datetime.now(UTC)
+        src.transcript = None
+        src.provided_by_user_id = None
+        src.preprocessing = {**(src.preprocessing or {}), "revocation_reason": "user account deleted"}
+    withdrawn = 0
+    if revoked_ids:
+        for ev in session.scalars(select(Evaluation).where(Evaluation.is_current.is_(True))).all():
+            if revoked_ids & set(ev.content_source_ids or []):
+                ev.is_current = False
+                withdrawn += 1
+    counts["transcripts_revoked"] = len(sources)
+    counts["evaluations_withdrawn"] = withdrawn
+    for model, name in (
+        (Feedback, "feedback"),
+        (RecommendationImpression, "impressions"),
+        (UserPreferences, "preferences"),
+    ):
+        counts[name] = session.execute(delete(model).where(model.user_id == user.id)).rowcount or 0  # type: ignore[attr-defined]
+    session.delete(user)
+    session.flush()
+    return {"deleted": True, **counts}
