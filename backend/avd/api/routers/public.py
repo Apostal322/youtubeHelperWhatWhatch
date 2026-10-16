@@ -91,6 +91,9 @@ def get_video(video_id: str, session: Session = Depends(db)) -> dict[str, Any]:
                 "source_type": s.source_type,
                 "authorization_basis": s.authorization_basis,
                 "license": s.license,
+                # Evidence quotes from licensed sources are shown to users; attribution is required.
+                "attribution": s.attribution,
+                "provenance_url": s.provenance_url,
                 "modalities": s.modalities,
                 "language": s.language,
                 "created_at": s.created_at.isoformat() if s.created_at else None,
