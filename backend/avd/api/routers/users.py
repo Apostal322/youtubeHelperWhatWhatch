@@ -1,9 +1,10 @@
 from __future__ import annotations
 
 import secrets
+import uuid
 from typing import Any
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, Header, HTTPException, Query, Request
 from sqlalchemy.orm import Session
 
 from avd.api.deps import current_user, db, embedder, hash_token
@@ -143,6 +144,71 @@ def submit_transcript(
         "content_source_id": row.id,
         "created": created,
         "status": "queued for evaluation" if created else "identical transcript already on file",
+    }
+
+
+@router.put("/videos/{video_id}/media", status_code=202)
+async def submit_media(
+    video_id: str,
+    request: Request,
+    x_content_attestation: str = Header(..., min_length=10, max_length=2000),
+    user: User = Depends(current_user),
+    session: Session = Depends(db),
+    settings: Settings = Depends(get_settings),
+) -> dict[str, Any]:
+    """Submit authorized audio/video as the raw request body (``Content-Type`` must be a supported
+    audio/video type). ``X-Content-Attestation`` states your right to submit it, e.g. that you
+    are the creator. The file is probed with ffprobe and its audio decoded for analysis; nothing
+    is fetched from YouTube."""
+    from starlette.concurrency import run_in_threadpool
+
+    from avd.content.media import MediaError, available
+    from avd.services import MEDIA_TYPES, submit_user_media
+
+    if not 6 <= len(video_id) <= 32:
+        raise HTTPException(400, "invalid video id")
+    if not available():
+        raise HTTPException(503, "media processing (ffmpeg) is not installed on this server")
+    ctype = (request.headers.get("content-type") or "").split(";")[0].strip().lower()
+    if ctype not in MEDIA_TYPES:
+        raise HTTPException(415, f"unsupported media type; use one of: {', '.join(sorted(MEDIA_TYPES))}")
+    limit = settings.max_media_upload_mb * 1024 * 1024
+    if int(request.headers.get("content-length") or 0) > limit:
+        raise HTTPException(413, f"media larger than {settings.max_media_upload_mb} MB")
+    upload_dir = settings.media_cache_dir / "uploads"
+    upload_dir.mkdir(parents=True, exist_ok=True)
+    tmp = upload_dir / f"{uuid.uuid4().hex}{MEDIA_TYPES[ctype]}"
+    size = 0
+    try:
+        with tmp.open("wb") as f:
+            async for chunk in request.stream():
+                size += len(chunk)
+                if size > limit:
+                    raise HTTPException(413, f"media larger than {settings.max_media_upload_mb} MB")
+                f.write(chunk)
+        if size == 0:
+            raise HTTPException(400, "empty body")
+        row, created = await run_in_threadpool(
+            submit_user_media,
+            session,
+            user_id=user.id,
+            video_id=video_id,
+            path=tmp,
+            attestation=x_content_attestation,
+            media_dir=settings.media_cache_dir,
+            youtube_enabled=settings.youtube_api_key is not None,
+        )
+    except MediaError as exc:
+        raise HTTPException(422, str(exc)) from exc
+    except TranscriptSubmissionError as exc:
+        raise HTTPException(422, str(exc)) from exc
+    finally:
+        tmp.unlink(missing_ok=True)
+    return {
+        "content_source_id": row.id,
+        "created": created,
+        "modalities": row.modalities,
+        "status": "queued for evaluation" if created else "identical media already on file",
     }
 
 

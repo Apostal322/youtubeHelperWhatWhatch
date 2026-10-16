@@ -145,7 +145,7 @@ def handle_stage_a(ctx: WorkerContext, session: Session, job: PipelineJob) -> Ha
             provider_errors.append(f"{p.name}: {exc}")
             log.warning("content provider check failed", extra={"provider": p.name, "video_id": video.id})
     video.available_modalities = sorted(modalities)
-    if "transcript" not in modalities:
+    if not modalities & {"transcript", "audio", "video"}:
         if video.status not in ("evaluated",):
             video.status = "content_unavailable"
         return HandlerResult({"modalities": sorted(modalities), "provider_errors": provider_errors})
@@ -206,16 +206,16 @@ def _evaluate(ctx: WorkerContext, session: Session, job: PipelineJob, stage: str
                 extra={"provider": p.name, "video_id": video.id, "error": str(exc)},
             )
     bundle = load_bundle(session, video.id)
-    if bundle.transcript is None:
+    if bundle.transcript is None and bundle.audio_path is None and bundle.video_path is None:
         video.status = "content_unavailable"
-        return HandlerResult({"reason": "no authorized transcript"}, skipped=True)
+        return HandlerResult({"reason": "no authorized transcript or media"}, skipped=True)
     genre = apply_override(
         ctx.classifier.classify(
             video.title,
             video.description or "",
             list(video.tags or []),
             video.youtube_category_id,
-            transcript_text=bundle.transcript.text,
+            transcript_text=bundle.transcript.text if bundle.transcript else None,
         ),
         video.genre_override,
         video.genre_override_by,
@@ -239,6 +239,8 @@ def _evaluate(ctx: WorkerContext, session: Session, job: PipelineJob, stage: str
     }
     if stage == "B":
         escalate, reason = should_escalate(ctx, session, result)
+        if bundle.transcript is None:  # Stage C deepens transcript judgements; nothing to deepen
+            escalate, reason = False, "no transcript"
         out["stage_c"] = {"escalate": escalate, "reason": reason}
         if escalate:
             priority, _ = priority_for_video(session, video, "stage_c")
@@ -249,7 +251,8 @@ def _evaluate(ctx: WorkerContext, session: Session, job: PipelineJob, stage: str
                 video_id=video.id,
                 priority=priority,
                 estimated_cost_usd=estimate_cost(
-                    ctx.settings.llm_model_stage_c, len(bundle.transcript.text) + 8000
+                    ctx.settings.llm_model_stage_c,
+                    len(bundle.transcript.text if bundle.transcript else "") + 8000,
                 )
                 * ctx.settings.llm_self_consistency_samples_stage_c,
                 payload={"reason": reason},

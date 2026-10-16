@@ -14,6 +14,7 @@ from avd.evaluation.schema import Dimension, DimensionScore, DimensionStatus
 METHOD_CAPS: list[tuple[str, float]] = [
     ("heuristic_baseline", 0.6),
     ("audio_signal_metrics", 0.7),
+    ("visual_signal", 0.4),
     ("retrieval_fact_check", 0.85),
     ("llm_rubric", 0.9),
 ]

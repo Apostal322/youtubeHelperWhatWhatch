@@ -29,6 +29,7 @@ from avd.evaluation.evaluators.factual import (
 )
 from avd.evaluation.evaluators.heuristic import HeuristicTextEvaluator
 from avd.evaluation.evaluators.llm_rubric import LLMRubricEvaluator
+from avd.evaluation.evaluators.visual import VisualSignalEvaluator
 from avd.evaluation.injection import scan as scan_injection
 from avd.evaluation.inputs import EvaluationInput
 from avd.evaluation.profiles import profile_for
@@ -288,7 +289,9 @@ def build_pipeline(
 ) -> EvaluationPipeline:
     if provider is None:
         return EvaluationPipeline(
-            [HeuristicTextEvaluator(), AudioSignalEvaluator()], stage, EvaluationMode.SYNTHETIC_DEMO
+            [HeuristicTextEvaluator(), AudioSignalEvaluator(), VisualSignalEvaluator()],
+            stage,
+            EvaluationMode.SYNTHETIC_DEMO,
         )
     if stage == "C":
         evaluators: list[Evaluator] = [
@@ -303,6 +306,7 @@ def build_pipeline(
                 chunk_target_tokens=settings.llm_chunk_target_tokens,
             ),
             AudioSignalEvaluator(),
+            VisualSignalEvaluator(),
         ]
         if retriever is not None:
             evaluators.append(
@@ -327,6 +331,7 @@ def build_pipeline(
                 chunk_target_tokens=settings.llm_chunk_target_tokens,
             ),
             AudioSignalEvaluator(),
+            VisualSignalEvaluator(),
         ],
         stage,
         EvaluationMode.LLM,

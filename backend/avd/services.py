@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from datetime import UTC, datetime
+from pathlib import Path
 from typing import Any
 
 from sqlalchemy.orm import Session
@@ -111,6 +112,63 @@ def submit_user_transcript(
         transcript=transcript,
         source_type=SourceType.USER_PROVIDED_TRANSCRIPT,
         authorization_basis=f"User attestation ({timing}): {attestation.strip()[:1000]}",
+        license="user-attested",
+        provided_by_user_id=user_id,
+    )
+    if created:
+        enqueue_stage_a(session, video_id, priority=9.5, force=True)
+    return row, created
+
+
+MEDIA_TYPES = {
+    "video/mp4": ".mp4",
+    "video/webm": ".webm",
+    "video/quicktime": ".mov",
+    "video/x-matroska": ".mkv",
+    "audio/mpeg": ".mp3",
+    "audio/mp4": ".m4a",
+    "audio/wav": ".wav",
+    "audio/x-wav": ".wav",
+    "audio/ogg": ".ogg",
+    "audio/flac": ".flac",
+}
+
+
+def submit_user_media(
+    session: Session,
+    *,
+    user_id: str,
+    video_id: str,
+    path: Path,
+    attestation: str,
+    media_dir: Path,
+    youtube_enabled: bool,
+) -> tuple[ContentSource, bool]:
+    """Store user-submitted audio/video after an explicit rights attestation (e.g. the user is the
+    creator), then (re)queue the video. Media is never fetched from YouTube."""
+    from avd.content.store import add_media_source
+
+    if len(attestation.strip()) < 10:
+        raise TranscriptSubmissionError(
+            "an attestation describing your right to submit this media is required"
+        )
+    if session.get(Video, video_id) is None:
+        register_discovered(session, video_id, None, "user_submission")
+        if youtube_enabled:
+            enqueue(
+                session,
+                "ingest_metadata",
+                f"ingest:user:{video_id}",
+                payload={"video_ids": [video_id]},
+                priority=9.0,
+            )
+    row, created = add_media_source(
+        session,
+        video_id=video_id,
+        path=path,
+        media_dir=media_dir,
+        source_type=SourceType.USER_PROVIDED_MEDIA,
+        authorization_basis=f"User attestation (media): {attestation.strip()[:1000]}",
         license="user-attested",
         provided_by_user_id=user_id,
     )

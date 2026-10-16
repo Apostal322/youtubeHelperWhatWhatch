@@ -117,6 +117,7 @@ class Settings(BaseSettings):
     # --- API ---------------------------------------------------------------------------------
     admin_token: SecretStr | None = None
     # API protection: per-caller token bucket (0 disables); /metrics needs the admin token unless public.
+    max_media_upload_mb: int = 500
     api_rate_limit_per_minute: int = 300
     api_rate_limit_burst: int = 60
     metrics_public: bool = False

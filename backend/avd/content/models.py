@@ -17,6 +17,8 @@ class SourceType(StrEnum):
     CREATOR_AUTHORIZED_CAPTIONS = "creator_authorized_captions"
     # Transcript uploaded by a user who attests they have the right to submit it.
     USER_PROVIDED_TRANSCRIPT = "user_provided_transcript"
+    # Audio/video uploaded by a user who attests they have the right to submit it.
+    USER_PROVIDED_MEDIA = "user_provided_media"
     # Imported from a dataset whose license permits this processing.
     LICENSED_DATASET = "licensed_dataset"
     # Original synthetic demo content authored for this project.
@@ -104,6 +106,9 @@ class ContentBundle(BaseModel):
     audio_path: str | None = None
     audio_sha256: str | None = None
     audio_source_id: str | None = None
+    video_path: str | None = None
+    video_sha256: str | None = None
+    video_source_id: str | None = None
 
     @property
     def modalities(self) -> set[Modality]:
@@ -112,6 +117,8 @@ class ContentBundle(BaseModel):
             m.add(Modality.TRANSCRIPT)
         if self.audio_path is not None:
             m.add(Modality.AUDIO)
+        if self.video_path is not None:
+            m.add(Modality.VIDEO)
         return m
 
 
