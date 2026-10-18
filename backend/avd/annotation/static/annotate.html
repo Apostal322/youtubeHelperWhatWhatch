@@ -1,0 +1,232 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Transcript Annotation</title>
+<style>
+  :root { --bg:#fff; --fg:#1b1b1f; --muted:#5b5d66; --line:#d9dbe1; --accent:#2f5bd3; --warn:#9a4a00; --ok:#1d6b35; --chip:#eef1f8; }
+  @media (prefers-color-scheme: dark) { :root { --bg:#141518; --fg:#e8e9ec; --muted:#a3a6b0; --line:#33363d; --accent:#8fb0ff; --warn:#ffb36b; --ok:#7fd69a; --chip:#23262d; } }
+  * { box-sizing: border-box; }
+  body { margin:0; font:15px/1.5 system-ui, sans-serif; background:var(--bg); color:var(--fg); }
+  header, main { max-width:1400px; margin:0 auto; padding:12px 16px; }
+  header { display:flex; flex-wrap:wrap; gap:8px; align-items:end; border-bottom:1px solid var(--line); }
+  label { display:block; font-size:13px; color:var(--muted); }
+  input, select, textarea, button { font:inherit; color:inherit; background:var(--bg); border:1px solid var(--line); border-radius:6px; padding:6px 8px; }
+  button { cursor:pointer; background:var(--chip); }
+  button.primary { background:var(--accent); color:#fff; border-color:var(--accent); }
+  button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible { outline:3px solid var(--accent); outline-offset:1px; }
+  .grid { display:grid; grid-template-columns: minmax(0,1.1fr) minmax(0,1fr); gap:16px; }
+  @media (max-width: 900px) { .grid { grid-template-columns: 1fr; } }
+  .pane { border:1px solid var(--line); border-radius:8px; padding:12px; max-height:78vh; overflow:auto; }
+  .seg { padding:6px 4px; border-bottom:1px solid var(--line); }
+  .seg .meta { font-size:12px; color:var(--muted); display:flex; gap:8px; align-items:center; }
+  .seg button { padding:1px 8px; font-size:12px; }
+  fieldset { border:1px solid var(--line); border-radius:8px; margin:0 0 12px; padding:8px 12px; }
+  fieldset.active { border-color:var(--accent); border-width:2px; }
+  legend { font-weight:600; }
+  .anchor { display:flex; gap:6px; align-items:flex-start; font-size:13px; margin:2px 0; }
+  .anchor input { margin-top:4px; }
+  .muted { color:var(--muted); font-size:13px; }
+  .chip { display:inline-block; background:var(--chip); border-radius:12px; padding:0 8px; font-size:12px; margin:2px; }
+  .warn { color:var(--warn); }
+  .ok { color:var(--ok); }
+  .row { display:flex; flex-wrap:wrap; gap:8px; align-items:center; }
+  [hidden] { display:none !important; }
+</style>
+</head>
+<body>
+<header>
+  <h1 style="font-size:18px;margin:0 16px 0 0">Transcript annotation</h1>
+  <div><label for="token">Rater token</label><input id="token" type="password" autocomplete="off" size="28"></div>
+  <div><label for="dataset">Dataset</label><input id="dataset" value="real_pilot@v1" size="16"></div>
+  <button id="load" class="primary">Next item</button>
+  <button id="pairs">Compare pairs</button>
+  <p id="status" role="status" aria-live="polite" class="muted" style="margin:0 0 0 8px"></p>
+</header>
+<main>
+  <section id="intro" class="muted">
+    <p>Rate each dimension <strong>independently</strong> using the rubric anchors. You will not see other raters' scores or the system's assessment.
+    Judge only what the transcript supports; choose <em>insufficient evidence</em>, <em>not applicable</em>, <em>ambiguous</em> or <em>abstain</em> rather than guessing.
+    Cite evidence: select words in a segment, then press <em>Cite</em> to attach them to the highlighted dimension. Do not use views, likes or the creator's fame.</p>
+  </section>
+
+  <section id="item" hidden>
+    <h2 id="title" style="font-size:17px;margin:4px 0"></h2>
+    <p class="muted"><span id="badge"></span> <span id="attribution"></span> <a id="prov" target="_blank" rel="noopener noreferrer">source</a></p>
+    <p id="timing" class="muted"></p>
+    <div class="grid">
+      <div class="pane" id="transcript" aria-label="Transcript" tabindex="0"></div>
+      <form class="pane" id="form">
+        <div id="dims"></div>
+        <fieldset><legend>Overall</legend>
+          <label for="conf">Overall confidence in your ratings (0–1)</label>
+          <input id="conf" type="number" min="0" max="1" step="0.1" value="0.7">
+          <div class="row" role="group" aria-label="Flags">
+            <label><input type="checkbox" name="flag" value="ambiguous_rubric"> rubric ambiguous here</label>
+            <label><input type="checkbox" name="flag" value="insufficient_material"> transcript insufficient</label>
+            <label><input type="checkbox" name="flag" value="transcript_problem"> transcript problem</label>
+            <label><input type="checkbox" name="flag" value="sensitive_content"> sensitive content</label>
+          </div>
+          <label for="notes">Notes</label><textarea id="notes" rows="3" style="width:100%"></textarea>
+        </fieldset>
+        <button type="submit" class="primary">Submit annotation</button>
+      </form>
+    </div>
+  </section>
+
+  <section id="pair" hidden>
+    <h2 style="font-size:17px">Pairwise comparison</h2>
+    <p class="muted">Both items were annotated by you. Which is better on the criterion? The order is randomised.</p>
+    <form id="pairform">
+      <div class="row">
+        <label for="criterion">Criterion</label>
+        <select id="criterion"><option>overall</option><option>content</option><option>presentation</option></select>
+        <button type="button" id="pairnext">Load pair</button>
+      </div>
+      <p id="pairdesc"></p>
+      <fieldset><legend>Preference</legend>
+        <label><input type="radio" name="pref" value="a" required> A is better</label>
+        <label><input type="radio" name="pref" value="b"> B is better</label>
+        <label><input type="radio" name="pref" value="equal"> About equal</label>
+        <label><input type="radio" name="pref" value="insufficient"> Cannot tell from the transcripts</label>
+      </fieldset>
+      <label for="rationale">Rationale</label><textarea id="rationale" rows="2" style="width:100%"></textarea>
+      <button type="submit" class="primary">Submit comparison</button>
+    </form>
+  </section>
+</main>
+<script>
+"use strict";
+const $ = (id) => document.getElementById(id);
+const state = { item: null, active: null, evidence: {}, pair: null, pairStarted: 0 };
+function store(k, v) { try { sessionStorage.setItem(k, v); } catch (e) { /* storage unavailable */ } }
+function recall(k) { try { return sessionStorage.getItem(k) || ""; } catch (e) { return ""; } }
+$("token").value = recall("avd_rater_token");
+function say(msg, cls) { const s = $("status"); s.textContent = msg; s.className = cls || "muted"; }
+function fmt(t) { t = Math.floor(t); const h = Math.floor(t / 3600), m = Math.floor(t % 3600 / 60), s = t % 60;
+  return (h ? h + ":" + String(m).padStart(2, "0") : m) + ":" + String(s).padStart(2, "0"); }
+async function api(path, opts) {
+  store("avd_rater_token", $("token").value.trim());
+  const r = await fetch(path, Object.assign({ headers: { "Authorization": "Bearer " + $("token").value.trim(), "Content-Type": "application/json" } }, opts || {}));
+  const body = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error(body.detail ? (typeof body.detail === "string" ? body.detail : JSON.stringify(body.detail)) : r.statusText);
+  return body;
+}
+function el(tag, attrs, text) { const e = document.createElement(tag); for (const k in (attrs || {})) e.setAttribute(k, attrs[k]); if (text != null) e.textContent = text; return e; }
+
+function renderItem(it) {
+  state.item = it; state.evidence = {}; state.active = null;
+  $("intro").hidden = true; $("pair").hidden = true; $("item").hidden = false;
+  $("title").textContent = it.title + " (" + it.words.toLocaleString() + " words)";
+  $("badge").textContent = it.is_calibration ? "Calibration item (onboarding)." : "";
+  $("attribution").textContent = (it.attribution || "") + (it.license ? " · " + it.license : "");
+  $("prov").href = it.provenance_url || "#";
+  $("timing").textContent = it.timing_note || "";
+  const tr = $("transcript"); tr.replaceChildren();
+  for (const s of it.segments) {
+    const d = el("div", { class: "seg", id: "seg-" + s.index });
+    const meta = el("div", { class: "meta" });
+    meta.append(el("span", {}, "[" + s.index + "] " + fmt(s.start) + (s.end > s.start ? "–" + fmt(s.end) : "")));
+    const cite = el("button", { type: "button", "aria-label": "Cite segment " + s.index }, "Cite");
+    cite.addEventListener("click", () => addEvidence(s));
+    meta.append(cite);
+    d.append(meta, el("div", { class: "text" }, s.text));   // untrusted text: textContent only
+    tr.append(d);
+  }
+  const dims = $("dims"); dims.replaceChildren();
+  for (const r of it.rubric) {
+    const fs = el("fieldset", { id: "fs-" + r.dimension });
+    const lg = el("legend", {}, r.dimension.replace(/_/g, " "));
+    fs.append(lg, el("p", { class: "muted", style: "margin:2px 0" }, r.question));
+    const pick = el("button", { type: "button" }, "Cite into this dimension");
+    pick.addEventListener("click", () => setActive(r.dimension));
+    for (const [k, v] of Object.entries(r.anchors)) {
+      const id = r.dimension + "-" + k, lab = el("label", { class: "anchor", for: id });
+      const radio = el("input", { type: "radio", name: "score-" + r.dimension, value: k, id: id });
+      radio.addEventListener("change", () => { fs.querySelector("select").value = "scored"; });
+      lab.append(radio, el("span", {}, k + " — " + v)); fs.append(lab);
+    }
+    if (r.exclusions) fs.append(el("p", { class: "muted" }, "Note: " + r.exclusions));
+    const row = el("div", { class: "row" });
+    const st = el("select", { "aria-label": r.dimension + " status" });
+    for (const s of it.statuses) st.append(el("option", { value: s }, s.replace(/_/g, " ")));
+    st.value = "abstain";
+    const cf = el("input", { type: "number", min: "0", max: "1", step: "0.1", value: "0.7", "aria-label": r.dimension + " confidence" });
+    row.append(el("span", { class: "muted" }, "status"), st, el("span", { class: "muted" }, "confidence"), cf, pick);
+    const ev = el("div", { class: "evidence" });
+    const note = el("textarea", { rows: "1", placeholder: "note (optional)", "aria-label": r.dimension + " note", style: "width:100%" });
+    fs.append(row, ev, note); dims.append(fs);
+  }
+  setActive(it.rubric[0].dimension);
+  say("Loaded. Started " + new Date(it.started_at).toLocaleTimeString() + " (timed by the server).");
+}
+function setActive(dim) {
+  state.active = dim;
+  document.querySelectorAll("#dims fieldset").forEach((f) => f.classList.toggle("active", f.id === "fs-" + dim));
+}
+function addEvidence(seg) {
+  if (!state.active) return;
+  const sel = window.getSelection(); let quote = sel ? sel.toString().trim() : "";
+  if (quote && !seg.text.includes(quote)) quote = "";
+  const list = state.evidence[state.active] = state.evidence[state.active] || [];
+  if (list.length >= 10) return say("At most 10 citations per dimension.", "warn");
+  list.push({ segment_index: seg.index, quote: quote.slice(0, 600) || null, kind: "supporting" });
+  renderEvidence(state.active);
+}
+function renderEvidence(dim) {
+  const box = document.querySelector("#fs-" + dim + " .evidence"); box.replaceChildren();
+  (state.evidence[dim] || []).forEach((e, i) => {
+    const c = el("span", { class: "chip" }, "[" + e.segment_index + "] " + (e.quote ? "“" + e.quote.slice(0, 60) + "”" : "whole segment") + " ");
+    const kind = el("button", { type: "button", "aria-label": "Toggle supporting or counter evidence" }, e.kind);
+    kind.addEventListener("click", () => { e.kind = e.kind === "supporting" ? "counter" : "supporting"; renderEvidence(dim); });
+    const rm = el("button", { type: "button", "aria-label": "Remove citation" }, "×");
+    rm.addEventListener("click", () => { state.evidence[dim].splice(i, 1); renderEvidence(dim); });
+    c.append(kind, rm); box.append(c);
+  });
+}
+$("load").addEventListener("click", async () => {
+  try { const it = await api("/v1/annotation/next?dataset=" + encodeURIComponent($("dataset").value));
+    if (it.done) { say("Nothing left to annotate in this dataset. Thank you!", "ok"); $("item").hidden = true; return; }
+    renderItem(it);
+  } catch (e) { say(e.message, "warn"); }
+});
+$("form").addEventListener("submit", async (ev) => {
+  ev.preventDefault(); const it = state.item; if (!it) return;
+  const scores = it.rubric.map((r) => {
+    const fs = $("fs-" + r.dimension), status = fs.querySelector("select").value;
+    const checked = fs.querySelector("input[type=radio]:checked");
+    return { dimension: r.dimension, status: status, score: status === "scored" && checked ? Number(checked.value) : null,
+      confidence: Number(fs.querySelector("input[type=number]").value), evidence: state.evidence[r.dimension] || [],
+      note: fs.querySelector("textarea").value || null };
+  });
+  const bad = scores.find((s) => s.status === "scored" && s.score == null);
+  if (bad) { setActive(bad.dimension); return say(bad.dimension + ": choose a score or another status.", "warn"); }
+  try {
+    const res = await api("/v1/annotation/annotations/" + it.annotation_id + "/submit", { method: "POST", body: JSON.stringify({
+      scores: scores, confidence: Number($("conf").value),
+      flags: [...document.querySelectorAll("input[name=flag]:checked")].map((x) => x.value), notes: $("notes").value || null }) });
+    say("Submitted (" + Math.round(res.duration_seconds / 60) + " min)" + (res.flags.length ? " · QC flags: " + res.flags.join(", ") : ""), "ok");
+    $("item").hidden = true; $("intro").hidden = false; document.querySelectorAll("input[name=flag]").forEach((x) => { x.checked = false; }); $("notes").value = "";
+  } catch (e) { say(e.message, "warn"); }
+});
+$("pairs").addEventListener("click", () => { $("item").hidden = true; $("intro").hidden = true; $("pair").hidden = false; });
+$("pairnext").addEventListener("click", async () => {
+  try { const p = await api("/v1/annotation/pairs/next?dataset=" + encodeURIComponent($("dataset").value) + "&criterion=" + $("criterion").value);
+    if (p.done) { state.pair = null; $("pairdesc").textContent = "No pairs available (annotate more items first)."; return; }
+    state.pair = p; state.pairStarted = Date.now();
+    $("pairdesc").textContent = "A: " + p.video_a + "   ·   B: " + p.video_b;
+  } catch (e) { say(e.message, "warn"); }
+});
+$("pairform").addEventListener("submit", async (ev) => {
+  ev.preventDefault(); const p = state.pair; if (!p) return say("Load a pair first.", "warn");
+  const pref = document.querySelector("input[name=pref]:checked");
+  try { await api("/v1/annotation/pairs", { method: "POST", body: JSON.stringify({ dataset: p.dataset, video_a: p.video_a, video_b: p.video_b,
+      criterion: p.criterion, preference: pref.value, rationale: $("rationale").value || null,
+      duration_seconds: (Date.now() - state.pairStarted) / 1000 }) });
+    say("Comparison saved.", "ok"); state.pair = null; $("pairdesc").textContent = ""; $("rationale").value = "";
+  } catch (e) { say(e.message, "warn"); }
+});
+</script>
+</body>
+</html>

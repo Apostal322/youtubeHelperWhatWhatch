@@ -1,0 +1,241 @@
+{
+  "video_id": "syn_ent_002",
+  "synthetic": true,
+  "title": "The Vending Machine That Only Sells Apologies | Original Short Story",
+  "description": "An original short story about a vending machine in a parking garage that sells nothing but apologies. Written and read by me. Best with headphones.",
+  "channel": {
+    "channel_id": "syn_ch_lamplit",
+    "title": "Lamp-Lit Stories",
+    "subscriber_count": 1240000
+  },
+  "published_at": "2025-12-02T21:00:00Z",
+  "duration_seconds": 219,
+  "language": "en",
+  "youtube_category_id": "24",
+  "tags": [
+    "short story",
+    "storytime",
+    "original fiction",
+    "narration",
+    "magical realism"
+  ],
+  "popularity": {
+    "view_count": 9300000,
+    "like_count": 612000,
+    "comment_count": 25400
+  },
+  "content": {
+    "source_type": "synthetic_fixture",
+    "license": "CC0-1.0",
+    "authorization_basis": "Original synthetic transcript authored for the AI Video Discovery project. No real video exists.",
+    "modalities": [
+      "transcript"
+    ],
+    "audio_fixture": null,
+    "transcript": {
+      "language": "en",
+      "segments": [
+        {
+          "start": 0.0,
+          "end": 5.8,
+          "text": "This is a short story. It's called The Vending Machine That Only Sells Apologies."
+        },
+        {
+          "start": 5.8,
+          "end": 11.7,
+          "text": "There's a vending machine on the third floor of the Holloway Street parking garage,"
+        },
+        {
+          "start": 11.7,
+          "end": 17.9,
+          "text": "between the stairwell and the broken elevator, and it only sells apologies. Nobody installed it."
+        },
+        {
+          "start": 17.9,
+          "end": 21.7,
+          "text": "The building manager, a tired man named Petrosyan, checked."
+        },
+        {
+          "start": 21.7,
+          "end": 26.7,
+          "text": "There's no invoice, no service contract, and no plug. It just hums."
+        },
+        {
+          "start": 26.7,
+          "end": 33.3,
+          "text": "The buttons are labelled the way buttons always are, A1 through F6, but behind the glass,"
+        },
+        {
+          "start": 33.3,
+          "end": 40.8,
+          "text": "instead of crisps and chocolate, there are small paper envelopes, each one the size of a business card."
+        },
+        {
+          "start": 40.8,
+          "end": 45.4,
+          "text": "A1 costs a quarter. F6 costs eleven dollars and forty cents."
+        },
+        {
+          "start": 45.4,
+          "end": 51.2,
+          "text": "The first person to use it was a nurse coming off a night shift."
+        },
+        {
+          "start": 51.2,
+          "end": 58.8,
+          "text": "She'd had a bad week, and she put in a quarter mostly out of spite, and pressed A1."
+        },
+        {
+          "start": 58.8,
+          "end": 60.0,
+          "text": "The envelope dropped."
+        },
+        {
+          "start": 60.0,
+          "end": 66.7,
+          "text": "Inside, in neat handwriting, it said, sorry about the parking ticket, that one was a mistake."
+        },
+        {
+          "start": 66.7,
+          "end": 70.0,
+          "text": "She laughed out loud in the empty garage."
+        },
+        {
+          "start": 70.0,
+          "end": 75.8,
+          "text": "And the next morning, there was a letter from the city, cancelling the ticket."
+        },
+        {
+          "start": 75.8,
+          "end": 79.6,
+          "text": "Word got around. People started coming at odd hours."
+        },
+        {
+          "start": 79.6,
+          "end": 86.2,
+          "text": "A teenager bought C3 for a dollar and got, sorry I said your drawings were childish."
+        },
+        {
+          "start": 86.2,
+          "end": 93.8,
+          "text": "It was from his older brother, who had moved away two years before, and who, that same evening,"
+        },
+        {
+          "start": 93.8,
+          "end": 96.7,
+          "text": "called for the first time in months."
+        },
+        {
+          "start": 96.7,
+          "end": 104.6,
+          "text": "A retired schoolteacher bought D5 and got an apology from a student she had failed in nineteen eighty-one, who,"
+        },
+        {
+          "start": 104.6,
+          "end": 110.8,
+          "text": "it turned out, had become a schoolteacher too. The cheap ones were small and specific."
+        },
+        {
+          "start": 110.8,
+          "end": 115.8,
+          "text": "The expensive ones were not. Nobody bought F6 for a long time."
+        },
+        {
+          "start": 115.8,
+          "end": 124.2,
+          "text": "Eleven dollars and forty cents is a strange amount, and people were nervous about what that much sorry would contain."
+        },
+        {
+          "start": 124.2,
+          "end": 130.8,
+          "text": "Petrosyan watched all of this from the little office by the entrance. He didn't buy anything."
+        },
+        {
+          "start": 130.8,
+          "end": 137.1,
+          "text": "He told himself it was because he was the manager, and it would be unprofessional."
+        },
+        {
+          "start": 137.1,
+          "end": 141.7,
+          "text": "On a Sunday in February, when the garage was nearly empty,"
+        },
+        {
+          "start": 141.7,
+          "end": 149.6,
+          "text": "a man in a grey suit fed in a ten-dollar bill and a fistful of coins and pressed F6."
+        },
+        {
+          "start": 149.6,
+          "end": 152.5,
+          "text": "The machine hummed for a long time."
+        },
+        {
+          "start": 152.5,
+          "end": 157.1,
+          "text": "When the envelope finally dropped, it was thicker than the others."
+        },
+        {
+          "start": 157.1,
+          "end": 160.4,
+          "text": "The man opened it, read it standing up,"
+        },
+        {
+          "start": 160.4,
+          "end": 166.7,
+          "text": "and then sat down on the concrete floor and stayed there for almost an hour."
+        },
+        {
+          "start": 166.7,
+          "end": 173.3,
+          "text": "Petrosyan brought him a coffee. Neither of them said anything about what was in the envelope."
+        },
+        {
+          "start": 173.3,
+          "end": 177.9,
+          "text": "The man left the paper on the floor when he went."
+        },
+        {
+          "start": 177.9,
+          "end": 184.6,
+          "text": "Petrosyan picked it up to throw it away, and he did not mean to read it,"
+        },
+        {
+          "start": 184.6,
+          "end": 190.4,
+          "text": "but it was only one line. It said, sorry, this one is from you."
+        },
+        {
+          "start": 190.4,
+          "end": 192.9,
+          "text": "In March, the machine was gone."
+        },
+        {
+          "start": 192.9,
+          "end": 199.6,
+          "text": "There was a clean rectangle on the floor where the dust hadn't settled, and nothing else."
+        },
+        {
+          "start": 199.6,
+          "end": 201.2,
+          "text": "Petrosyan still works there."
+        },
+        {
+          "start": 201.2,
+          "end": 207.5,
+          "text": "Every morning he walks past the empty spot between the stairwell and the broken elevator,"
+        },
+        {
+          "start": 207.5,
+          "end": 213.3,
+          "text": "and every morning he thinks about calling his sister. Some mornings, now, he does."
+        },
+        {
+          "start": 213.3,
+          "end": 215.8,
+          "text": "That's the story. Thanks for listening."
+        }
+      ]
+    }
+  }
+}

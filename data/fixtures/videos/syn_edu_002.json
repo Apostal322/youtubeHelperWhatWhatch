@@ -1,0 +1,231 @@
+{
+  "video_id": "syn_edu_002",
+  "synthetic": true,
+  "title": "Repetición espaciada: cómo estudiar para no olvidar",
+  "description": "La repetición espaciada es una de las técnicas de estudio con más respaldo. En este vídeo te explico la curva del olvido, cómo montar tu propio sistema de tarjetas y los errores que cometí al empezar.",
+  "channel": {
+    "channel_id": "syn_ch_apuntesclaros",
+    "title": "Apuntes Claros",
+    "subscriber_count": 9800
+  },
+  "published_at": "2026-10-11T17:00:00Z",
+  "duration_seconds": 164,
+  "language": "es",
+  "youtube_category_id": "27",
+  "tags": [
+    "estudiar",
+    "repetición espaciada",
+    "técnicas de estudio",
+    "memoria",
+    "exámenes"
+  ],
+  "popularity": {
+    "view_count": 96,
+    "like_count": 11,
+    "comment_count": 3
+  },
+  "content": {
+    "source_type": "synthetic_fixture",
+    "license": "CC0-1.0",
+    "authorization_basis": "Original synthetic transcript authored for the AI Video Discovery project. No real video exists.",
+    "modalities": [
+      "transcript"
+    ],
+    "audio_fixture": null,
+    "transcript": {
+      "language": "es",
+      "segments": [
+        {
+          "start": 0.0,
+          "end": 3.5,
+          "text": "Hola a todos y bienvenidos de nuevo al canal."
+        },
+        {
+          "start": 3.5,
+          "end": 7.3,
+          "text": "Hoy vamos a hablar de un tema que me pedís"
+        },
+        {
+          "start": 7.3,
+          "end": 11.2,
+          "text": "mucho en los comentarios: cómo estudiar mejor para los exámenes."
+        },
+        {
+          "start": 11.2,
+          "end": 14.6,
+          "text": "Y en concreto quiero hablar de la repetición espaciada."
+        },
+        {
+          "start": 14.6,
+          "end": 21.2,
+          "text": "Antes de empezar, si todavía no estás suscrito, ya sabes, dale al botón, que me ayuda muchísimo."
+        },
+        {
+          "start": 21.2,
+          "end": 26.2,
+          "text": "Bueno, vamos al lío. La idea de la repetición espaciada es muy sencilla."
+        },
+        {
+          "start": 26.2,
+          "end": 32.3,
+          "text": "En lugar de estudiar todo el temario la noche antes, repasas la misma información varias veces,"
+        },
+        {
+          "start": 32.3,
+          "end": 36.5,
+          "text": "dejando cada vez más tiempo entre un repaso y el siguiente."
+        },
+        {
+          "start": 36.5,
+          "end": 41.9,
+          "text": "Por ejemplo, estudias un tema hoy, lo repasas mañana, luego a los tres días,"
+        },
+        {
+          "start": 41.9,
+          "end": 46.2,
+          "text": "luego a la semana y luego al mes. ¿Por qué funciona?"
+        },
+        {
+          "start": 46.2,
+          "end": 50.4,
+          "text": "Esto viene de algo que se llama la curva del olvido."
+        },
+        {
+          "start": 50.4,
+          "end": 52.3,
+          "text": "A finales del siglo diecinueve,"
+        },
+        {
+          "start": 52.3,
+          "end": 57.3,
+          "text": "el psicólogo alemán Hermann Ebbinghaus hizo experimentos consigo mismo memorizando sílabas sin sentido,"
+        },
+        {
+          "start": 57.3,
+          "end": 61.9,
+          "text": "y vio que olvidamos muy rápido al principio y luego más despacio."
+        },
+        {
+          "start": 61.9,
+          "end": 66.5,
+          "text": "Cada vez que repasas justo cuando estás a punto de olvidar algo,"
+        },
+        {
+          "start": 66.5,
+          "end": 70.8,
+          "text": "el recuerdo se vuelve más duradero. Yo lo uso con tarjetas."
+        },
+        {
+          "start": 70.8,
+          "end": 75.4,
+          "text": "En un lado pongo la pregunta y en el otro la respuesta."
+        },
+        {
+          "start": 75.4,
+          "end": 79.2,
+          "text": "Hay aplicaciones que te organizan los repasos automáticamente, pero sinceramente,"
+        },
+        {
+          "start": 79.2,
+          "end": 84.2,
+          "text": "con una caja de zapatos y unas cuantas tarjetas de papel también funciona."
+        },
+        {
+          "start": 84.2,
+          "end": 86.2,
+          "text": "Haces tres o cuatro compartimentos."
+        },
+        {
+          "start": 86.2,
+          "end": 91.2,
+          "text": "Si aciertas una tarjeta, pasa al siguiente compartimento, que repasas con menos frecuencia."
+        },
+        {
+          "start": 91.2,
+          "end": 93.1,
+          "text": "Si fallas, vuelve al primero."
+        },
+        {
+          "start": 93.1,
+          "end": 99.6,
+          "text": "Otra cosa importante, y esto mucha gente no lo hace: intenta recordar la respuesta antes de mirarla."
+        },
+        {
+          "start": 99.6,
+          "end": 101.9,
+          "text": "Esto se llama práctica de recuperación."
+        },
+        {
+          "start": 101.9,
+          "end": 107.3,
+          "text": "Releer los apuntes te da la sensación de que lo sabes, pero es engañosa."
+        },
+        {
+          "start": 107.3,
+          "end": 112.7,
+          "text": "Obligarte a sacar la información de la memoria es lo que realmente la fija."
+        },
+        {
+          "start": 112.7,
+          "end": 114.6,
+          "text": "Ahora, no todo es perfecto."
+        },
+        {
+          "start": 114.6,
+          "end": 118.8,
+          "text": "La repetición espaciada funciona genial para datos, vocabulario, fechas y fórmulas."
+        },
+        {
+          "start": 118.8,
+          "end": 125.4,
+          "text": "Para entender un problema de física o escribir un buen ensayo, necesitas además practicar con problemas reales."
+        },
+        {
+          "start": 125.4,
+          "end": 129.2,
+          "text": "No vas a aprender a resolver integrales solo con tarjetas."
+        },
+        {
+          "start": 129.2,
+          "end": 131.9,
+          "text": "Mi consejo práctico: empieza poco a poco."
+        },
+        {
+          "start": 131.9,
+          "end": 137.3,
+          "text": "Diez o quince tarjetas nuevas al día como mucho, porque los repasos se acumulan,"
+        },
+        {
+          "start": 137.3,
+          "end": 141.5,
+          "text": "y en dos semanas puedes tener cien tarjetas pendientes cada día."
+        },
+        {
+          "start": 141.5,
+          "end": 146.5,
+          "text": "A mí me pasó en el primer año de carrera y acabé abandonando."
+        },
+        {
+          "start": 146.5,
+          "end": 149.2,
+          "text": "Y bueno, eso es todo por hoy."
+        },
+        {
+          "start": 149.2,
+          "end": 153.1,
+          "text": "Cuéntame en los comentarios qué método usas tú para estudiar,"
+        },
+        {
+          "start": 153.1,
+          "end": 158.8,
+          "text": "y si quieres que haga un vídeo sobre la técnica pomodoro, déjamelo también por ahí."
+        },
+        {
+          "start": 158.8,
+          "end": 162.3,
+          "text": "Un abrazo y nos vemos en el próximo vídeo."
+        }
+      ]
+    }
+  }
+}

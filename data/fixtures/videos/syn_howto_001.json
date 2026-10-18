@@ -1,0 +1,241 @@
+{
+  "video_id": "syn_howto_001",
+  "synthetic": true,
+  "title": "Sauerteig selbst ansetzen: Schritt für Schritt in 7 Tagen (ohne Hefe)",
+  "description": "So setzt du einen Roggensauerteig ganz ohne Hefe an: Mengen, Temperaturen und was an jedem der sieben Tage passiert. Dazu die drei häufigsten Fehler und wie du sie vermeidest.",
+  "channel": {
+    "channel_id": "syn_ch_backstube",
+    "title": "Backstube Notizen",
+    "subscriber_count": 520000
+  },
+  "published_at": "2025-10-05T09:30:00Z",
+  "duration_seconds": 204,
+  "language": "de",
+  "youtube_category_id": "26",
+  "tags": [
+    "sauerteig",
+    "brot backen",
+    "anleitung",
+    "roggen",
+    "backen ohne hefe"
+  ],
+  "popularity": {
+    "view_count": 3600000,
+    "like_count": 139000,
+    "comment_count": 5200
+  },
+  "content": {
+    "source_type": "synthetic_fixture",
+    "license": "CC0-1.0",
+    "authorization_basis": "Original synthetic transcript authored for the AI Video Discovery project. No real video exists.",
+    "modalities": [
+      "transcript"
+    ],
+    "audio_fixture": null,
+    "transcript": {
+      "language": "de",
+      "segments": [
+        {
+          "start": 0.0,
+          "end": 2.9,
+          "text": "Hallo und herzlich willkommen in der Backstube."
+        },
+        {
+          "start": 2.9,
+          "end": 8.3,
+          "text": "Heute zeige ich euch, wie ihr ganz ohne Hefe einen eigenen Sauerteig ansetzt."
+        },
+        {
+          "start": 8.3,
+          "end": 13.8,
+          "text": "Ihr braucht dafür nur drei Dinge: Mehl, Wasser und ungefähr eine Woche Geduld."
+        },
+        {
+          "start": 13.8,
+          "end": 18.8,
+          "text": "Fangen wir mit dem Mehl an. Ich empfehle für den Anfang Roggenvollkornmehl."
+        },
+        {
+          "start": 18.8,
+          "end": 25.8,
+          "text": "Im Vollkornmehl stecken mehr Nährstoffe und auch mehr natürlich vorkommende Hefen und Milchsäurebakterien als in hellem Weizenmehl."
+        },
+        {
+          "start": 25.8,
+          "end": 28.8,
+          "text": "Damit springt der Ansatz meistens schneller an."
+        },
+        {
+          "start": 28.8,
+          "end": 32.9,
+          "text": "Das Wasser sollte lauwarm sein, so um die dreißig Grad."
+        },
+        {
+          "start": 32.9,
+          "end": 37.5,
+          "text": "Leitungswasser ist in den allermeisten Fällen völlig in Ordnung. Tag eins."
+        },
+        {
+          "start": 37.5,
+          "end": 45.0,
+          "text": "Ich gebe fünfzig Gramm Roggenvollkornmehl und fünfzig Gramm Wasser in ein sauberes Glas und rühre das gut durch,"
+        },
+        {
+          "start": 45.0,
+          "end": 47.9,
+          "text": "bis keine trockenen Stellen mehr da sind."
+        },
+        {
+          "start": 47.9,
+          "end": 52.5,
+          "text": "Das Glas decke ich nur locker ab, also nicht fest zuschrauben."
+        },
+        {
+          "start": 52.5,
+          "end": 58.3,
+          "text": "Dann kommt es an einen warmen Ort. Ideal sind etwa vierundzwanzig bis achtundzwanzig Grad."
+        },
+        {
+          "start": 58.3,
+          "end": 62.5,
+          "text": "Bei mir steht es oben auf dem Kühlschrank. Tag zwei."
+        },
+        {
+          "start": 62.5,
+          "end": 67.5,
+          "text": "Oft passiert noch gar nichts, oder ihr seht ein paar kleine Bläschen."
+        },
+        {
+          "start": 67.5,
+          "end": 73.3,
+          "text": "Ich füttere wieder, also fünfzig Gramm Mehl und fünfzig Gramm Wasser dazu, und umrühren."
+        },
+        {
+          "start": 73.3,
+          "end": 76.2,
+          "text": "Tag drei. Jetzt wird es oft spannend."
+        },
+        {
+          "start": 76.2,
+          "end": 82.5,
+          "text": "Bei vielen Ansätzen gibt es um den zweiten oder dritten Tag eine richtig starke Blasenbildung,"
+        },
+        {
+          "start": 82.5,
+          "end": 87.9,
+          "text": "und der Teig riecht etwas komisch, manchmal nach Käse oder sogar nach Nagellack."
+        },
+        {
+          "start": 87.9,
+          "end": 92.5,
+          "text": "Keine Panik. Das sind in dieser frühen Phase oft andere Bakterien,"
+        },
+        {
+          "start": 92.5,
+          "end": 97.1,
+          "text": "die sich kurz vermehren und dann von den Milchsäurebakterien verdrängt werden."
+        },
+        {
+          "start": 97.1,
+          "end": 102.1,
+          "text": "Ab jetzt nehme ich jeden Tag einen Teil weg, bevor ich füttere."
+        },
+        {
+          "start": 102.1,
+          "end": 109.2,
+          "text": "Ich behalte etwa fünfzig Gramm vom Ansatz, den Rest werfe ich weg oder verwende ihn für Pfannkuchen,"
+        },
+        {
+          "start": 109.2,
+          "end": 114.2,
+          "text": "und füttere dann wieder mit fünfzig Gramm Mehl und fünfzig Gramm Wasser."
+        },
+        {
+          "start": 114.2,
+          "end": 115.0,
+          "text": "Warum wegnehmen?"
+        },
+        {
+          "start": 115.0,
+          "end": 121.2,
+          "text": "Wenn ihr immer nur dazugebt, wird das Glas riesig, und ihr braucht immer mehr Mehl,"
+        },
+        {
+          "start": 121.2,
+          "end": 127.9,
+          "text": "damit die Mikroben genug Futter haben. Tag vier und fünf. Häufig wird es jetzt plötzlich ruhig."
+        },
+        {
+          "start": 127.9,
+          "end": 130.0,
+          "text": "Der Teig geht kaum auf."
+        },
+        {
+          "start": 130.0,
+          "end": 136.7,
+          "text": "Das ist der Moment, in dem die meisten aufgeben, und genau das solltet ihr nicht tun."
+        },
+        {
+          "start": 136.7,
+          "end": 141.7,
+          "text": "Einfach weiter füttern, immer ungefähr zur gleichen Zeit. Tag sechs und sieben."
+        },
+        {
+          "start": 141.7,
+          "end": 149.6,
+          "text": "Jetzt solltet ihr sehen, dass sich der Teig nach dem Füttern innerhalb von vier bis acht Stunden ungefähr verdoppelt."
+        },
+        {
+          "start": 149.6,
+          "end": 152.9,
+          "text": "Er riecht angenehm säuerlich, ein bisschen nach Joghurt."
+        },
+        {
+          "start": 152.9,
+          "end": 160.8,
+          "text": "Macht euch ein Gummiband auf Höhe des Teigs ans Glas, dann seht ihr genau, wie weit er gestiegen ist."
+        },
+        {
+          "start": 160.8,
+          "end": 167.1,
+          "text": "Wenn er das zwei, drei Tage hintereinander zuverlässig schafft, ist euer Sauerteig bereit zum Backen."
+        },
+        {
+          "start": 167.1,
+          "end": 172.9,
+          "text": "Noch drei typische Fehler. Erstens: zu kalt. Unter zwanzig Grad dauert alles deutlich länger."
+        },
+        {
+          "start": 172.9,
+          "end": 173.8,
+          "text": "Zweitens: Schimmel."
+        },
+        {
+          "start": 173.8,
+          "end": 181.2,
+          "text": "Wenn ihr flauschigen, farbigen Schimmel seht, zum Beispiel rosa oder orange, dann bitte alles wegwerfen und neu anfangen."
+        },
+        {
+          "start": 181.2,
+          "end": 188.8,
+          "text": "Eine graue Flüssigkeit oben drauf ist dagegen harmlos, das ist nur ein Zeichen, dass der Teig Hunger hat."
+        },
+        {
+          "start": 188.8,
+          "end": 195.0,
+          "text": "Einfach unterrühren oder abgießen. Drittens: zu schnell aufgeben. Manche Ansätze brauchen zehn Tage oder länger."
+        },
+        {
+          "start": 195.0,
+          "end": 199.6,
+          "text": "Im nächsten Video backen wir mit diesem Ansatz ein einfaches Roggenmischbrot."
+        },
+        {
+          "start": 199.6,
+          "end": 202.5,
+          "text": "Bis dann, und viel Spaß beim Ansetzen!"
+        }
+      ]
+    }
+  }
+}

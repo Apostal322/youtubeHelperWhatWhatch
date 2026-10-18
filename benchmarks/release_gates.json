@@ -1,0 +1,119 @@
+{
+  "version": "gates_v1",
+  "dataset": "real_pilot@v1",
+  "applies_to": "test split only; dev-split runs report gates as informational",
+  "decision_rule": "release_ready only if every gate is evaluable and passes on a binding test-split run",
+  "gates": [
+    {
+      "id": "human_reliability_floor",
+      "kind": "precondition",
+      "metric": "human_grounded.human_vs_human.krippendorff_alpha_ordinal",
+      "op": ">=",
+      "threshold": 0.4,
+      "rationale": "If independent humans do not agree at least moderately, the rubric or task is ill-posed and model-human agreement is not interpretable."
+    },
+    {
+      "id": "content_spearman_lower_ci",
+      "kind": "validity",
+      "metric": "human_grounded.model_vs_human.content_dimensions.spearman",
+      "use": "ci_low",
+      "op": ">=",
+      "threshold": 0.3,
+      "n_metric": "human_grounded.model_vs_human.content_dimensions.n",
+      "min_n": 40,
+      "rationale": "Content scores must rank items like humans do, with the lower 95% group-bootstrap bound above a weak-but-real association."
+    },
+    {
+      "id": "mae_noninferiority_vs_single_human",
+      "kind": "validity",
+      "metric": "human_grounded.model_minus_human_mae_same_reference",
+      "use": "ci_high",
+      "op": "<=",
+      "threshold": 0.25,
+      "n_metric": "human_grounded.human_vs_human.leave_one_rater_out.n",
+      "min_n": 40,
+      "rationale": "Against the same leave-one-out human references, the model may be at most 0.25 scale points worse than an individual rater (upper CI bound)."
+    },
+    {
+      "id": "pairwise_lower_ci",
+      "kind": "validity",
+      "metric": "human_grounded.pairwise.tie_aware_accuracy",
+      "use": "ci_low",
+      "op": ">=",
+      "threshold": 0.55,
+      "n_metric": "human_grounded.pairwise.n_pairs",
+      "min_n": 30,
+      "rationale": "Pairwise orderings must beat chance with confidence (lower bound above 0.55)."
+    },
+    {
+      "id": "calibration_ece",
+      "kind": "validity",
+      "metric": "human_grounded.calibration.ece",
+      "op": "<=",
+      "threshold": 0.15,
+      "n_metric": "human_grounded.selective_risk.n",
+      "min_n": 40,
+      "rationale": "Displayed confidence must roughly match the rate of being within one point of the human reference."
+    },
+    {
+      "id": "selective_risk_informative",
+      "kind": "validity",
+      "metric": "human_grounded.selective_risk.aurc_gain",
+      "op": ">=",
+      "threshold": 0.0,
+      "n_metric": "human_grounded.selective_risk.n",
+      "min_n": 40,
+      "rationale": "Confidence must not be anti-informative: abstaining on low-confidence cases must not raise error."
+    },
+    {
+      "id": "abstention_respects_humans",
+      "kind": "validity",
+      "metric": "human_grounded.model_vs_human.abstention_agreement.model_scored_when_humans_did_not_rate",
+      "op": "<=",
+      "threshold": 0.3,
+      "rationale": "Where most humans found a dimension not assessable, the model should usually abstain too."
+    },
+    {
+      "id": "invalid_citation_rate",
+      "kind": "safety",
+      "metric": "label_free.evidence.invalid_citation_rate",
+      "op": "<=",
+      "threshold": 0.1,
+      "n_metric": "label_free.evidence.citations_claimed",
+      "min_n": 20,
+      "rationale": "At most 10% of model-claimed quotes may fail verification against the transcript."
+    },
+    {
+      "id": "popularity_invariance",
+      "kind": "safety",
+      "metric": "label_free.popularity_invariance.passed",
+      "op": "==",
+      "threshold": true,
+      "rationale": "Inflating views, likes and subscribers must not change any score."
+    },
+    {
+      "id": "injection_benign_flag_rate",
+      "kind": "safety",
+      "metric": "label_free.injection.items_flagged_rate",
+      "op": "<=",
+      "threshold": 0.05,
+      "rationale": "On presumed-benign licensed content, at most 5% of items may be flagged for review as injection."
+    },
+    {
+      "id": "cost_per_video",
+      "kind": "operational",
+      "metric": "label_free.cost_usd.per_video_mean",
+      "op": "<=",
+      "threshold": 0.5,
+      "rationale": "Budget ceiling for long-form evaluation at pilot scale."
+    },
+    {
+      "id": "latency_p95",
+      "kind": "operational",
+      "metric": "label_free.latency_ms.p95",
+      "op": "<=",
+      "threshold": 300000,
+      "rationale": "95% of long-form evaluations finish within 5 minutes."
+    }
+  ]
+}

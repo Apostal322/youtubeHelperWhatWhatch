@@ -1,0 +1,34 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+*.egg-info/
+backend/avd_demo.db*
+backend/.media_cache/
+backend/.dataset_cache/
+backend/.model_cache/
+*.db
+*.db-wal
+*.db-shm
+celerybeat-schedule*
+dump.rdb
+
+# Node / extension
+node_modules/
+extension/dist/
+
+# Env
+.env
+
+# Benchmark scratch runs (curated reports are committed explicitly)
+benchmarks/reports/*
+!benchmarks/reports/README.md
+!benchmarks/reports/baseline-*
+!benchmarks/reports/retrieval-*
+!benchmarks/reports/recs-*
+!benchmarks/reports/throughput-*

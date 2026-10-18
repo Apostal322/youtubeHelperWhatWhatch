@@ -1,0 +1,98 @@
+{
+  "meta": {
+    "run_at": "2026-10-16T01:19:51+00:00",
+    "git_commit": "51d8424664a1a2180b12ca1b46c475015e97810a",
+    "dataset": "real_pilot@v1 (29 long-form episodes, median ~11k words)",
+    "assumptions": {
+      "chars_per_token": 4.0,
+      "output_tokens_per_call": {
+        "chunk_notes": 1200,
+        "rubric_evaluation": 2500,
+        "default": 1500
+      },
+      "stage_c_escalation_rate": 0.2,
+      "llm_latency_seconds_per_call": 60.0,
+      "prices_usd_per_mtok": {
+        "claude-opus-5-5": [
+          4.0,
+          20.0
+        ]
+      },
+      "representativeness": "pilot items are ~1 h podcasts; typical YouTube videos are shorter, so per-video cost is likely lower"
+    }
+  },
+  "measured": {
+    "heuristic_pipeline_ms_per_video": {
+      "p50": 75.95,
+      "p95": 107.76
+    },
+    "hashing_embed_ms_per_video": 4.43,
+    "minilm_embed_ms_per_video": "805 (retrieval experiment, 24 windows/doc, CPU)",
+    "llm_call_plan": {
+      "B": {
+        "model": "claude-opus-5-5",
+        "calls_per_video": {
+          "p50": 1.0,
+          "p95": 1.0
+        },
+        "calls_mean": 1.0,
+        "call_kinds": [
+          "rubric_evaluation"
+        ],
+        "est_input_tokens_mean": 18266,
+        "assumed_output_tokens_mean": 2500,
+        "est_cost_usd_mean": 0.1231,
+        "est_cost_usd_p95": 0.15,
+        "est_cost_usd_mean_output_x3": 0.2231
+      },
+      "C": {
+        "model": "claude-opus-5-5",
+        "calls_per_video": {
+          "p50": 3.0,
+          "p95": 3.0
+        },
+        "calls_mean": 3.0,
+        "call_kinds": [
+          "rubric_evaluation"
+        ],
+        "est_input_tokens_mean": 54799,
+        "assumed_output_tokens_mean": 7500,
+        "est_cost_usd_mean": 0.3692,
+        "est_cost_usd_p95": 0.44,
+        "est_cost_usd_mean_output_x3": 0.6692
+      }
+    }
+  },
+  "projected": [
+    {
+      "videos_per_day": 1000,
+      "llm_usd_per_day": 197.0,
+      "llm_usd_per_day_output_x3": 357.0,
+      "llm_usd_per_month": 5908.0,
+      "tokens_per_day_millions": 33.2,
+      "llm_calls_per_minute": 1.1,
+      "concurrent_llm_requests": 1.1,
+      "heuristic_cpu_seconds_per_day": 79.0
+    },
+    {
+      "videos_per_day": 10000,
+      "llm_usd_per_day": 1969.0,
+      "llm_usd_per_day_output_x3": 3569.0,
+      "llm_usd_per_month": 59082.0,
+      "tokens_per_day_millions": 332.3,
+      "llm_calls_per_minute": 11.1,
+      "concurrent_llm_requests": 11.1,
+      "heuristic_cpu_seconds_per_day": 786.0
+    },
+    {
+      "videos_per_day": 100000,
+      "llm_usd_per_day": 19694.0,
+      "llm_usd_per_day_output_x3": 35694.0,
+      "llm_usd_per_month": 590820.0,
+      "tokens_per_day_millions": 3322.6,
+      "llm_calls_per_minute": 111.1,
+      "concurrent_llm_requests": 111.1,
+      "heuristic_cpu_seconds_per_day": 7857.0
+    }
+  ]
+}

@@ -1,0 +1,251 @@
+{
+  "video_id": "syn_tech_001",
+  "synthetic": true,
+  "title": "Hash Tables From Scratch: Collisions, Load Factor and Amortized Resizing",
+  "description": "A from-scratch explanation of hash tables: hashing, collisions, chaining vs. open addressing, load factor, and the amortized analysis that makes doubling the table cost O(1) per insert.",
+  "channel": {
+    "channel_id": "syn_ch_lintelloop",
+    "title": "Lintel and Loop",
+    "subscriber_count": 410
+  },
+  "published_at": "2025-06-30T19:00:00Z",
+  "duration_seconds": 271,
+  "language": "en",
+  "youtube_category_id": "28",
+  "tags": [
+    "programming",
+    "algorithms",
+    "data structures",
+    "hash table",
+    "computer science"
+  ],
+  "popularity": {
+    "view_count": 1630,
+    "like_count": 171,
+    "comment_count": 29
+  },
+  "content": {
+    "source_type": "synthetic_fixture",
+    "license": "CC0-1.0",
+    "authorization_basis": "Original synthetic transcript authored for the AI Video Discovery project. No real video exists.",
+    "modalities": [
+      "transcript"
+    ],
+    "audio_fixture": null,
+    "transcript": {
+      "language": "en",
+      "segments": [
+        {
+          "start": 0.0,
+          "end": 9.8,
+          "text": "In this video I want to explain how a hash table works under the hood, and specifically answer a question that bugged me for years."
+        },
+        {
+          "start": 9.8,
+          "end": 18.0,
+          "text": "If resizing a hash table means copying everything, how can inserts possibly be constant time? Let's build it up from scratch."
+        },
+        {
+          "start": 18.0,
+          "end": 23.9,
+          "text": "A hash table is an array of slots, usually called buckets, plus a hash function."
+        },
+        {
+          "start": 23.9,
+          "end": 30.2,
+          "text": "The hash function takes a key, say the string apple, and turns it into an integer."
+        },
+        {
+          "start": 30.2,
+          "end": 37.6,
+          "text": "You take that integer modulo the number of buckets, and that gives you an index. Store the value there."
+        },
+        {
+          "start": 37.6,
+          "end": 44.3,
+          "text": "To look it up later, hash the key again, land on the same index, done. No scanning."
+        },
+        {
+          "start": 44.3,
+          "end": 45.9,
+          "text": "The problem is collisions."
+        },
+        {
+          "start": 45.9,
+          "end": 52.9,
+          "text": "Two different keys can land on the same bucket, and with any realistic amount of data they will."
+        },
+        {
+          "start": 52.9,
+          "end": 54.5,
+          "text": "By the birthday paradox,"
+        },
+        {
+          "start": 54.5,
+          "end": 63.1,
+          "text": "with three hundred and sixty-five buckets you only need about twenty-three keys before there's a better than even chance of a collision."
+        },
+        {
+          "start": 63.1,
+          "end": 70.6,
+          "text": "So collisions aren't an edge case. They're the normal case, and the design question is how to handle them."
+        },
+        {
+          "start": 70.6,
+          "end": 74.5,
+          "text": "There are two main families. The first is separate chaining."
+        },
+        {
+          "start": 74.5,
+          "end": 80.4,
+          "text": "Each bucket holds a small list, and colliding keys just get appended to that list."
+        },
+        {
+          "start": 80.4,
+          "end": 86.3,
+          "text": "Lookup hashes to the bucket and then walks the list. The second is open addressing."
+        },
+        {
+          "start": 86.3,
+          "end": 92.9,
+          "text": "Everything lives directly in the array, and if your slot is taken, you probe for another one."
+        },
+        {
+          "start": 92.9,
+          "end": 98.0,
+          "text": "The simplest version is linear probing. Try the next slot, then the next."
+        },
+        {
+          "start": 98.0,
+          "end": 104.3,
+          "text": "Linear probing is very cache-friendly, because you're walking through adjacent memory, but it suffers from clustering."
+        },
+        {
+          "start": 104.3,
+          "end": 109.8,
+          "text": "Occupied runs grow, and long runs attract more keys, which makes them longer still."
+        },
+        {
+          "start": 109.8,
+          "end": 118.0,
+          "text": "Either way, performance depends on the load factor, which is the number of stored keys divided by the number of buckets."
+        },
+        {
+          "start": 118.0,
+          "end": 127.1,
+          "text": "If the load factor stays bounded, say below three quarters, the expected length of a chain or a probe sequence stays bounded too,"
+        },
+        {
+          "start": 127.1,
+          "end": 133.3,
+          "text": "assuming the hash function spreads keys out reasonably evenly. That's where the constant-time claim comes from."
+        },
+        {
+          "start": 133.3,
+          "end": 140.8,
+          "text": "It's expected constant time, and it rests on two assumptions, a decent hash function and a bounded load factor."
+        },
+        {
+          "start": 140.8,
+          "end": 146.7,
+          "text": "To keep the load factor bounded as you insert, you have to grow the table."
+        },
+        {
+          "start": 146.7,
+          "end": 153.7,
+          "text": "When it gets too full, you allocate a new array, typically twice the size, and re-insert every key,"
+        },
+        {
+          "start": 153.7,
+          "end": 159.2,
+          "text": "because each key's index depends on the table size. That single resize is expensive."
+        },
+        {
+          "start": 159.2,
+          "end": 164.3,
+          "text": "If there are n keys, it costs order n. So here's the puzzle."
+        },
+        {
+          "start": 164.3,
+          "end": 171.0,
+          "text": "How is insert constant time if some inserts cost n? The answer is amortized analysis. Let's count."
+        },
+        {
+          "start": 171.0,
+          "end": 176.1,
+          "text": "Suppose you start with one bucket and double every time you fill up."
+        },
+        {
+          "start": 176.1,
+          "end": 181.6,
+          "text": "Resizes happen at sizes one, two, four, eight, and so on up to n."
+        },
+        {
+          "start": 181.6,
+          "end": 190.2,
+          "text": "The total copying work is one plus two plus four, all the way up to n, which is less than two n."
+        },
+        {
+          "start": 190.2,
+          "end": 197.3,
+          "text": "Spread across n inserts, that's fewer than two extra copies per insert. Constant. The doubling is the key."
+        },
+        {
+          "start": 197.3,
+          "end": 207.1,
+          "text": "If you grew by a fixed amount instead, say ten slots each time, you'd resize about n over ten times, each costing up to n,"
+        },
+        {
+          "start": 207.1,
+          "end": 214.9,
+          "text": "and the total would be quadratic. Growing geometrically is what makes the expensive operation rare enough to pay for itself."
+        },
+        {
+          "start": 214.9,
+          "end": 220.0,
+          "text": "Two practical notes. First, amortized constant is not the same as worst-case constant."
+        },
+        {
+          "start": 220.0,
+          "end": 225.9,
+          "text": "An individual insert can still stall while the table resizes, which matters in latency-sensitive systems."
+        },
+        {
+          "start": 225.9,
+          "end": 232.2,
+          "text": "Some implementations resize incrementally, moving a few buckets on each operation, to spread that cost out."
+        },
+        {
+          "start": 232.2,
+          "end": 236.1,
+          "text": "Second, the hash function matters for security, not just speed."
+        },
+        {
+          "start": 236.1,
+          "end": 244.7,
+          "text": "If an attacker can predict your hash function, they can send keys that all collide, turning every lookup into a linear scan."
+        },
+        {
+          "start": 244.7,
+          "end": 251.0,
+          "text": "That's why many languages now seed their string hashing with a random value per process. Summary."
+        },
+        {
+          "start": 251.0,
+          "end": 258.0,
+          "text": "Buckets plus a hash function. Collisions handled by chaining or probing. Load factor kept bounded by geometric resizing."
+        },
+        {
+          "start": 258.0,
+          "end": 263.9,
+          "text": "And amortized analysis explains why the occasional expensive resize still averages out to constant time."
+        },
+        {
+          "start": 263.9,
+          "end": 269.8,
+          "text": "In the next video, I'll implement this in about sixty lines and we'll measure it."
+        }
+      ]
+    }
+  }
+}

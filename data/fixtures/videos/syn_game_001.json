@@ -1,0 +1,236 @@
+{
+  "video_id": "syn_game_001",
+  "synthetic": true,
+  "title": "Lanternfall Ep. 4: The Letter in the Crate (Ada's Logbook, Blind Playthrough)",
+  "description": "Episode 4 of my blind, in-character playthrough of Lanternfall. Ada finds a letter in a washed-up crate that might change everything about the lamp. Suggest a reason for Ada to enter the chapel in the comments.",
+  "channel": {
+    "channel_id": "syn_ch_tidewrites",
+    "title": "Tide Writes Games",
+    "subscriber_count": 1780
+  },
+  "published_at": "2025-10-26T20:00:00Z",
+  "duration_seconds": 232,
+  "language": "en",
+  "youtube_category_id": "20",
+  "tags": [
+    "lanternfall",
+    "let's play",
+    "blind playthrough",
+    "narrative game",
+    "roleplay"
+  ],
+  "popularity": {
+    "view_count": 2450,
+    "like_count": 301,
+    "comment_count": 88
+  },
+  "content": {
+    "source_type": "synthetic_fixture",
+    "license": "CC0-1.0",
+    "authorization_basis": "Original synthetic transcript authored for the AI Video Discovery project. No real video exists.",
+    "modalities": [
+      "transcript"
+    ],
+    "audio_fixture": null,
+    "transcript": {
+      "language": "en",
+      "segments": [
+        {
+          "start": 0.0,
+          "end": 6.1,
+          "text": "Day four on Gull Rock. Welcome back to Lanternfall, where I'm playing as Ada Wren,"
+        },
+        {
+          "start": 6.1,
+          "end": 12.2,
+          "text": "temporary keeper of a lighthouse on an island that sinks a little bit every night."
+        },
+        {
+          "start": 12.2,
+          "end": 15.5,
+          "text": "For this series I'm doing something slightly different."
+        },
+        {
+          "start": 15.5,
+          "end": 22.9,
+          "text": "I'm keeping Ada's logbook as we go, in character, and I'm only allowed to know what Ada knows."
+        },
+        {
+          "start": 22.9,
+          "end": 28.6,
+          "text": "So no wikis, no guides. If she gets it wrong, I get it wrong."
+        },
+        {
+          "start": 28.6,
+          "end": 34.7,
+          "text": "Last episode ended with the tide eating the vegetable garden, so let's open the logbook."
+        },
+        {
+          "start": 34.7,
+          "end": 39.2,
+          "text": "Entry. Water reached the third fence post overnight. Lost the potatoes."
+        },
+        {
+          "start": 39.2,
+          "end": 45.7,
+          "text": "Kept the seeds in my coat, which is the only smart thing I did all week."
+        },
+        {
+          "start": 45.7,
+          "end": 46.1,
+          "text": "Okay."
+        },
+        {
+          "start": 46.1,
+          "end": 55.1,
+          "text": "Mechanically, what's happening here is the game raises the sea a notch every in-game night, and anything below the line is gone."
+        },
+        {
+          "start": 55.1,
+          "end": 60.0,
+          "text": "So the whole island is basically a countdown timer you can see."
+        },
+        {
+          "start": 60.0,
+          "end": 69.0,
+          "text": "And I love that, because it means every object on this map has a little story about when it's going to drown."
+        },
+        {
+          "start": 69.0,
+          "end": 73.1,
+          "text": "Look at the chapel down there. It's already half underwater."
+        },
+        {
+          "start": 73.1,
+          "end": 82.0,
+          "text": "I've decided Ada refuses to go inside it, because in her head that's where the previous keeper went and didn't come back."
+        },
+        {
+          "start": 82.0,
+          "end": 85.3,
+          "text": "The game never says that, by the way."
+        },
+        {
+          "start": 85.3,
+          "end": 91.8,
+          "text": "I made that up in episode one and now I'm stuck with it. Right, the lamp."
+        },
+        {
+          "start": 91.8,
+          "end": 98.0,
+          "text": "The lamp needs oil every night, and oil comes from the wrecks that wash up."
+        },
+        {
+          "start": 98.0,
+          "end": 104.5,
+          "text": "Here's a crate. Let's see. Oil, two flasks, and a letter. Oh. Oh, this is good."
+        },
+        {
+          "start": 104.5,
+          "end": 111.8,
+          "text": "It's addressed to someone called Brannoch, and it says, the rock is not sinking, the sea is rising,"
+        },
+        {
+          "start": 111.8,
+          "end": 114.7,
+          "text": "and the light is the reason. Hmm."
+        },
+        {
+          "start": 114.7,
+          "end": 120.4,
+          "text": "So, as Ada, I'm going to read this as the ravings of a sailor."
+        },
+        {
+          "start": 120.4,
+          "end": 123.7,
+          "text": "As a player, I'm a little bit nervous,"
+        },
+        {
+          "start": 123.7,
+          "end": 131.0,
+          "text": "because I think the game just told me that keeping the lamp lit is what's drowning the island."
+        },
+        {
+          "start": 131.0,
+          "end": 137.6,
+          "text": "Which would make the whole thing a dilemma. Light the lamp, ships stay safe, island sinks."
+        },
+        {
+          "start": 137.6,
+          "end": 144.9,
+          "text": "Let the lamp go dark, island survives, ships wreck. And the wrecks are where the oil comes from."
+        },
+        {
+          "start": 144.9,
+          "end": 150.6,
+          "text": "That is a beautiful little loop, if it's true. Let me write that down."
+        },
+        {
+          "start": 150.6,
+          "end": 156.3,
+          "text": "Entry. Found a letter from a madman. Lit the lamp anyway. Ships are people."
+        },
+        {
+          "start": 156.3,
+          "end": 163.3,
+          "text": "Islands are rocks. Let's climb up. The climb is the best bit of this game for me."
+        },
+        {
+          "start": 163.3,
+          "end": 170.2,
+          "text": "Every night the stairs are a little bit wetter at the bottom, and the sound design shifts,"
+        },
+        {
+          "start": 170.2,
+          "end": 177.6,
+          "text": "the waves get louder in the stairwell. They don't tell you any of this, you just feel it."
+        },
+        {
+          "start": 177.6,
+          "end": 184.9,
+          "text": "Lamp's lit. And there it is, a ship turning away from the reef. That's twelve ships saved now."
+        },
+        {
+          "start": 184.9,
+          "end": 191.8,
+          "text": "I'm keeping a tally on the wall, which is a thing the game actually lets you do,"
+        },
+        {
+          "start": 191.8,
+          "end": 194.7,
+          "text": "you can scratch marks with the knife."
+        },
+        {
+          "start": 194.7,
+          "end": 201.2,
+          "text": "Twelve marks, four days, and the island is about two thirds of the size it was."
+        },
+        {
+          "start": 201.2,
+          "end": 207.8,
+          "text": "I'm going to stop here, because next episode I want to finally go into the chapel,"
+        },
+        {
+          "start": 207.8,
+          "end": 213.1,
+          "text": "and I think Ada needs a good reason to break her own rule."
+        },
+        {
+          "start": 213.1,
+          "end": 221.2,
+          "text": "If you've got a reason she'd believe, put it in the comments, and I'll pick one and play it straight."
+        },
+        {
+          "start": 221.2,
+          "end": 227.3,
+          "text": "Last entry for tonight. Twelve ships. Garden gone. The sea is louder than it was."
+        },
+        {
+          "start": 227.3,
+          "end": 231.8,
+          "text": "I am not afraid of the chapel. I'm just busy. Goodnight."
+        }
+      ]
+    }
+  }
+}

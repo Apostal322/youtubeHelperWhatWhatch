@@ -1,0 +1,211 @@
+{
+  "video_id": "syn_music_001",
+  "synthetic": true,
+  "title": "Kettle Song (original) – live at the kitchen table",
+  "description": "An original song, written the winter our heating broke. Just voice and guitar, recorded on a phone at the kitchen table. Lyrics in the transcript.",
+  "channel": {
+    "channel_id": "syn_ch_fernhollow",
+    "title": "Fern Hollow Songs",
+    "subscriber_count": 96000
+  },
+  "published_at": "2026-02-14T19:00:00Z",
+  "duration_seconds": 155,
+  "language": "en",
+  "youtube_category_id": "10",
+  "tags": [
+    "original song",
+    "acoustic",
+    "singer-songwriter",
+    "guitar",
+    "folk"
+  ],
+  "popularity": {
+    "view_count": 5200000,
+    "like_count": 388000,
+    "comment_count": 17900
+  },
+  "content": {
+    "source_type": "synthetic_fixture",
+    "license": "CC0-1.0",
+    "authorization_basis": "Original synthetic transcript authored for the AI Video Discovery project. No real video exists.",
+    "modalities": [
+      "transcript"
+    ],
+    "audio_fixture": null,
+    "transcript": {
+      "language": "en",
+      "segments": [
+        {
+          "start": 0.0,
+          "end": 3.9,
+          "text": "Hi. This is a song I wrote in January,"
+        },
+        {
+          "start": 3.9,
+          "end": 8.7,
+          "text": "when the heating in our flat broke for nine days and"
+        },
+        {
+          "start": 8.7,
+          "end": 13.0,
+          "text": "the only warm thing in the place was the kettle."
+        },
+        {
+          "start": 13.0,
+          "end": 14.8,
+          "text": "It's called Kettle Song."
+        },
+        {
+          "start": 14.8,
+          "end": 20.9,
+          "text": "It's just me and the guitar, recorded on my phone at the kitchen table,"
+        },
+        {
+          "start": 20.9,
+          "end": 24.8,
+          "text": "so you might hear the fridge. Here it goes."
+        },
+        {
+          "start": 24.8,
+          "end": 28.3,
+          "text": "The radiator's quiet and the window's wearing frost."
+        },
+        {
+          "start": 28.3,
+          "end": 34.3,
+          "text": "I count the things I meant to fix and all the gloves I've lost."
+        },
+        {
+          "start": 34.3,
+          "end": 39.1,
+          "text": "But there's a little engine on the counter by the sink."
+        },
+        {
+          "start": 39.1,
+          "end": 43.9,
+          "text": "It rattles and it rumbles while I'm trying hard to think."
+        },
+        {
+          "start": 43.9,
+          "end": 47.8,
+          "text": "So put the kettle on, put the kettle on."
+        },
+        {
+          "start": 47.8,
+          "end": 52.2,
+          "text": "Nobody's coming but the morning, and the morning's nearly gone."
+        },
+        {
+          "start": 52.2,
+          "end": 57.0,
+          "text": "Put the kettle on, hold the cup with both your hands."
+        },
+        {
+          "start": 57.0,
+          "end": 62.6,
+          "text": "There's a kind of fire you can carry when the house won't understand."
+        },
+        {
+          "start": 62.6,
+          "end": 67.4,
+          "text": "My mother had a teapot with a chip along the spout."
+        },
+        {
+          "start": 67.4,
+          "end": 70.9,
+          "text": "She said you only pour the hurt in"
+        },
+        {
+          "start": 70.9,
+          "end": 73.9,
+          "text": "once you've let the steam come out."
+        },
+        {
+          "start": 73.9,
+          "end": 80.0,
+          "text": "And I never knew she meant it till I stood here in my coat,"
+        },
+        {
+          "start": 80.0,
+          "end": 85.2,
+          "text": "with a sentence for my sister that's still stuck inside my throat."
+        },
+        {
+          "start": 85.2,
+          "end": 89.1,
+          "text": "So put the kettle on, put the kettle on."
+        },
+        {
+          "start": 89.1,
+          "end": 93.5,
+          "text": "Nobody's coming but the morning, and the morning's nearly gone."
+        },
+        {
+          "start": 93.5,
+          "end": 98.3,
+          "text": "Put the kettle on, hold the cup with both your hands."
+        },
+        {
+          "start": 98.3,
+          "end": 103.9,
+          "text": "There's a kind of fire you can carry when the house won't understand."
+        },
+        {
+          "start": 103.9,
+          "end": 109.6,
+          "text": "And the landlord says on Tuesday, and the landlord said that last week."
+        },
+        {
+          "start": 109.6,
+          "end": 115.2,
+          "text": "And the pipes have started knocking like they've got a word to speak."
+        },
+        {
+          "start": 115.2,
+          "end": 117.8,
+          "text": "So I'll call her after breakfast."
+        },
+        {
+          "start": 117.8,
+          "end": 120.9,
+          "text": "I will call her, yes I will."
+        },
+        {
+          "start": 120.9,
+          "end": 126.1,
+          "text": "I'll let the water settle and I'll let the room be still."
+        },
+        {
+          "start": 126.1,
+          "end": 130.0,
+          "text": "So put the kettle on, put the kettle on."
+        },
+        {
+          "start": 130.0,
+          "end": 134.8,
+          "text": "Somebody's coming with the morning, and the morning won't be long."
+        },
+        {
+          "start": 134.8,
+          "end": 139.6,
+          "text": "Put the kettle on, hold the cup with both your hands."
+        },
+        {
+          "start": 139.6,
+          "end": 145.2,
+          "text": "There's a kind of fire you can carry when the house won't understand."
+        },
+        {
+          "start": 145.2,
+          "end": 148.3,
+          "text": "When the house won't understand. Thank you."
+        },
+        {
+          "start": 148.3,
+          "end": 154.8,
+          "text": "The heating's fixed now, by the way. I still haven't called her. Working on it."
+        }
+      ]
+    }
+  }
+}

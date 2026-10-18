@@ -1,0 +1,1812 @@
+{
+  "name": "real_pilot",
+  "version": "v1",
+  "description": "Pilot of real, licensed long-form spoken content (podcast/interview transcripts published by their creators) for human-grounded validation of transcript-based quality assessment. Contains no quality labels; labels come from blind human annotation.",
+  "built_at": "2026-10-15T22:52:00+00:00",
+  "seed": 20261015,
+  "selection": {
+    "procedure": "seeded shuffle per group, first eligible items up to quota (avd.datasets.pilot)",
+    "eligibility": {
+      "min_words": 3000,
+      "max_words": 20000,
+      "min_anchors": 15,
+      "min_anchors_per_1k_words": 1.0,
+      "language": "en"
+    },
+    "quotas": {
+      "changelog:podcast": 3,
+      "changelog:jsparty": 3,
+      "changelog:gotime": 3,
+      "changelog:practicalai": 3,
+      "changelog:shipit": 2,
+      "changelog:friends": 2,
+      "changelog:founderstalk": 2,
+      "changelog:brainscience": 3,
+      "changelog:backstage": 2,
+      "talkpython:youtube_transcripts": 7
+    },
+    "per_group": {
+      "changelog:podcast": {
+        "candidates": 481,
+        "quota": 3,
+        "selected": 3,
+        "examined": 3,
+        "rejected": []
+      },
+      "changelog:jsparty": {
+        "candidates": 353,
+        "quota": 3,
+        "selected": 3,
+        "examined": 8,
+        "rejected": [
+          {
+            "path": "jsparty/js-party-35.md",
+            "reason": "source_anchors=1 < 15"
+          },
+          {
+            "path": "jsparty/js-party-280.md",
+            "reason": "source_anchors=12 < 15"
+          },
+          {
+            "path": "jsparty/js-party-193.md",
+            "reason": "source_anchors=14 < 15"
+          },
+          {
+            "path": "jsparty/js-party-299.md",
+            "reason": "source_anchors=12 < 15"
+          },
+          {
+            "path": "jsparty/js-party-277.md",
+            "reason": "source_anchors=14 < 15"
+          }
+        ]
+      },
+      "changelog:gotime": {
+        "candidates": 341,
+        "quota": 3,
+        "selected": 3,
+        "examined": 3,
+        "rejected": []
+      },
+      "changelog:practicalai": {
+        "candidates": 299,
+        "quota": 3,
+        "selected": 3,
+        "examined": 62,
+        "rejected": [
+          {
+            "path": "practicalai/practical-ai-14.md",
+            "reason": "source_anchors=8 < 15"
+          },
+          {
+            "path": "practicalai/practical-ai-250.md",
+            "reason": "source_anchors=9 < 15"
+          },
+          {
+            "path": "practicalai/practical-ai-70.md",
+            "reason": "source_anchors=12 < 15"
+          },
+          {
+            "path": "practicalai/practical-ai-192.md",
+            "reason": "source_anchors=11 < 15"
+          },
+          {
+            "path": "practicalai/practical-ai-83.md",
+            "reason": "source_anchors=13 < 15"
+          },
+          {
+            "path": "practicalai/practical-ai-91.md",
+            "reason": "source_anchors=12 < 15"
+          },
+          {
+            "path": "practicalai/practical-ai-163.md",
+            "reason": "source_anchors=9 < 15"
+          },
+          {
+            "path": "practicalai/practical-ai-66.md",
+            "reason": "source_anchors=11 < 15"
+          },
+          {
+            "path": "practicalai/practical-ai-161.md",
+            "reason": "source_anchors=2 < 15"
+          },
+          {
+            "path": "practicalai/practical-ai-166.md",
+            "reason": "source_anchors=9 < 15"
+          },
+          {
+            "path": "practicalai/practical-ai-72.md",
+            "reason": "source_anchors=11 < 15"
+          },
+          {
+            "path": "practicalai/practical-ai-177.md",
+            "reason": "source_anchors=11 < 15"
+          },
+          {
+            "path": "practicalai/practical-ai-146.md",
+            "reason": "source_anchors=10 < 15"
+          },
+          {
+            "path": "practicalai/practical-ai-238.md",
+            "reason": "source_anchors=13 < 15"
+          },
+          {
+            "path": "practicalai/practical-ai-251.md",
+            "reason": "source_anchors=9 < 15"
+          },
+          {
+            "path": "practicalai/practical-ai-44.md",
+            "reason": "source_anchors=12 < 15"
+          },
+          {
+            "path": "practicalai/practical-ai-276.md",
+            "reason": "source_anchors=10 < 15"
+          },
+          {
+            "path": "practicalai/practical-ai-174.md",
+            "reason": "source_anchors=11 < 15"
+          },
+          {
+            "path": "practicalai/practical-ai-28.md",
+            "reason": "source_anchors=8 < 15"
+          },
+          {
+            "path": "practicalai/practical-ai-195.md",
+            "reason": "source_anchors=10 < 15"
+          },
+          {
+            "path": "practicalai/practical-ai-78.md",
+            "reason": "source_anchors=13 < 15"
+          },
+          {
+            "path": "practicalai/practical-ai-4.md",
+            "reason": "source_anchors=11 < 15"
+          },
+          {
+            "path": "practicalai/practical-ai-179.md",
+            "reason": "source_anchors=11 < 15"
+          },
+          {
+            "path": "practicalai/practical-ai-252.md",
+            "reason": "source_anchors=9 < 15"
+          },
+          {
+            "path": "practicalai/practical-ai-224.md",
+            "reason": "source_anchors=10 < 15"
+          },
+          {
+            "path": "practicalai/practical-ai-272.md",
+            "reason": "source_anchors=7 < 15"
+          },
+          {
+            "path": "practicalai/practical-ai-75.md",
+            "reason": "source_anchors=11 < 15"
+          },
+          {
+            "path": "practicalai/practical-ai-25.md",
+            "reason": "source_anchors=9 < 15"
+          },
+          {
+            "path": "practicalai/practical-ai-169.md",
+            "reason": "source_anchors=12 < 15"
+          },
+          {
+            "path": "practicalai/practical-ai-255.md",
+            "reason": "source_anchors=10 < 15"
+          },
+          {
+            "path": "practicalai/practical-ai-43.md",
+            "reason": "source_anchors=14 < 15"
+          },
+          {
+            "path": "practicalai/practical-ai-40.md",
+            "reason": "source_anchors=10 < 15"
+          },
+          {
+            "path": "practicalai/practical-ai-287.md",
+            "reason": "source_anchors=10 < 15"
+          },
+          {
+            "path": "practicalai/practical-ai-299.md",
+            "reason": "source_anchors=11 < 15"
+          },
+          {
+            "path": "practicalai/practical-ai-109.md",
+            "reason": "source_anchors=11 < 15"
+          },
+          {
+            "path": "practicalai/practical-ai-51.md",
+            "reason": "source_anchors=13 < 15"
+          },
+          {
+            "path": "practicalai/practical-ai-144.md",
+            "reason": "source_anchors=11 < 15"
+          },
+          {
+            "path": "practicalai/practical-ai-16.md",
+            "reason": "source_anchors=8 < 15"
+          },
+          {
+            "path": "practicalai/practical-ai-242.md",
+            "reason": "source_anchors=9 < 15"
+          },
+          {
+            "path": "practicalai/practical-ai-15.md",
+            "reason": "source_anchors=11 < 15"
+          },
+          {
+            "path": "practicalai/practical-ai-235.md",
+            "reason": "source_anchors=8 < 15"
+          },
+          {
+            "path": "practicalai/practical-ai-106.md",
+            "reason": "source_anchors=14 < 15"
+          },
+          {
+            "path": "practicalai/practical-ai-185.md",
+            "reason": "source_anchors=13 < 15"
+          },
+          {
+            "path": "practicalai/practical-ai-22.md",
+            "reason": "source_anchors=9 < 15"
+          },
+          {
+            "path": "practicalai/practical-ai-226.md",
+            "reason": "source_anchors=9 < 15"
+          },
+          {
+            "path": "practicalai/practical-ai-125.md",
+            "reason": "source_anchors=13 < 15"
+          },
+          {
+            "path": "practicalai/practical-ai-98.md",
+            "reason": "source_anchors=12 < 15"
+          },
+          {
+            "path": "practicalai/practical-ai-259.md",
+            "reason": "source_anchors=9 < 15"
+          },
+          {
+            "path": "practicalai/practical-ai-187.md",
+            "reason": "source_anchors=12 < 15"
+          },
+          {
+            "path": "practicalai/practical-ai-240.md",
+            "reason": "source_anchors=10 < 15"
+          },
+          {
+            "path": "practicalai/practical-ai-281.md",
+            "reason": "source_anchors=10 < 15"
+          },
+          {
+            "path": "practicalai/practical-ai-56.md",
+            "reason": "source_anchors=11 < 15"
+          },
+          {
+            "path": "practicalai/practical-ai-269.md",
+            "reason": "source_anchors=10 < 15"
+          },
+          {
+            "path": "practicalai/practical-ai-31.md",
+            "reason": "source_anchors=9 < 15"
+          },
+          {
+            "path": "practicalai/practical-ai-113.md",
+            "reason": "source_anchors=1 < 15"
+          },
+          {
+            "path": "practicalai/practical-ai-68.md",
+            "reason": "source_anchors=1 < 15"
+          },
+          {
+            "path": "practicalai/practical-ai-231.md",
+            "reason": "source_anchors=10 < 15"
+          },
+          {
+            "path": "practicalai/practical-ai-234.md",
+            "reason": "source_anchors=11 < 15"
+          },
+          {
+            "path": "practicalai/practical-ai-154.md",
+            "reason": "source_anchors=11 < 15"
+          }
+        ]
+      },
+      "changelog:shipit": {
+        "candidates": 135,
+        "quota": 2,
+        "selected": 2,
+        "examined": 3,
+        "rejected": [
+          {
+            "path": "shipit/ship-it-107.md",
+            "reason": "source_anchors=14 < 15"
+          }
+        ]
+      },
+      "changelog:friends": {
+        "candidates": 126,
+        "quota": 2,
+        "selected": 2,
+        "examined": 2,
+        "rejected": []
+      },
+      "changelog:founderstalk": {
+        "candidates": 50,
+        "quota": 2,
+        "selected": 2,
+        "examined": 4,
+        "rejected": [
+          {
+            "path": "founderstalk/founders-talk-97.md",
+            "reason": "source_anchors=13 < 15"
+          },
+          {
+            "path": "founderstalk/founders-talk-53.md",
+            "reason": "source_anchors=14 < 15"
+          }
+        ]
+      },
+      "changelog:brainscience": {
+        "candidates": 34,
+        "quota": 3,
+        "selected": 2,
+        "examined": 34,
+        "rejected": [
+          {
+            "path": "brainscience/brain-science-23.md",
+            "reason": "source_anchors=11 < 15"
+          },
+          {
+            "path": "brainscience/brain-science-19.md",
+            "reason": "source_anchors=10 < 15"
+          },
+          {
+            "path": "brainscience/brain-science-30.md",
+            "reason": "source_anchors=0 < 15"
+          },
+          {
+            "path": "brainscience/brain-science-29.md",
+            "reason": "source_anchors=0 < 15"
+          },
+          {
+            "path": "brainscience/brain-science-27.md",
+            "reason": "source_anchors=11 < 15"
+          },
+          {
+            "path": "brainscience/brain-science-12.md",
+            "reason": "source_anchors=10 < 15"
+          },
+          {
+            "path": "brainscience/brain-science-33.md",
+            "reason": "source_anchors=10 < 15"
+          },
+          {
+            "path": "brainscience/brain-science-26.md",
+            "reason": "source_anchors=10 < 15"
+          },
+          {
+            "path": "brainscience/brain-science-4.md",
+            "reason": "source_anchors=11 < 15"
+          },
+          {
+            "path": "brainscience/brain-science-1.md",
+            "reason": "source_anchors=11 < 15"
+          },
+          {
+            "path": "brainscience/brain-science-20.md",
+            "reason": "source_anchors=12 < 15"
+          },
+          {
+            "path": "brainscience/brain-science-13.md",
+            "reason": "source_anchors=10 < 15"
+          },
+          {
+            "path": "brainscience/brain-science-2.md",
+            "reason": "source_anchors=6 < 15"
+          },
+          {
+            "path": "brainscience/brain-science-11.md",
+            "reason": "source_anchors=13 < 15"
+          },
+          {
+            "path": "brainscience/brain-science-9.md",
+            "reason": "source_anchors=1 < 15"
+          },
+          {
+            "path": "brainscience/brain-science-21.md",
+            "reason": "source_anchors=13 < 15"
+          },
+          {
+            "path": "brainscience/brain-science-28.md",
+            "reason": "source_anchors=14 < 15"
+          },
+          {
+            "path": "brainscience/brain-science-10.md",
+            "reason": "source_anchors=12 < 15"
+          },
+          {
+            "path": "brainscience/brain-science-7.md",
+            "reason": "source_anchors=10 < 15"
+          },
+          {
+            "path": "brainscience/brain-science-34.md",
+            "reason": "source_anchors=8 < 15"
+          },
+          {
+            "path": "brainscience/brain-science-8.md",
+            "reason": "source_anchors=10 < 15"
+          },
+          {
+            "path": "brainscience/brain-science-6.md",
+            "reason": "source_anchors=12 < 15"
+          },
+          {
+            "path": "brainscience/brain-science-17.md",
+            "reason": "source_anchors=10 < 15"
+          },
+          {
+            "path": "brainscience/brain-science-22.md",
+            "reason": "source_anchors=12 < 15"
+          },
+          {
+            "path": "brainscience/brain-science-14.md",
+            "reason": "source_anchors=8 < 15"
+          },
+          {
+            "path": "brainscience/brain-science-31.md",
+            "reason": "source_anchors=12 < 15"
+          },
+          {
+            "path": "brainscience/brain-science-24.md",
+            "reason": "source_anchors=11 < 15"
+          },
+          {
+            "path": "brainscience/brain-science-16.md",
+            "reason": "source_anchors=9 < 15"
+          },
+          {
+            "path": "brainscience/brain-science-3.md",
+            "reason": "source_anchors=12 < 15"
+          },
+          {
+            "path": "brainscience/brain-science-5.md",
+            "reason": "source_anchors=12 < 15"
+          },
+          {
+            "path": "brainscience/brain-science-15.md",
+            "reason": "source_anchors=11 < 15"
+          },
+          {
+            "path": "brainscience/brain-science-18.md",
+            "reason": "source_anchors=12 < 15"
+          }
+        ]
+      },
+      "changelog:backstage": {
+        "candidates": 25,
+        "quota": 2,
+        "selected": 2,
+        "examined": 7,
+        "rejected": [
+          {
+            "path": "backstage/backstage-11.md",
+            "reason": "source_anchors=14 < 15"
+          },
+          {
+            "path": "backstage/backstage-15.md",
+            "reason": "source_anchors=6 < 15"
+          },
+          {
+            "path": "backstage/backstage-12.md",
+            "reason": "source_anchors=11 < 15"
+          },
+          {
+            "path": "backstage/backstage-19.md",
+            "reason": "words=20483 outside [3000, 20000]"
+          },
+          {
+            "path": "backstage/backstage-9.md",
+            "reason": "words=28993 outside [3000, 20000]"
+          }
+        ]
+      },
+      "talkpython:youtube_transcripts": {
+        "candidates": 237,
+        "quota": 7,
+        "selected": 7,
+        "examined": 7,
+        "rejected": []
+      }
+    }
+  },
+  "split": {
+    "strategy": "group_by_show",
+    "unit": "group_key (one show / creator)",
+    "fractions": {
+      "calibration": 0.1,
+      "dev": 0.3,
+      "test": 0.6
+    },
+    "seed": 20261015,
+    "assignment": {
+      "changelog:backstage": "dev",
+      "changelog:brainscience": "test",
+      "changelog:founderstalk": "dev",
+      "changelog:friends": "calibration",
+      "changelog:gotime": "dev",
+      "changelog:jsparty": "test",
+      "changelog:podcast": "test",
+      "changelog:practicalai": "dev",
+      "changelog:shipit": "test",
+      "talkpython": "test"
+    }
+  },
+  "sources": {
+    "changelog": {
+      "repo_url": "https://github.com/thechangelog/transcripts",
+      "commit": "44a0e16c5919d332e05de481919fbfca90a2c90b",
+      "license": "CC-BY-SA-4.0",
+      "license_url": "https://creativecommons.org/licenses/by-sa/4.0/",
+      "owner": "Changelog Media LLC",
+      "attribution": "Transcript © Changelog Media LLC, CC BY-SA 4.0, via github.com/thechangelog/transcripts",
+      "authorization_basis": "Publisher-distributed transcript under CC BY-SA 4.0 (repository README 'License & Copyright'); obtained from the publisher's own repository at a pinned commit",
+      "permitted_processing": [
+        "store",
+        "analyze",
+        "quote_excerpts_with_attribution",
+        "derive_metrics"
+      ],
+      "permitted_storage": "indefinite, with attribution; adaptations of the text must be CC BY-SA",
+      "restrictions": [
+        "attribution_required",
+        "share_alike_for_adaptations"
+      ],
+      "revocation_policy": "CC licences are irrevocable for obtained copies; honour publisher takedown requests by revoking the content source and withdrawing derived evaluations",
+      "excluded_prefixes": [
+        "bigtent/",
+        "news/",
+        "afk/",
+        "scripts/"
+      ],
+      "legal_review_notes": "Evaluations are treated as analysis, not adaptations of the text; confirm with counsel."
+    },
+    "talkpython": {
+      "repo_url": "https://github.com/mikeckennedy/talk-python-transcripts",
+      "commit": "accd851f0d3353bf2d3792969d7f334a4c4768b3",
+      "license": "GPL-3.0",
+      "license_url": "https://www.gnu.org/licenses/gpl-3.0.html",
+      "owner": "Michael Kennedy / Talk Python",
+      "attribution": "Transcript © Talk Python To Me (Michael Kennedy), GPL-3.0, via github.com/mikeckennedy/talk-python-transcripts",
+      "authorization_basis": "Creator-published transcripts (repository LICENSE GPL-3.0; README: 'Feel free to use the files to help you explore the conversations!'); obtained from the creator's repository at a pinned commit",
+      "permitted_processing": [
+        "store",
+        "analyze",
+        "quote_excerpts_with_attribution",
+        "derive_metrics"
+      ],
+      "permitted_storage": "indefinite; redistribution of the text itself must remain GPL-3.0",
+      "restrictions": [
+        "attribution_required",
+        "copyleft_for_redistributed_text"
+      ],
+      "revocation_policy": "Honour creator takedown requests by revoking the content source and withdrawing evaluations",
+      "excluded_prefixes": [],
+      "legal_review_notes": "GPL on prose transcripts is unusual; confirm the analysis use with counsel."
+    }
+  },
+  "items": [
+    {
+      "item_id": "chl_backstage_21",
+      "source": "changelog",
+      "path": "backstage/backstage-21.md",
+      "raw_url": "https://raw.githubusercontent.com/thechangelog/transcripts/44a0e16c5919d332e05de481919fbfca90a2c90b/backstage/backstage-21.md",
+      "provenance_url": "https://github.com/thechangelog/transcripts/blob/44a0e16c5919d332e05de481919fbfca90a2c90b/backstage/backstage-21.md",
+      "raw_sha256": "90c1946ebb2f768c148c353d6ea38f2ca27f86dd30f7e20d09dcd3aaa59436e5",
+      "content_hash": "1e2dd5a3fc4c49d88b4a97ffc906d29283b5b7bde6e0c4f2bb86350219426818",
+      "group_key": "changelog:backstage",
+      "show": "Backstage",
+      "episode": "21",
+      "title": "Backstage #21",
+      "title_source": "derived_from_path",
+      "platform": "changelog.com",
+      "external_url": "https://changelog.com/backstage/21",
+      "external_url_verified": "false",
+      "language": "en",
+      "words": 13768,
+      "segments": 310,
+      "transcript_duration_seconds": 4090.2,
+      "timing": "source_anchor_spans",
+      "source_anchors": 17,
+      "anchors_per_1k_words": 1.23,
+      "normalization": {
+        "removed_empty": 0,
+        "merged_duplicates": 0,
+        "fixed_overlaps": 0,
+        "reordered": false
+      },
+      "validation_issues": [
+        "timestamps_at_span_granularity"
+      ],
+      "split": "dev",
+      "stratum": {
+        "group": "changelog:backstage",
+        "topic_area": "media production (behind the scenes)",
+        "expected_format": "interview / discussion podcast",
+        "duration_bucket": "over_60m",
+        "length_bucket": "10k_plus_words",
+        "timing_granularity": "anchor_span"
+      }
+    },
+    {
+      "item_id": "chl_backstage_4",
+      "source": "changelog",
+      "path": "backstage/backstage-4.md",
+      "raw_url": "https://raw.githubusercontent.com/thechangelog/transcripts/44a0e16c5919d332e05de481919fbfca90a2c90b/backstage/backstage-4.md",
+      "provenance_url": "https://github.com/thechangelog/transcripts/blob/44a0e16c5919d332e05de481919fbfca90a2c90b/backstage/backstage-4.md",
+      "raw_sha256": "a54ef08633c512b1f845775a2c6080eda8dcc93cbe0f1b077ab332a9dd1b758c",
+      "content_hash": "a04c4539343142b295700e4de1b6f37cd6fa803ada0a3d444ddd6e1bcd086c87",
+      "group_key": "changelog:backstage",
+      "show": "Backstage",
+      "episode": "4",
+      "title": "Backstage #4",
+      "title_source": "derived_from_path",
+      "platform": "changelog.com",
+      "external_url": "https://changelog.com/backstage/4",
+      "external_url_verified": "false",
+      "language": "en",
+      "words": 10689,
+      "segments": 188,
+      "transcript_duration_seconds": 3534.0,
+      "timing": "source_anchor_spans",
+      "source_anchors": 15,
+      "anchors_per_1k_words": 1.4,
+      "normalization": {
+        "removed_empty": 0,
+        "merged_duplicates": 0,
+        "fixed_overlaps": 0,
+        "reordered": false
+      },
+      "validation_issues": [
+        "timestamps_at_span_granularity"
+      ],
+      "split": "dev",
+      "stratum": {
+        "group": "changelog:backstage",
+        "topic_area": "media production (behind the scenes)",
+        "expected_format": "interview / discussion podcast",
+        "duration_bucket": "30_60m",
+        "length_bucket": "10k_plus_words",
+        "timing_granularity": "anchor_span"
+      }
+    },
+    {
+      "item_id": "chl_brainscience_25",
+      "source": "changelog",
+      "path": "brainscience/brain-science-25.md",
+      "raw_url": "https://raw.githubusercontent.com/thechangelog/transcripts/44a0e16c5919d332e05de481919fbfca90a2c90b/brainscience/brain-science-25.md",
+      "provenance_url": "https://github.com/thechangelog/transcripts/blob/44a0e16c5919d332e05de481919fbfca90a2c90b/brainscience/brain-science-25.md",
+      "raw_sha256": "730bb603a8bd888af5676d5ec3e2513c470010ac03f0222c4f8bb64a967177b0",
+      "content_hash": "e1f4f0e112b3f66e5a9feffa45eb0a4c62e257b0951a38a30a5f2bf0a24e9f88",
+      "group_key": "changelog:brainscience",
+      "show": "Brain Science",
+      "episode": "25",
+      "title": "Brain Science #25",
+      "title_source": "derived_from_path",
+      "platform": "changelog.com",
+      "external_url": "https://changelog.com/brainscience/25",
+      "external_url_verified": "false",
+      "language": "en",
+      "words": 15845,
+      "segments": 434,
+      "transcript_duration_seconds": 5229.1,
+      "timing": "source_anchor_spans",
+      "source_anchors": 22,
+      "anchors_per_1k_words": 1.39,
+      "normalization": {
+        "removed_empty": 0,
+        "merged_duplicates": 0,
+        "fixed_overlaps": 0,
+        "reordered": false
+      },
+      "validation_issues": [
+        "timestamps_at_span_granularity"
+      ],
+      "split": "test",
+      "stratum": {
+        "group": "changelog:brainscience",
+        "topic_area": "psychology / neuroscience",
+        "expected_format": "interview / discussion podcast",
+        "duration_bucket": "over_60m",
+        "length_bucket": "10k_plus_words",
+        "timing_granularity": "anchor_span"
+      }
+    },
+    {
+      "item_id": "chl_brainscience_32",
+      "source": "changelog",
+      "path": "brainscience/brain-science-32.md",
+      "raw_url": "https://raw.githubusercontent.com/thechangelog/transcripts/44a0e16c5919d332e05de481919fbfca90a2c90b/brainscience/brain-science-32.md",
+      "provenance_url": "https://github.com/thechangelog/transcripts/blob/44a0e16c5919d332e05de481919fbfca90a2c90b/brainscience/brain-science-32.md",
+      "raw_sha256": "d1c8f179bfcb1895513060eaaa90d71489daab3e0f546d6e8dd875cc0db8b94b",
+      "content_hash": "fda150c860afe0179c097c2e64b64a571d3c4c52c2e00edd8ef2862ba636bb61",
+      "group_key": "changelog:brainscience",
+      "show": "Brain Science",
+      "episode": "32",
+      "title": "Brain Science #32",
+      "title_source": "derived_from_path",
+      "platform": "changelog.com",
+      "external_url": "https://changelog.com/brainscience/32",
+      "external_url_verified": "false",
+      "language": "en",
+      "words": 11549,
+      "segments": 156,
+      "transcript_duration_seconds": 3607.1,
+      "timing": "source_anchor_spans",
+      "source_anchors": 15,
+      "anchors_per_1k_words": 1.3,
+      "normalization": {
+        "removed_empty": 0,
+        "merged_duplicates": 0,
+        "fixed_overlaps": 0,
+        "reordered": false
+      },
+      "validation_issues": [
+        "timestamps_at_span_granularity"
+      ],
+      "split": "test",
+      "stratum": {
+        "group": "changelog:brainscience",
+        "topic_area": "psychology / neuroscience",
+        "expected_format": "interview / discussion podcast",
+        "duration_bucket": "over_60m",
+        "length_bucket": "10k_plus_words",
+        "timing_granularity": "anchor_span"
+      }
+    },
+    {
+      "item_id": "chl_founderstalk_58",
+      "source": "changelog",
+      "path": "founderstalk/founders-talk-58.md",
+      "raw_url": "https://raw.githubusercontent.com/thechangelog/transcripts/44a0e16c5919d332e05de481919fbfca90a2c90b/founderstalk/founders-talk-58.md",
+      "provenance_url": "https://github.com/thechangelog/transcripts/blob/44a0e16c5919d332e05de481919fbfca90a2c90b/founderstalk/founders-talk-58.md",
+      "raw_sha256": "74a98a2a16dccd3b4e856d9ba68178c8dea6023c420f54a3e8998d49f5a2f340",
+      "content_hash": "c7d78275fe1c80cfcd01be8331c452bb6edbba7494ffb2da309647bdc7ff27d1",
+      "group_key": "changelog:founderstalk",
+      "show": "Founders Talk",
+      "episode": "58",
+      "title": "Founders Talk #58",
+      "title_source": "derived_from_path",
+      "platform": "changelog.com",
+      "external_url": "https://changelog.com/founderstalk/58",
+      "external_url_verified": "false",
+      "language": "en",
+      "words": 10097,
+      "segments": 122,
+      "transcript_duration_seconds": 3852.1,
+      "timing": "source_anchor_spans",
+      "source_anchors": 17,
+      "anchors_per_1k_words": 1.68,
+      "normalization": {
+        "removed_empty": 0,
+        "merged_duplicates": 0,
+        "fixed_overlaps": 0,
+        "reordered": false
+      },
+      "validation_issues": [
+        "timestamps_at_span_granularity"
+      ],
+      "split": "dev",
+      "stratum": {
+        "group": "changelog:founderstalk",
+        "topic_area": "business / entrepreneurship",
+        "expected_format": "interview / discussion podcast",
+        "duration_bucket": "over_60m",
+        "length_bucket": "10k_plus_words",
+        "timing_granularity": "anchor_span"
+      }
+    },
+    {
+      "item_id": "chl_founderstalk_76",
+      "source": "changelog",
+      "path": "founderstalk/founders-talk-76.md",
+      "raw_url": "https://raw.githubusercontent.com/thechangelog/transcripts/44a0e16c5919d332e05de481919fbfca90a2c90b/founderstalk/founders-talk-76.md",
+      "provenance_url": "https://github.com/thechangelog/transcripts/blob/44a0e16c5919d332e05de481919fbfca90a2c90b/founderstalk/founders-talk-76.md",
+      "raw_sha256": "efe2fb35dcfe1b33324b26db61f0486bd6183304d15f862ca2d09efd3e402c04",
+      "content_hash": "b524581ef8bbc760d6251ce08d84bd3b47da5778ddd61081b90252a44c421bfe",
+      "group_key": "changelog:founderstalk",
+      "show": "Founders Talk",
+      "episode": "76",
+      "title": "Founders Talk #76",
+      "title_source": "derived_from_path",
+      "platform": "changelog.com",
+      "external_url": "https://changelog.com/founderstalk/76",
+      "external_url_verified": "false",
+      "language": "en",
+      "words": 10770,
+      "segments": 166,
+      "transcript_duration_seconds": 4013.2,
+      "timing": "source_anchor_spans",
+      "source_anchors": 17,
+      "anchors_per_1k_words": 1.58,
+      "normalization": {
+        "removed_empty": 0,
+        "merged_duplicates": 0,
+        "fixed_overlaps": 0,
+        "reordered": false
+      },
+      "validation_issues": [
+        "timestamps_at_span_granularity"
+      ],
+      "split": "dev",
+      "stratum": {
+        "group": "changelog:founderstalk",
+        "topic_area": "business / entrepreneurship",
+        "expected_format": "interview / discussion podcast",
+        "duration_bucket": "over_60m",
+        "length_bucket": "10k_plus_words",
+        "timing_granularity": "anchor_span"
+      }
+    },
+    {
+      "item_id": "chl_friends_37",
+      "source": "changelog",
+      "path": "friends/changelog--friends-37.md",
+      "raw_url": "https://raw.githubusercontent.com/thechangelog/transcripts/44a0e16c5919d332e05de481919fbfca90a2c90b/friends/changelog--friends-37.md",
+      "provenance_url": "https://github.com/thechangelog/transcripts/blob/44a0e16c5919d332e05de481919fbfca90a2c90b/friends/changelog--friends-37.md",
+      "raw_sha256": "537eb1473f3d52b9aa0a4a5d1e72477ad2dc95f18303dc93fafe8bc0818ed2a2",
+      "content_hash": "aca3da44bea616bcdbfb7e9d357859759d48071b6b99f90bb739570a34ee3e4c",
+      "group_key": "changelog:friends",
+      "show": "Changelog & Friends",
+      "episode": "37",
+      "title": "Changelog & Friends #37",
+      "title_source": "derived_from_path",
+      "platform": "changelog.com",
+      "external_url": "https://changelog.com/friends/37",
+      "external_url_verified": "false",
+      "language": "en",
+      "words": 10769,
+      "segments": 158,
+      "transcript_duration_seconds": 4076.3,
+      "timing": "source_anchor_spans",
+      "source_anchors": 16,
+      "anchors_per_1k_words": 1.49,
+      "normalization": {
+        "removed_empty": 0,
+        "merged_duplicates": 0,
+        "fixed_overlaps": 0,
+        "reordered": false
+      },
+      "validation_issues": [
+        "timestamps_at_span_granularity"
+      ],
+      "split": "calibration",
+      "stratum": {
+        "group": "changelog:friends",
+        "topic_area": "tech culture (casual conversation)",
+        "expected_format": "interview / discussion podcast",
+        "duration_bucket": "over_60m",
+        "length_bucket": "10k_plus_words",
+        "timing_granularity": "anchor_span"
+      }
+    },
+    {
+      "item_id": "chl_friends_67",
+      "source": "changelog",
+      "path": "friends/changelog--friends-67.md",
+      "raw_url": "https://raw.githubusercontent.com/thechangelog/transcripts/44a0e16c5919d332e05de481919fbfca90a2c90b/friends/changelog--friends-67.md",
+      "provenance_url": "https://github.com/thechangelog/transcripts/blob/44a0e16c5919d332e05de481919fbfca90a2c90b/friends/changelog--friends-67.md",
+      "raw_sha256": "b677f7e646fda6f3ea8bc32f833bb940b2a011e8a11ab50afa619c94f4d0da35",
+      "content_hash": "8849c3a52594c54fe11527319f56a214edc05c5d7daf748395575c01a4a6a3c0",
+      "group_key": "changelog:friends",
+      "show": "Changelog & Friends",
+      "episode": "67",
+      "title": "Changelog & Friends #67",
+      "title_source": "derived_from_path",
+      "platform": "changelog.com",
+      "external_url": "https://changelog.com/friends/67",
+      "external_url_verified": "false",
+      "language": "en",
+      "words": 18251,
+      "segments": 308,
+      "transcript_duration_seconds": 5871.0,
+      "timing": "source_anchor_spans",
+      "source_anchors": 23,
+      "anchors_per_1k_words": 1.26,
+      "normalization": {
+        "removed_empty": 0,
+        "merged_duplicates": 0,
+        "fixed_overlaps": 0,
+        "reordered": false
+      },
+      "validation_issues": [
+        "timestamps_at_span_granularity"
+      ],
+      "split": "calibration",
+      "stratum": {
+        "group": "changelog:friends",
+        "topic_area": "tech culture (casual conversation)",
+        "expected_format": "interview / discussion podcast",
+        "duration_bucket": "over_60m",
+        "length_bucket": "10k_plus_words",
+        "timing_granularity": "anchor_span"
+      }
+    },
+    {
+      "item_id": "chl_gotime_179",
+      "source": "changelog",
+      "path": "gotime/go-time-179.md",
+      "raw_url": "https://raw.githubusercontent.com/thechangelog/transcripts/44a0e16c5919d332e05de481919fbfca90a2c90b/gotime/go-time-179.md",
+      "provenance_url": "https://github.com/thechangelog/transcripts/blob/44a0e16c5919d332e05de481919fbfca90a2c90b/gotime/go-time-179.md",
+      "raw_sha256": "425fcbbad168d1a18c9ec8286af9f8f55b9af9e9a3651aa607f20f63cfb3ffd6",
+      "content_hash": "b2c628c21ff8092d3fe2860b5cc0b29593988970975ac83e1535315921b89a57",
+      "group_key": "changelog:gotime",
+      "show": "Go Time",
+      "episode": "179",
+      "title": "Go Time #179",
+      "title_source": "derived_from_path",
+      "platform": "changelog.com",
+      "external_url": "https://changelog.com/gotime/179",
+      "external_url_verified": "false",
+      "language": "en",
+      "words": 12462,
+      "segments": 161,
+      "transcript_duration_seconds": 3861.2,
+      "timing": "source_anchor_spans",
+      "source_anchors": 18,
+      "anchors_per_1k_words": 1.44,
+      "normalization": {
+        "removed_empty": 0,
+        "merged_duplicates": 0,
+        "fixed_overlaps": 0,
+        "reordered": false
+      },
+      "validation_issues": [
+        "timestamps_at_span_granularity"
+      ],
+      "split": "dev",
+      "stratum": {
+        "group": "changelog:gotime",
+        "topic_area": "Go programming",
+        "expected_format": "interview / discussion podcast",
+        "duration_bucket": "over_60m",
+        "length_bucket": "10k_plus_words",
+        "timing_granularity": "anchor_span"
+      }
+    },
+    {
+      "item_id": "chl_gotime_226",
+      "source": "changelog",
+      "path": "gotime/go-time-226.md",
+      "raw_url": "https://raw.githubusercontent.com/thechangelog/transcripts/44a0e16c5919d332e05de481919fbfca90a2c90b/gotime/go-time-226.md",
+      "provenance_url": "https://github.com/thechangelog/transcripts/blob/44a0e16c5919d332e05de481919fbfca90a2c90b/gotime/go-time-226.md",
+      "raw_sha256": "fd3be434368ded78a47d5ecf129520ea20cd5a03891f1d6517fbb9d33a1d0c00",
+      "content_hash": "185bcd6300c2d0b86a71a4bb3d43323844cf790b2efdf864d516123f5555a3db",
+      "group_key": "changelog:gotime",
+      "show": "Go Time",
+      "episode": "226",
+      "title": "Go Time #226",
+      "title_source": "derived_from_path",
+      "platform": "changelog.com",
+      "external_url": "https://changelog.com/gotime/226",
+      "external_url_verified": "false",
+      "language": "en",
+      "words": 9131,
+      "segments": 175,
+      "transcript_duration_seconds": 3595.0,
+      "timing": "source_anchor_spans",
+      "source_anchors": 19,
+      "anchors_per_1k_words": 2.08,
+      "normalization": {
+        "removed_empty": 0,
+        "merged_duplicates": 0,
+        "fixed_overlaps": 0,
+        "reordered": false
+      },
+      "validation_issues": [
+        "timestamps_at_span_granularity"
+      ],
+      "split": "dev",
+      "stratum": {
+        "group": "changelog:gotime",
+        "topic_area": "Go programming",
+        "expected_format": "interview / discussion podcast",
+        "duration_bucket": "30_60m",
+        "length_bucket": "6k_10k_words",
+        "timing_granularity": "anchor_span"
+      }
+    },
+    {
+      "item_id": "chl_gotime_47",
+      "source": "changelog",
+      "path": "gotime/go-time-47.md",
+      "raw_url": "https://raw.githubusercontent.com/thechangelog/transcripts/44a0e16c5919d332e05de481919fbfca90a2c90b/gotime/go-time-47.md",
+      "provenance_url": "https://github.com/thechangelog/transcripts/blob/44a0e16c5919d332e05de481919fbfca90a2c90b/gotime/go-time-47.md",
+      "raw_sha256": "535072139afa1d80ce103f8b6dfe948d756068783a01f23f721476e84abe0c09",
+      "content_hash": "d831f3d6dbf19b0edbbf1f9c78de768624ac49768ea84893bebe387ebc04e5f3",
+      "group_key": "changelog:gotime",
+      "show": "Go Time",
+      "episode": "47",
+      "title": "Go Time #47",
+      "title_source": "derived_from_path",
+      "platform": "changelog.com",
+      "external_url": "https://changelog.com/gotime/47",
+      "external_url_verified": "false",
+      "language": "en",
+      "words": 11908,
+      "segments": 206,
+      "transcript_duration_seconds": 4027.2,
+      "timing": "source_anchor_spans",
+      "source_anchors": 17,
+      "anchors_per_1k_words": 1.43,
+      "normalization": {
+        "removed_empty": 0,
+        "merged_duplicates": 0,
+        "fixed_overlaps": 0,
+        "reordered": false
+      },
+      "validation_issues": [
+        "timestamps_at_span_granularity"
+      ],
+      "split": "dev",
+      "stratum": {
+        "group": "changelog:gotime",
+        "topic_area": "Go programming",
+        "expected_format": "interview / discussion podcast",
+        "duration_bucket": "over_60m",
+        "length_bucket": "10k_plus_words",
+        "timing_granularity": "anchor_span"
+      }
+    },
+    {
+      "item_id": "chl_jsparty_114",
+      "source": "changelog",
+      "path": "jsparty/js-party-114.md",
+      "raw_url": "https://raw.githubusercontent.com/thechangelog/transcripts/44a0e16c5919d332e05de481919fbfca90a2c90b/jsparty/js-party-114.md",
+      "provenance_url": "https://github.com/thechangelog/transcripts/blob/44a0e16c5919d332e05de481919fbfca90a2c90b/jsparty/js-party-114.md",
+      "raw_sha256": "ac5a693ca252e09ad158e7ab10d1ca4858cf22e220ab94eb51613a8c36d9dc5d",
+      "content_hash": "0f58781e6a6e3b2adc855d812723a4035612de0914a899037de7e769d21d44a2",
+      "group_key": "changelog:jsparty",
+      "show": "JS Party",
+      "episode": "114",
+      "title": "JS Party #114",
+      "title_source": "derived_from_path",
+      "platform": "changelog.com",
+      "external_url": "https://changelog.com/jsparty/114",
+      "external_url_verified": "false",
+      "language": "en",
+      "words": 9777,
+      "segments": 132,
+      "transcript_duration_seconds": 3356.0,
+      "timing": "source_anchor_spans",
+      "source_anchors": 15,
+      "anchors_per_1k_words": 1.53,
+      "normalization": {
+        "removed_empty": 0,
+        "merged_duplicates": 0,
+        "fixed_overlaps": 0,
+        "reordered": false
+      },
+      "validation_issues": [
+        "timestamps_at_span_granularity"
+      ],
+      "split": "test",
+      "stratum": {
+        "group": "changelog:jsparty",
+        "topic_area": "web / JavaScript",
+        "expected_format": "interview / discussion podcast",
+        "duration_bucket": "30_60m",
+        "length_bucket": "6k_10k_words",
+        "timing_granularity": "anchor_span"
+      }
+    },
+    {
+      "item_id": "chl_jsparty_187",
+      "source": "changelog",
+      "path": "jsparty/js-party-187.md",
+      "raw_url": "https://raw.githubusercontent.com/thechangelog/transcripts/44a0e16c5919d332e05de481919fbfca90a2c90b/jsparty/js-party-187.md",
+      "provenance_url": "https://github.com/thechangelog/transcripts/blob/44a0e16c5919d332e05de481919fbfca90a2c90b/jsparty/js-party-187.md",
+      "raw_sha256": "abd4bce2bd11c5ce9bfdd2c5bcf7f3e14ece225e92800f0b1c3a3257a719974e",
+      "content_hash": "529ee4f323ddd0783c0d4d95f3a030b856417378cdee7afc77d866a74587da10",
+      "group_key": "changelog:jsparty",
+      "show": "JS Party",
+      "episode": "187",
+      "title": "JS Party #187",
+      "title_source": "derived_from_path",
+      "platform": "changelog.com",
+      "external_url": "https://changelog.com/jsparty/187",
+      "external_url_verified": "false",
+      "language": "en",
+      "words": 10336,
+      "segments": 261,
+      "transcript_duration_seconds": 3293.0,
+      "timing": "source_anchor_spans",
+      "source_anchors": 15,
+      "anchors_per_1k_words": 1.45,
+      "normalization": {
+        "removed_empty": 0,
+        "merged_duplicates": 0,
+        "fixed_overlaps": 0,
+        "reordered": false
+      },
+      "validation_issues": [
+        "timestamps_at_span_granularity"
+      ],
+      "split": "test",
+      "stratum": {
+        "group": "changelog:jsparty",
+        "topic_area": "web / JavaScript",
+        "expected_format": "interview / discussion podcast",
+        "duration_bucket": "30_60m",
+        "length_bucket": "10k_plus_words",
+        "timing_granularity": "anchor_span"
+      }
+    },
+    {
+      "item_id": "chl_jsparty_191",
+      "source": "changelog",
+      "path": "jsparty/js-party-191.md",
+      "raw_url": "https://raw.githubusercontent.com/thechangelog/transcripts/44a0e16c5919d332e05de481919fbfca90a2c90b/jsparty/js-party-191.md",
+      "provenance_url": "https://github.com/thechangelog/transcripts/blob/44a0e16c5919d332e05de481919fbfca90a2c90b/jsparty/js-party-191.md",
+      "raw_sha256": "e3fe49eda744bfb9cfa138534971dcc301cfe695a02078fa4f1dc7e495d8ba0c",
+      "content_hash": "5efc4f6ae059221b6e93570b3c4bf29f5cb4b0c27bc006ba6476f8b2a5bc59fd",
+      "group_key": "changelog:jsparty",
+      "show": "JS Party",
+      "episode": "191",
+      "title": "JS Party #191",
+      "title_source": "derived_from_path",
+      "platform": "changelog.com",
+      "external_url": "https://changelog.com/jsparty/191",
+      "external_url_verified": "false",
+      "language": "en",
+      "words": 10884,
+      "segments": 222,
+      "transcript_duration_seconds": 3601.2,
+      "timing": "source_anchor_spans",
+      "source_anchors": 15,
+      "anchors_per_1k_words": 1.38,
+      "normalization": {
+        "removed_empty": 0,
+        "merged_duplicates": 0,
+        "fixed_overlaps": 0,
+        "reordered": false
+      },
+      "validation_issues": [
+        "timestamps_at_span_granularity"
+      ],
+      "split": "test",
+      "stratum": {
+        "group": "changelog:jsparty",
+        "topic_area": "web / JavaScript",
+        "expected_format": "interview / discussion podcast",
+        "duration_bucket": "over_60m",
+        "length_bucket": "10k_plus_words",
+        "timing_granularity": "anchor_span"
+      }
+    },
+    {
+      "item_id": "chl_podcast_232",
+      "source": "changelog",
+      "path": "podcast/the-changelog-232.md",
+      "raw_url": "https://raw.githubusercontent.com/thechangelog/transcripts/44a0e16c5919d332e05de481919fbfca90a2c90b/podcast/the-changelog-232.md",
+      "provenance_url": "https://github.com/thechangelog/transcripts/blob/44a0e16c5919d332e05de481919fbfca90a2c90b/podcast/the-changelog-232.md",
+      "raw_sha256": "990a276afcd44494aa8f5eb4993e6ce6d30bf95957908ecd6f477024f1d2e38c",
+      "content_hash": "f6847debd2469ded19016d3c16427ca1d5a5d5f20529e2e1886acad68fdd5160",
+      "group_key": "changelog:podcast",
+      "show": "The Changelog",
+      "episode": "232",
+      "title": "The Changelog #232",
+      "title_source": "derived_from_path",
+      "platform": "changelog.com",
+      "external_url": "https://changelog.com/podcast/232",
+      "external_url_verified": "false",
+      "language": "en",
+      "words": 13500,
+      "segments": 284,
+      "transcript_duration_seconds": 4798.1,
+      "timing": "source_anchor_spans",
+      "source_anchors": 22,
+      "anchors_per_1k_words": 1.63,
+      "normalization": {
+        "removed_empty": 0,
+        "merged_duplicates": 0,
+        "fixed_overlaps": 0,
+        "reordered": false
+      },
+      "validation_issues": [
+        "timestamps_at_span_granularity"
+      ],
+      "split": "test",
+      "stratum": {
+        "group": "changelog:podcast",
+        "topic_area": "software engineering (general)",
+        "expected_format": "interview / discussion podcast",
+        "duration_bucket": "over_60m",
+        "length_bucket": "10k_plus_words",
+        "timing_granularity": "anchor_span"
+      }
+    },
+    {
+      "item_id": "chl_podcast_445",
+      "source": "changelog",
+      "path": "podcast/the-changelog-445.md",
+      "raw_url": "https://raw.githubusercontent.com/thechangelog/transcripts/44a0e16c5919d332e05de481919fbfca90a2c90b/podcast/the-changelog-445.md",
+      "provenance_url": "https://github.com/thechangelog/transcripts/blob/44a0e16c5919d332e05de481919fbfca90a2c90b/podcast/the-changelog-445.md",
+      "raw_sha256": "bf4f3aeed65a749c1c6e1a872681a213529376777082dee2d1751e93164fa25a",
+      "content_hash": "7715d8813db08d87580b7a7db0ddc1dccbeeda92491955c44d9cc5158d0756f9",
+      "group_key": "changelog:podcast",
+      "show": "The Changelog",
+      "episode": "445",
+      "title": "The Changelog #445",
+      "title_source": "derived_from_path",
+      "platform": "changelog.com",
+      "external_url": "https://changelog.com/podcast/445",
+      "external_url_verified": "false",
+      "language": "en",
+      "words": 10547,
+      "segments": 266,
+      "transcript_duration_seconds": 3367.0,
+      "timing": "source_anchor_spans",
+      "source_anchors": 16,
+      "anchors_per_1k_words": 1.52,
+      "normalization": {
+        "removed_empty": 0,
+        "merged_duplicates": 0,
+        "fixed_overlaps": 0,
+        "reordered": false
+      },
+      "validation_issues": [
+        "timestamps_at_span_granularity"
+      ],
+      "split": "test",
+      "stratum": {
+        "group": "changelog:podcast",
+        "topic_area": "software engineering (general)",
+        "expected_format": "interview / discussion podcast",
+        "duration_bucket": "30_60m",
+        "length_bucket": "10k_plus_words",
+        "timing_granularity": "anchor_span"
+      }
+    },
+    {
+      "item_id": "chl_podcast_644",
+      "source": "changelog",
+      "path": "podcast/the-changelog-644.md",
+      "raw_url": "https://raw.githubusercontent.com/thechangelog/transcripts/44a0e16c5919d332e05de481919fbfca90a2c90b/podcast/the-changelog-644.md",
+      "provenance_url": "https://github.com/thechangelog/transcripts/blob/44a0e16c5919d332e05de481919fbfca90a2c90b/podcast/the-changelog-644.md",
+      "raw_sha256": "e62a5a6cf49e212eebd2010d81bfcb1a5b180ab0f983bb8aaea11644ea2852e7",
+      "content_hash": "c2619e6cc1bf80933525d9be32a9372073aa7a556c985cbcceb9e0b88c19e477",
+      "group_key": "changelog:podcast",
+      "show": "The Changelog",
+      "episode": "644",
+      "title": "The Changelog #644",
+      "title_source": "derived_from_path",
+      "platform": "changelog.com",
+      "external_url": "https://changelog.com/podcast/644",
+      "external_url_verified": "false",
+      "language": "en",
+      "words": 11904,
+      "segments": 343,
+      "transcript_duration_seconds": 4079.2,
+      "timing": "source_anchor_spans",
+      "source_anchors": 15,
+      "anchors_per_1k_words": 1.26,
+      "normalization": {
+        "removed_empty": 0,
+        "merged_duplicates": 0,
+        "fixed_overlaps": 0,
+        "reordered": false
+      },
+      "validation_issues": [
+        "timestamps_at_span_granularity"
+      ],
+      "split": "test",
+      "stratum": {
+        "group": "changelog:podcast",
+        "topic_area": "software engineering (general)",
+        "expected_format": "interview / discussion podcast",
+        "duration_bucket": "over_60m",
+        "length_bucket": "10k_plus_words",
+        "timing_granularity": "anchor_span"
+      }
+    },
+    {
+      "item_id": "chl_practicalai_100",
+      "source": "changelog",
+      "path": "practicalai/practical-ai-100.md",
+      "raw_url": "https://raw.githubusercontent.com/thechangelog/transcripts/44a0e16c5919d332e05de481919fbfca90a2c90b/practicalai/practical-ai-100.md",
+      "provenance_url": "https://github.com/thechangelog/transcripts/blob/44a0e16c5919d332e05de481919fbfca90a2c90b/practicalai/practical-ai-100.md",
+      "raw_sha256": "b0f1a2ceda250f6474ec68e918d4d91823c8876c6519d0f11fcf5a58174b2e97",
+      "content_hash": "8227d199e793cee9679ff55d46b9f5925899af91e0d4c660b1bbf351787bcce5",
+      "group_key": "changelog:practicalai",
+      "show": "Practical AI",
+      "episode": "100",
+      "title": "Practical AI #100",
+      "title_source": "derived_from_path",
+      "platform": "changelog.com",
+      "external_url": "https://changelog.com/practicalai/100",
+      "external_url_verified": "false",
+      "language": "en",
+      "words": 12088,
+      "segments": 309,
+      "transcript_duration_seconds": 4104.2,
+      "timing": "source_anchor_spans",
+      "source_anchors": 19,
+      "anchors_per_1k_words": 1.57,
+      "normalization": {
+        "removed_empty": 0,
+        "merged_duplicates": 0,
+        "fixed_overlaps": 0,
+        "reordered": false
+      },
+      "validation_issues": [
+        "timestamps_at_span_granularity"
+      ],
+      "split": "dev",
+      "stratum": {
+        "group": "changelog:practicalai",
+        "topic_area": "AI / machine learning",
+        "expected_format": "interview / discussion podcast",
+        "duration_bucket": "over_60m",
+        "length_bucket": "10k_plus_words",
+        "timing_granularity": "anchor_span"
+      }
+    },
+    {
+      "item_id": "chl_practicalai_178",
+      "source": "changelog",
+      "path": "practicalai/practical-ai-178.md",
+      "raw_url": "https://raw.githubusercontent.com/thechangelog/transcripts/44a0e16c5919d332e05de481919fbfca90a2c90b/practicalai/practical-ai-178.md",
+      "provenance_url": "https://github.com/thechangelog/transcripts/blob/44a0e16c5919d332e05de481919fbfca90a2c90b/practicalai/practical-ai-178.md",
+      "raw_sha256": "52eb08908b058dea0fcadf0631468a8a8bdfc2134cf59efc0a980aa87e933687",
+      "content_hash": "18644704784d94810e70d6f2fcc19f74bf72f8017dc43d4e0f739f3f638cb04f",
+      "group_key": "changelog:practicalai",
+      "show": "Practical AI",
+      "episode": "178",
+      "title": "Practical AI #178",
+      "title_source": "derived_from_path",
+      "platform": "changelog.com",
+      "external_url": "https://changelog.com/practicalai/178",
+      "external_url_verified": "false",
+      "language": "en",
+      "words": 9062,
+      "segments": 112,
+      "transcript_duration_seconds": 2949.0,
+      "timing": "source_anchor_spans",
+      "source_anchors": 15,
+      "anchors_per_1k_words": 1.66,
+      "normalization": {
+        "removed_empty": 0,
+        "merged_duplicates": 0,
+        "fixed_overlaps": 0,
+        "reordered": false
+      },
+      "validation_issues": [
+        "timestamps_at_span_granularity"
+      ],
+      "split": "dev",
+      "stratum": {
+        "group": "changelog:practicalai",
+        "topic_area": "AI / machine learning",
+        "expected_format": "interview / discussion podcast",
+        "duration_bucket": "30_60m",
+        "length_bucket": "6k_10k_words",
+        "timing_granularity": "anchor_span"
+      }
+    },
+    {
+      "item_id": "chl_practicalai_65",
+      "source": "changelog",
+      "path": "practicalai/practical-ai-65.md",
+      "raw_url": "https://raw.githubusercontent.com/thechangelog/transcripts/44a0e16c5919d332e05de481919fbfca90a2c90b/practicalai/practical-ai-65.md",
+      "provenance_url": "https://github.com/thechangelog/transcripts/blob/44a0e16c5919d332e05de481919fbfca90a2c90b/practicalai/practical-ai-65.md",
+      "raw_sha256": "276b8ab1bf97607d4ef79d0abc0acfca52f92f05cc4d9c93fd1b692107cfdc09",
+      "content_hash": "7b35b246fa43d983442e9486c5c7d400f53dd9c6f09e4aa6170f91ee3c3b37fe",
+      "group_key": "changelog:practicalai",
+      "show": "Practical AI",
+      "episode": "65",
+      "title": "Practical AI #65",
+      "title_source": "derived_from_path",
+      "platform": "changelog.com",
+      "external_url": "https://changelog.com/practicalai/65",
+      "external_url_verified": "false",
+      "language": "en",
+      "words": 9445,
+      "segments": 128,
+      "transcript_duration_seconds": 3125.0,
+      "timing": "source_anchor_spans",
+      "source_anchors": 15,
+      "anchors_per_1k_words": 1.59,
+      "normalization": {
+        "removed_empty": 0,
+        "merged_duplicates": 0,
+        "fixed_overlaps": 0,
+        "reordered": false
+      },
+      "validation_issues": [
+        "timestamps_at_span_granularity"
+      ],
+      "split": "dev",
+      "stratum": {
+        "group": "changelog:practicalai",
+        "topic_area": "AI / machine learning",
+        "expected_format": "interview / discussion podcast",
+        "duration_bucket": "30_60m",
+        "length_bucket": "6k_10k_words",
+        "timing_granularity": "anchor_span"
+      }
+    },
+    {
+      "item_id": "chl_shipit_37",
+      "source": "changelog",
+      "path": "shipit/ship-it-37.md",
+      "raw_url": "https://raw.githubusercontent.com/thechangelog/transcripts/44a0e16c5919d332e05de481919fbfca90a2c90b/shipit/ship-it-37.md",
+      "provenance_url": "https://github.com/thechangelog/transcripts/blob/44a0e16c5919d332e05de481919fbfca90a2c90b/shipit/ship-it-37.md",
+      "raw_sha256": "d587de31b3e0035bacf7e8410a00902585fd092933989db7c6a643c45d9a7195",
+      "content_hash": "a30c4478ff08df1064d5702f24bb535d0c57e0c52439a6e2b993d915a782bb0a",
+      "group_key": "changelog:shipit",
+      "show": "Ship It!",
+      "episode": "37",
+      "title": "Ship It! #37",
+      "title_source": "derived_from_path",
+      "platform": "changelog.com",
+      "external_url": "https://changelog.com/shipit/37",
+      "external_url_verified": "false",
+      "language": "en",
+      "words": 11360,
+      "segments": 186,
+      "transcript_duration_seconds": 3578.0,
+      "timing": "source_anchor_spans",
+      "source_anchors": 16,
+      "anchors_per_1k_words": 1.41,
+      "normalization": {
+        "removed_empty": 0,
+        "merged_duplicates": 0,
+        "fixed_overlaps": 0,
+        "reordered": false
+      },
+      "validation_issues": [
+        "timestamps_at_span_granularity"
+      ],
+      "split": "test",
+      "stratum": {
+        "group": "changelog:shipit",
+        "topic_area": "infrastructure / operations",
+        "expected_format": "interview / discussion podcast",
+        "duration_bucket": "30_60m",
+        "length_bucket": "10k_plus_words",
+        "timing_granularity": "anchor_span"
+      }
+    },
+    {
+      "item_id": "chl_shipit_73",
+      "source": "changelog",
+      "path": "shipit/ship-it-73.md",
+      "raw_url": "https://raw.githubusercontent.com/thechangelog/transcripts/44a0e16c5919d332e05de481919fbfca90a2c90b/shipit/ship-it-73.md",
+      "provenance_url": "https://github.com/thechangelog/transcripts/blob/44a0e16c5919d332e05de481919fbfca90a2c90b/shipit/ship-it-73.md",
+      "raw_sha256": "b9dd65918f95125820a0e4c44362cf3201147d72fc5ea94105f32f153badf3b4",
+      "content_hash": "5b8da68dc235d9b902516c3d25f650b5839844bd32eb4a9b8959daf78ed44901",
+      "group_key": "changelog:shipit",
+      "show": "Ship It!",
+      "episode": "73",
+      "title": "Ship It! #73",
+      "title_source": "derived_from_path",
+      "platform": "changelog.com",
+      "external_url": "https://changelog.com/shipit/73",
+      "external_url_verified": "false",
+      "language": "en",
+      "words": 13372,
+      "segments": 201,
+      "transcript_duration_seconds": 4443.1,
+      "timing": "source_anchor_spans",
+      "source_anchors": 19,
+      "anchors_per_1k_words": 1.42,
+      "normalization": {
+        "removed_empty": 0,
+        "merged_duplicates": 0,
+        "fixed_overlaps": 0,
+        "reordered": false
+      },
+      "validation_issues": [
+        "timestamps_at_span_granularity"
+      ],
+      "split": "test",
+      "stratum": {
+        "group": "changelog:shipit",
+        "topic_area": "infrastructure / operations",
+        "expected_format": "interview / discussion podcast",
+        "duration_bucket": "over_60m",
+        "length_bucket": "10k_plus_words",
+        "timing_granularity": "anchor_span"
+      }
+    },
+    {
+      "item_id": "tpy_418",
+      "source": "talkpython",
+      "path": "youtube_transcripts/418-secrets.vtt",
+      "raw_url": "https://raw.githubusercontent.com/mikeckennedy/talk-python-transcripts/accd851f0d3353bf2d3792969d7f334a4c4768b3/youtube_transcripts/418-secrets.vtt",
+      "provenance_url": "https://github.com/mikeckennedy/talk-python-transcripts/blob/accd851f0d3353bf2d3792969d7f334a4c4768b3/youtube_transcripts/418-secrets.vtt",
+      "raw_sha256": "916beb5277b0acef475d6fa44411f95ccd56a2ac181da590a9a822521956b9f7",
+      "content_hash": "d8fc950b154267bc011b8f7d2344d31ee661b3b9dd9fbea24ca7d0ec274dd5d1",
+      "group_key": "talkpython",
+      "show": "Talk Python To Me",
+      "episode": "418",
+      "title": "Secrets",
+      "title_source": "creator_file_slug",
+      "platform": "talkpython.fm",
+      "external_url": "https://talkpython.fm/episodes/show/418",
+      "external_url_verified": "false",
+      "edition": "youtube",
+      "language": "en",
+      "words": 12579,
+      "segments": 143,
+      "transcript_duration_seconds": 4238.3,
+      "timing": "source_cues_consolidated",
+      "source_anchors": 1276,
+      "anchors_per_1k_words": 101.44,
+      "normalization": {
+        "removed_empty": 0,
+        "merged_duplicates": 0,
+        "fixed_overlaps": 0,
+        "reordered": false
+      },
+      "validation_issues": [],
+      "split": "test",
+      "stratum": {
+        "group": "talkpython",
+        "topic_area": "Python programming",
+        "expected_format": "interview / discussion podcast",
+        "duration_bucket": "over_60m",
+        "length_bucket": "10k_plus_words",
+        "timing_granularity": "cue"
+      }
+    },
+    {
+      "item_id": "tpy_420",
+      "source": "talkpython",
+      "path": "youtube_transcripts/420-isolation-and-consistency.vtt",
+      "raw_url": "https://raw.githubusercontent.com/mikeckennedy/talk-python-transcripts/accd851f0d3353bf2d3792969d7f334a4c4768b3/youtube_transcripts/420-isolation-and-consistency.vtt",
+      "provenance_url": "https://github.com/mikeckennedy/talk-python-transcripts/blob/accd851f0d3353bf2d3792969d7f334a4c4768b3/youtube_transcripts/420-isolation-and-consistency.vtt",
+      "raw_sha256": "e384036352c6f446318bdc2b697433bde4c420e1f189fea54bc0c1dd67fb0c96",
+      "content_hash": "dd4b114fda864350222904b5f78128854bf702aeaccb02acdc79d8f6f1d7d235",
+      "group_key": "talkpython",
+      "show": "Talk Python To Me",
+      "episode": "420",
+      "title": "Isolation and consistency",
+      "title_source": "creator_file_slug",
+      "platform": "talkpython.fm",
+      "external_url": "https://talkpython.fm/episodes/show/420",
+      "external_url_verified": "false",
+      "edition": "youtube",
+      "language": "en",
+      "words": 8146,
+      "segments": 145,
+      "transcript_duration_seconds": 3696.3,
+      "timing": "source_cues_consolidated",
+      "source_anchors": 1057,
+      "anchors_per_1k_words": 129.76,
+      "normalization": {
+        "removed_empty": 0,
+        "merged_duplicates": 0,
+        "fixed_overlaps": 0,
+        "reordered": false
+      },
+      "validation_issues": [],
+      "split": "test",
+      "stratum": {
+        "group": "talkpython",
+        "topic_area": "Python programming",
+        "expected_format": "interview / discussion podcast",
+        "duration_bucket": "over_60m",
+        "length_bucket": "6k_10k_words",
+        "timing_granularity": "cue"
+      }
+    },
+    {
+      "item_id": "tpy_444",
+      "source": "talkpython",
+      "path": "youtube_transcripts/444-young-success-blueprint.vtt",
+      "raw_url": "https://raw.githubusercontent.com/mikeckennedy/talk-python-transcripts/accd851f0d3353bf2d3792969d7f334a4c4768b3/youtube_transcripts/444-young-success-blueprint.vtt",
+      "provenance_url": "https://github.com/mikeckennedy/talk-python-transcripts/blob/accd851f0d3353bf2d3792969d7f334a4c4768b3/youtube_transcripts/444-young-success-blueprint.vtt",
+      "raw_sha256": "b9456dd0712af93a387b1e5aeba5da0687a5b52c801b535f2e4c982bfb8bc554",
+      "content_hash": "81f3cf2131ec3fd903f476875cb58ffdf51fb1b5a2ac90549ebde11de8ff4467",
+      "group_key": "talkpython",
+      "show": "Talk Python To Me",
+      "episode": "444",
+      "title": "Young success blueprint",
+      "title_source": "creator_file_slug",
+      "platform": "talkpython.fm",
+      "external_url": "https://talkpython.fm/episodes/show/444",
+      "external_url_verified": "false",
+      "edition": "youtube",
+      "language": "en",
+      "words": 11516,
+      "segments": 151,
+      "transcript_duration_seconds": 3645.8,
+      "timing": "source_cues_consolidated",
+      "source_anchors": 1126,
+      "anchors_per_1k_words": 97.78,
+      "normalization": {
+        "removed_empty": 0,
+        "merged_duplicates": 0,
+        "fixed_overlaps": 0,
+        "reordered": false
+      },
+      "validation_issues": [],
+      "split": "test",
+      "stratum": {
+        "group": "talkpython",
+        "topic_area": "Python programming",
+        "expected_format": "interview / discussion podcast",
+        "duration_bucket": "over_60m",
+        "length_bucket": "10k_plus_words",
+        "timing_granularity": "cue"
+      }
+    },
+    {
+      "item_id": "tpy_484",
+      "source": "talkpython",
+      "path": "youtube_transcripts/484-from-react-to-a-django-htmx-based-stack.vtt",
+      "raw_url": "https://raw.githubusercontent.com/mikeckennedy/talk-python-transcripts/accd851f0d3353bf2d3792969d7f334a4c4768b3/youtube_transcripts/484-from-react-to-a-django-htmx-based-stack.vtt",
+      "provenance_url": "https://github.com/mikeckennedy/talk-python-transcripts/blob/accd851f0d3353bf2d3792969d7f334a4c4768b3/youtube_transcripts/484-from-react-to-a-django-htmx-based-stack.vtt",
+      "raw_sha256": "3ff1ebca632b600ac9e0e75a1f86edf7740f4bb3f110107f32b8c49cc37e2514",
+      "content_hash": "40787b8d47a6c0d8d7f580906e0188f8fc30ca4e491af5b81a541f1285cf5d33",
+      "group_key": "talkpython",
+      "show": "Talk Python To Me",
+      "episode": "484",
+      "title": "From react to a django htmx based stack",
+      "title_source": "creator_file_slug",
+      "platform": "talkpython.fm",
+      "external_url": "https://talkpython.fm/episodes/show/484",
+      "external_url_verified": "false",
+      "edition": "youtube",
+      "language": "en",
+      "words": 10542,
+      "segments": 149,
+      "transcript_duration_seconds": 3716.5,
+      "timing": "source_cues_consolidated",
+      "source_anchors": 4309,
+      "anchors_per_1k_words": 408.75,
+      "normalization": {
+        "removed_empty": 0,
+        "merged_duplicates": 0,
+        "fixed_overlaps": 0,
+        "reordered": false
+      },
+      "validation_issues": [],
+      "split": "test",
+      "stratum": {
+        "group": "talkpython",
+        "topic_area": "Python programming",
+        "expected_format": "interview / discussion podcast",
+        "duration_bucket": "over_60m",
+        "length_bucket": "10k_plus_words",
+        "timing_granularity": "cue"
+      }
+    },
+    {
+      "item_id": "tpy_486",
+      "source": "talkpython",
+      "path": "youtube_transcripts/486-csnakes-embed-python-code-in-.net.vtt",
+      "raw_url": "https://raw.githubusercontent.com/mikeckennedy/talk-python-transcripts/accd851f0d3353bf2d3792969d7f334a4c4768b3/youtube_transcripts/486-csnakes-embed-python-code-in-.net.vtt",
+      "provenance_url": "https://github.com/mikeckennedy/talk-python-transcripts/blob/accd851f0d3353bf2d3792969d7f334a4c4768b3/youtube_transcripts/486-csnakes-embed-python-code-in-.net.vtt",
+      "raw_sha256": "3f4deda94aefe5f9f4f35abb21e4a23a54fe357b967be28bc530bdf285c5210e",
+      "content_hash": "504d5c48ce5d5db883d01f8cc4162d65fe78a2d5754f16c17e243e83e3143652",
+      "group_key": "talkpython",
+      "show": "Talk Python To Me",
+      "episode": "486",
+      "title": "Csnakes embed python code in .net",
+      "title_source": "creator_file_slug",
+      "platform": "talkpython.fm",
+      "external_url": "https://talkpython.fm/episodes/show/486",
+      "external_url_verified": "false",
+      "edition": "youtube",
+      "language": "en",
+      "words": 11330,
+      "segments": 145,
+      "transcript_duration_seconds": 4080.5,
+      "timing": "source_cues_consolidated",
+      "source_anchors": 838,
+      "anchors_per_1k_words": 73.96,
+      "normalization": {
+        "removed_empty": 0,
+        "merged_duplicates": 0,
+        "fixed_overlaps": 0,
+        "reordered": false
+      },
+      "validation_issues": [],
+      "split": "test",
+      "stratum": {
+        "group": "talkpython",
+        "topic_area": "Python programming",
+        "expected_format": "interview / discussion podcast",
+        "duration_bucket": "over_60m",
+        "length_bucket": "10k_plus_words",
+        "timing_granularity": "cue"
+      }
+    },
+    {
+      "item_id": "tpy_511",
+      "source": "talkpython",
+      "path": "youtube_transcripts/511-from-notebooks-to-scalable-data-science-production.vtt",
+      "raw_url": "https://raw.githubusercontent.com/mikeckennedy/talk-python-transcripts/accd851f0d3353bf2d3792969d7f334a4c4768b3/youtube_transcripts/511-from-notebooks-to-scalable-data-science-production.vtt",
+      "provenance_url": "https://github.com/mikeckennedy/talk-python-transcripts/blob/accd851f0d3353bf2d3792969d7f334a4c4768b3/youtube_transcripts/511-from-notebooks-to-scalable-data-science-production.vtt",
+      "raw_sha256": "d475ebcaf272ea7c417bb1d595c074fe704e7bde3f4f8a3441798b571fd3b51e",
+      "content_hash": "3dc79fa3656b8a50302fc08bd7183aabd01e458158632505d26f74b391398f1d",
+      "group_key": "talkpython",
+      "show": "Talk Python To Me",
+      "episode": "511",
+      "title": "From notebooks to scalable data science production",
+      "title_source": "creator_file_slug",
+      "platform": "talkpython.fm",
+      "external_url": "https://talkpython.fm/episodes/show/511",
+      "external_url_verified": "false",
+      "edition": "youtube",
+      "language": "en",
+      "words": 8905,
+      "segments": 127,
+      "transcript_duration_seconds": 3525.1,
+      "timing": "source_cues_consolidated",
+      "source_anchors": 1086,
+      "anchors_per_1k_words": 121.95,
+      "normalization": {
+        "removed_empty": 0,
+        "merged_duplicates": 0,
+        "fixed_overlaps": 0,
+        "reordered": false
+      },
+      "validation_issues": [],
+      "split": "test",
+      "stratum": {
+        "group": "talkpython",
+        "topic_area": "Python programming",
+        "expected_format": "interview / discussion podcast",
+        "duration_bucket": "30_60m",
+        "length_bucket": "6k_10k_words",
+        "timing_granularity": "cue"
+      }
+    },
+    {
+      "item_id": "tpy_541",
+      "source": "talkpython",
+      "path": "youtube_transcripts/541-monty-python-in-rust-for-ai.vtt",
+      "raw_url": "https://raw.githubusercontent.com/mikeckennedy/talk-python-transcripts/accd851f0d3353bf2d3792969d7f334a4c4768b3/youtube_transcripts/541-monty-python-in-rust-for-ai.vtt",
+      "provenance_url": "https://github.com/mikeckennedy/talk-python-transcripts/blob/accd851f0d3353bf2d3792969d7f334a4c4768b3/youtube_transcripts/541-monty-python-in-rust-for-ai.vtt",
+      "raw_sha256": "7921eadebc3fa9077bf3a5a4f07ec7ba113310808d273566cdb5417da095da71",
+      "content_hash": "acf00b64731826c7f87f3bfdbc866822c532fddab0794c36d1db8e3ea8ed636d",
+      "group_key": "talkpython",
+      "show": "Talk Python To Me",
+      "episode": "541",
+      "title": "Monty python in rust for ai",
+      "title_source": "creator_file_slug",
+      "platform": "talkpython.fm",
+      "external_url": "https://talkpython.fm/episodes/show/541",
+      "external_url_verified": "false",
+      "edition": "youtube",
+      "language": "en",
+      "words": 12435,
+      "segments": 147,
+      "transcript_duration_seconds": 4086.4,
+      "timing": "source_cues_consolidated",
+      "source_anchors": 1095,
+      "anchors_per_1k_words": 88.06,
+      "normalization": {
+        "removed_empty": 0,
+        "merged_duplicates": 0,
+        "fixed_overlaps": 0,
+        "reordered": false
+      },
+      "validation_issues": [],
+      "split": "test",
+      "stratum": {
+        "group": "talkpython",
+        "topic_area": "Python programming",
+        "expected_format": "interview / discussion podcast",
+        "duration_bucket": "over_60m",
+        "length_bucket": "10k_plus_words",
+        "timing_granularity": "cue"
+      }
+    }
+  ],
+  "items_sha256": "19039096dcc201ac06bc81b076a2a93d29a3137781371722eeb0ea5f88ae20c0"
+}

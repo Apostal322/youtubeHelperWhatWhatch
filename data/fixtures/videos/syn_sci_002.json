@@ -1,0 +1,239 @@
+{
+  "video_id": "syn_sci_002",
+  "synthetic": true,
+  "title": "How GPS Really Works (and Why It Needs Relativity)",
+  "description": "Your phone finds itself using nothing but timestamps from space. Here's how trilateration works, why you need four satellites rather than three, and how special and general relativity both have to be corrected for.",
+  "channel": {
+    "channel_id": "syn_ch_brightwater",
+    "title": "Brightwater Explains",
+    "subscriber_count": 4200000
+  },
+  "published_at": "2025-05-22T14:00:00Z",
+  "duration_seconds": 246,
+  "language": "en",
+  "youtube_category_id": "28",
+  "tags": [
+    "gps",
+    "physics",
+    "relativity",
+    "satellites",
+    "science explained"
+  ],
+  "popularity": {
+    "view_count": 10800000,
+    "like_count": 452000,
+    "comment_count": 15100
+  },
+  "content": {
+    "source_type": "synthetic_fixture",
+    "license": "CC0-1.0",
+    "authorization_basis": "Original synthetic transcript authored for the AI Video Discovery project. No real video exists.",
+    "modalities": [
+      "transcript",
+      "audio"
+    ],
+    "audio_fixture": {
+      "profile": "clean"
+    },
+    "transcript": {
+      "language": "en",
+      "segments": [
+        {
+          "start": 0.0,
+          "end": 8.1,
+          "text": "Your phone can tell you where you're standing to within a few metres, and it does it without sending anything to space."
+        },
+        {
+          "start": 8.1,
+          "end": 15.9,
+          "text": "Today, how GPS actually works, including the part where Einstein shows up. Let's start with what a GPS satellite actually does."
+        },
+        {
+          "start": 15.9,
+          "end": 21.5,
+          "text": "There are around thirty of them in the constellation, orbiting about twenty thousand kilometres up."
+        },
+        {
+          "start": 21.5,
+          "end": 25.9,
+          "text": "Each one carries atomic clocks and continuously broadcasts a very simple message."
+        },
+        {
+          "start": 25.9,
+          "end": 34.4,
+          "text": "Here is who I am, here is exactly where I am, and here is exactly what time it was when I sent this."
+        },
+        {
+          "start": 34.4,
+          "end": 38.9,
+          "text": "That's it. The satellites don't know you exist. Your receiver only listens."
+        },
+        {
+          "start": 38.9,
+          "end": 44.8,
+          "text": "Now, radio signals travel at the speed of light, roughly three hundred thousand kilometres per second."
+        },
+        {
+          "start": 44.8,
+          "end": 50.4,
+          "text": "So if your receiver knows when a signal left the satellite and when it arrived,"
+        },
+        {
+          "start": 50.4,
+          "end": 55.6,
+          "text": "it can multiply that delay by the speed of light and get a distance."
+        },
+        {
+          "start": 55.6,
+          "end": 60.4,
+          "text": "One satellite tells you that you're somewhere on a sphere around that satellite."
+        },
+        {
+          "start": 60.4,
+          "end": 64.8,
+          "text": "Two satellites narrow it down to the circle where two spheres intersect."
+        },
+        {
+          "start": 64.8,
+          "end": 74.1,
+          "text": "A third narrows it to two points, and usually one of them is out in space or deep underground, so you can throw it away."
+        },
+        {
+          "start": 74.1,
+          "end": 80.4,
+          "text": "That's the basic idea, and it's called trilateration. But there's a catch, and it's a big one."
+        },
+        {
+          "start": 80.4,
+          "end": 83.3,
+          "text": "Your phone does not have an atomic clock."
+        },
+        {
+          "start": 83.3,
+          "end": 91.5,
+          "text": "Its clock might be off by a millisecond, and a millisecond of error at the speed of light is three hundred kilometres."
+        },
+        {
+          "start": 91.5,
+          "end": 97.4,
+          "text": "That's useless. The clever trick is to treat your own clock error as a fourth unknown."
+        },
+        {
+          "start": 97.4,
+          "end": 102.6,
+          "text": "You have four unknowns: your x, y and z position, plus your clock offset."
+        },
+        {
+          "start": 102.6,
+          "end": 106.7,
+          "text": "Four unknowns need four equations, so you use a fourth satellite."
+        },
+        {
+          "start": 106.7,
+          "end": 113.7,
+          "text": "Solve all four together and your receiver figures out both where it is and what time it really is."
+        },
+        {
+          "start": 113.7,
+          "end": 118.9,
+          "text": "This is why your phone needs at least four satellites for a proper fix,"
+        },
+        {
+          "start": 118.9,
+          "end": 124.8,
+          "text": "and why a GPS receiver is quietly one of the most accurate clocks most people own."
+        },
+        {
+          "start": 124.8,
+          "end": 132.6,
+          "text": "Now, the timing has to be extraordinarily precise. An error of just ten nanoseconds is about three metres of position error."
+        },
+        {
+          "start": 132.6,
+          "end": 137.4,
+          "text": "And that's where relativity comes in. Special relativity says moving clocks tick slower."
+        },
+        {
+          "start": 137.4,
+          "end": 145.6,
+          "text": "The satellites move at about four kilometres per second relative to us, which makes their clocks lose roughly seven microseconds per day."
+        },
+        {
+          "start": 145.6,
+          "end": 149.6,
+          "text": "General relativity says clocks deeper in a gravity well tick slower."
+        },
+        {
+          "start": 149.6,
+          "end": 156.7,
+          "text": "The satellites are farther from Earth's mass than we are, so their clocks gain about forty-five microseconds per day."
+        },
+        {
+          "start": 156.7,
+          "end": 162.2,
+          "text": "Put those together, and the satellite clocks run fast by about thirty-eight microseconds every day."
+        },
+        {
+          "start": 162.2,
+          "end": 170.7,
+          "text": "Thirty-eight microseconds sounds tiny, but multiply by the speed of light and you get more than ten kilometres of error accumulating per day."
+        },
+        {
+          "start": 170.7,
+          "end": 179.6,
+          "text": "So engineers set the satellite clocks to tick slightly slow before launch, so that once they're in orbit, they match clocks on the ground."
+        },
+        {
+          "start": 179.6,
+          "end": 187.0,
+          "text": "Relativity isn't an abstract curiosity here. It's a line item in the system design. There are other error sources too."
+        },
+        {
+          "start": 187.0,
+          "end": 193.0,
+          "text": "The signal slows down a little passing through the ionosphere, and that delay depends on frequency,"
+        },
+        {
+          "start": 193.0,
+          "end": 200.0,
+          "text": "so newer satellites broadcast on more than one frequency and receivers compare them to cancel most of it out."
+        },
+        {
+          "start": 200.0,
+          "end": 207.8,
+          "text": "In cities, signals bounce off buildings, which is called multipath, and that's why your blue dot sometimes jumps across the street."
+        },
+        {
+          "start": 207.8,
+          "end": 211.5,
+          "text": "And your phone cheats a bit, in a good way."
+        },
+        {
+          "start": 211.5,
+          "end": 218.5,
+          "text": "It downloads satellite orbit data over the mobile network so it doesn't have to wait for the slow broadcast,"
+        },
+        {
+          "start": 218.5,
+          "end": 225.6,
+          "text": "which is why it gets a fix in seconds instead of minutes. So, recap. Satellites broadcast time and position."
+        },
+        {
+          "start": 225.6,
+          "end": 231.5,
+          "text": "Your receiver measures delays, turns them into distances, and solves for four unknowns with four satellites."
+        },
+        {
+          "start": 231.5,
+          "end": 236.3,
+          "text": "And it only works because engineers corrected for both special and general relativity."
+        },
+        {
+          "start": 236.3,
+          "end": 243.0,
+          "text": "Next week we're looking at how surveyors get centimetre accuracy out of this same system. See you then."
+        }
+      ]
+    }
+  }
+}
