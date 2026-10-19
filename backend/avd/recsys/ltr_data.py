@@ -24,6 +24,9 @@ class LabeledPair:
     request_id: str
     user_id: str
     shown_at: datetime
+    # NULL for impressions logged before policy versioning. Pairs from different selection
+    # policies saw different candidate sets; keep them apart when comparing rankers.
+    selection_policy_version: str | None = None
 
 
 def build_pairs(session: Session) -> list[Pair]:
@@ -62,7 +65,14 @@ def build_labeled_pairs(session: Session) -> list[LabeledPair]:
                     continue
                 if lab(other) < 0 or (lab(other) == 0 and other.position < pos.position):
                     pairs.append(
-                        LabeledPair(pos.features, other.features, pos.request_id, pos.user_id, pos.created_at)
+                        LabeledPair(
+                            pos.features,
+                            other.features,
+                            pos.request_id,
+                            pos.user_id,
+                            pos.created_at,
+                            pos.selection_policy_version,
+                        )
                     )
     return sorted(pairs, key=lambda p: (p.shown_at, p.request_id))
 

@@ -303,11 +303,27 @@ class RecommendationImpression(Base):
     evaluation_id: Mapped[str | None] = mapped_column(String(36))
     position: Mapped[int] = mapped_column(Integer)
     ranker_version: Mapped[str] = mapped_column(String(48))
+    # ``recommendation_policies.version``; NULL for impressions logged before policy versioning
+    # (migration 0008), whose selection policy is unknown and is never back-filled.
+    selection_policy_version: Mapped[str | None] = mapped_column(String(80), nullable=True, index=True)
+    # Per-request user settings and per-item selection flags (exploration, cap relaxed, MMR penalty).
+    selection_context: Mapped[dict[str, Any] | None] = mapped_column(JSON, nullable=True)
     intrinsic_quality: Mapped[float | None] = mapped_column(Float)
     relevance: Mapped[float] = mapped_column(Float)
     rank_score: Mapped[float] = mapped_column(Float)
     features: Mapped[dict[str, Any]] = mapped_column(JSON, default=dict)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+
+
+class RecommendationPolicy(Base):
+    """One row per distinct selection-policy configuration ever used (see ``avd.recsys.policy``).
+    Rows are written once and never updated, so old impressions stay interpretable."""
+
+    __tablename__ = "recommendation_policies"
+
+    version: Mapped[str] = mapped_column(String(80), primary_key=True)
+    config: Mapped[dict[str, Any]] = mapped_column(JSON)
+    first_used_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
 
 
 class Feedback(Base):
@@ -491,6 +507,38 @@ class Annotation(Base):
     scores: Mapped[list[AnnotationScore]] = relationship(
         back_populates="annotation", cascade="all, delete-orphan"
     )
+
+
+class AnnotationPacket(Base):
+    """A set of blind assignments handed to one rater as an offline file (no server needed).
+    The return file is accepted only with the packet's secret, which is stored hashed."""
+
+    __tablename__ = "annotation_packets"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_id)
+    dataset_id: Mapped[str] = mapped_column(ForeignKey("datasets.id", ondelete="CASCADE"), index=True)
+    rater_id: Mapped[str] = mapped_column(ForeignKey("raters.id", ondelete="CASCADE"), index=True)
+    annotation_ids: Mapped[list[Any]] = mapped_column(JSON, default=list)
+    secret_hash: Mapped[str] = mapped_column(String(64))
+    status: Mapped[str] = mapped_column(String(16), default="issued")  # issued | returned | released
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+    returned_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+
+
+class RelevanceJudgment(Base):
+    """A human's graded judgment of how relevant an item is to a search query
+    (``benchmarks/datasets/relevance_v1``). 0 = not relevant, 1 = partly, 2 = clearly relevant."""
+
+    __tablename__ = "relevance_judgments"
+    __table_args__ = (UniqueConstraint("query_id", "video_id", "rater_id"),)
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    query_id: Mapped[str] = mapped_column(String(16))
+    video_id: Mapped[str] = mapped_column(ForeignKey("videos.id", ondelete="CASCADE"), index=True)
+    rater_id: Mapped[str] = mapped_column(ForeignKey("raters.id", ondelete="CASCADE"), index=True)
+    grade: Mapped[int] = mapped_column(Integer)
+    source: Mapped[str] = mapped_column(String(24), default="offline_packet")
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
 
 
 class AnnotationScore(Base):

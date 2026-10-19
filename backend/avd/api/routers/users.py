@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import hmac
+import logging
 import secrets
 import uuid
 from datetime import UTC, datetime, timedelta
@@ -19,6 +20,7 @@ from avd.embeddings.base import Embedder
 from avd.recsys.recommender import recommend
 from avd.services import TranscriptSubmissionError, submit_user_transcript
 
+log = logging.getLogger(__name__)
 router = APIRouter(prefix="/v1")
 
 MAX_FEEDBACK_PER_DAY = 500  # per user; far above honest use, bounds spam from one token
@@ -41,7 +43,7 @@ def _registration_allowed(settings: Settings, invite: str | None, admin: str | N
 
 @router.post("/users", status_code=201)
 def create_user(
-    session: Session = Depends(db),
+    session: Session = Depends(db, scope="function"),
     settings: Settings = Depends(get_settings),
     x_invite_code: str | None = Header(default=None, max_length=200),
     x_admin_token: str | None = Header(default=None, max_length=200),
@@ -81,7 +83,9 @@ def _prefs_out(p: UserPreferences) -> dict[str, Any]:
 
 
 @router.get("/users/me/preferences")
-def get_preferences(user: User = Depends(current_user), session: Session = Depends(db)) -> dict[str, Any]:
+def get_preferences(
+    user: User = Depends(current_user), session: Session = Depends(db, scope="function")
+) -> dict[str, Any]:
     prefs = session.get(UserPreferences, user.id) or UserPreferences(user_id=user.id)
     return _prefs_out(prefs)
 
@@ -90,7 +94,7 @@ def get_preferences(user: User = Depends(current_user), session: Session = Depen
 def put_preferences(
     body: PreferencesIn,
     user: User = Depends(current_user),
-    session: Session = Depends(db),
+    session: Session = Depends(db, scope="function"),
     emb: Embedder = Depends(embedder),
 ) -> dict[str, Any]:
     prefs = session.get(UserPreferences, user.id)
@@ -114,7 +118,7 @@ def put_preferences(
 def recommendations(
     limit: int = Query(20, ge=1, le=50),
     user: User = Depends(current_user),
-    session: Session = Depends(db),
+    session: Session = Depends(db, scope="function"),
     emb: Embedder = Depends(embedder),
 ) -> dict[str, Any]:
     return recommend(session, user.id, emb, limit=limit)
@@ -122,7 +126,7 @@ def recommendations(
 
 @router.post("/feedback", status_code=201, response_model=None)
 def feedback(
-    body: FeedbackIn, user: User = Depends(current_user), session: Session = Depends(db)
+    body: FeedbackIn, user: User = Depends(current_user), session: Session = Depends(db, scope="function")
 ) -> dict[str, Any] | JSONResponse:
     if session.get(Video, body.video_id) is None:
         raise HTTPException(404, "video not in catalog")
@@ -182,7 +186,7 @@ def submit_transcript(
     video_id: str,
     body: TranscriptIn,
     user: User = Depends(current_user),
-    session: Session = Depends(db),
+    session: Session = Depends(db, scope="function"),
     settings: Settings = Depends(get_settings),
 ) -> dict[str, Any]:
     if not 6 <= len(video_id) <= 32:
@@ -213,7 +217,7 @@ async def submit_media(
     request: Request,
     x_content_attestation: str = Header(..., min_length=10, max_length=2000),
     user: User = Depends(current_user),
-    session: Session = Depends(db),
+    session: Session = Depends(db, scope="function"),
     settings: Settings = Depends(get_settings),
 ) -> dict[str, Any]:
     """Submit authorized audio/video as the raw request body (``Content-Type`` must be a supported
@@ -273,7 +277,9 @@ async def submit_media(
 
 
 @router.get("/users/me/export")
-def export_me(user: User = Depends(current_user), session: Session = Depends(db)) -> dict[str, Any]:
+def export_me(
+    user: User = Depends(current_user), session: Session = Depends(db, scope="function")
+) -> dict[str, Any]:
     """Everything this instance stores about your account (preferences, feedback, submissions)."""
     from avd.datactl import user_export
 
@@ -281,7 +287,9 @@ def export_me(user: User = Depends(current_user), session: Session = Depends(db)
 
 
 @router.delete("/users/me")
-def delete_me(user: User = Depends(current_user), session: Session = Depends(db)) -> dict[str, Any]:
+def delete_me(
+    user: User = Depends(current_user), session: Session = Depends(db, scope="function")
+) -> dict[str, Any]:
     """Delete the account and everything tied to it: preferences, feedback, recommendation
     impressions and transcripts the user submitted. Submitted transcripts are revoked and their
     text erased, and evaluations derived from them stop being current (rows are kept without the
@@ -318,4 +326,6 @@ def delete_me(user: User = Depends(current_user), session: Session = Depends(db)
         counts[name] = session.execute(delete(model).where(model.user_id == user.id)).rowcount or 0  # type: ignore[attr-defined]
     session.delete(user)
     session.flush()
+    # Counts only: no user id, token or content, so the log never identifies who left.
+    log.info("account deleted: %s", counts)
     return {"deleted": True, **counts}

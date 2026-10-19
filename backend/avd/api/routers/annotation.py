@@ -26,7 +26,9 @@ ui_router = APIRouter()
 _UI = Path(__file__).resolve().parents[2] / "annotation" / "static" / "annotate.html"
 
 
-def current_rater(authorization: str | None = Header(default=None), session: Session = Depends(db)) -> Rater:
+def current_rater(
+    authorization: str | None = Header(default=None), session: Session = Depends(db, scope="function")
+) -> Rater:
     if not authorization or not authorization.lower().startswith("bearer "):
         raise HTTPException(status.HTTP_401_UNAUTHORIZED, "missing bearer token")
     rater = svc.rater_for_token(session, authorization[7:].strip())
@@ -96,7 +98,7 @@ class ExcludeIn(BaseModel):
 
 
 @router.post("/raters", status_code=201, dependencies=[Depends(require_admin)])
-def create_rater(body: RaterIn, session: Session = Depends(db)) -> dict[str, Any]:
+def create_rater(body: RaterIn, session: Session = Depends(db, scope="function")) -> dict[str, Any]:
     try:
         rater, token = svc.create_rater(session, body.pseudonym, body.expertise, body.role)
     except svc.AnnotationError as e:
@@ -111,17 +113,19 @@ def create_rater(body: RaterIn, session: Session = Depends(db)) -> dict[str, Any
 
 
 @router.get("/qc", dependencies=[Depends(require_admin)])
-def qc(dataset: str, session: Session = Depends(db)) -> dict[str, Any]:
+def qc(dataset: str, session: Session = Depends(db, scope="function")) -> dict[str, Any]:
     return svc.qc_report(session, dataset)
 
 
 @router.get("/disagreements", dependencies=[Depends(require_admin)])
-def disagreements(dataset: str, session: Session = Depends(db)) -> list[dict[str, Any]]:
+def disagreements(dataset: str, session: Session = Depends(db, scope="function")) -> list[dict[str, Any]]:
     return svc.disagreements(session, dataset)
 
 
 @router.post("/annotations/{annotation_id}/exclude", dependencies=[Depends(require_admin)])
-def exclude(annotation_id: str, body: ExcludeIn, session: Session = Depends(db)) -> dict[str, Any]:
+def exclude(
+    annotation_id: str, body: ExcludeIn, session: Session = Depends(db, scope="function")
+) -> dict[str, Any]:
     try:
         ann = svc.exclude_annotation(session, annotation_id, body.reason)
     except svc.AnnotationError as e:
@@ -130,7 +134,7 @@ def exclude(annotation_id: str, body: ExcludeIn, session: Session = Depends(db))
 
 
 @router.get("/export", dependencies=[Depends(require_admin)])
-def export(dataset: str, session: Session = Depends(db)) -> dict[str, Any]:
+def export(dataset: str, session: Session = Depends(db, scope="function")) -> dict[str, Any]:
     return {**svc.export_labels(session, dataset), "attributions": svc.source_attributions(session, dataset)}
 
 
@@ -144,7 +148,7 @@ def me(rater: Rater = Depends(current_rater)) -> dict[str, Any]:
 
 @router.get("/next")
 def next_item(
-    dataset: str, rater: Rater = Depends(current_rater), session: Session = Depends(db)
+    dataset: str, rater: Rater = Depends(current_rater), session: Session = Depends(db, scope="function")
 ) -> dict[str, Any]:
     try:
         ann = svc.next_assignment(session, rater, dataset)
@@ -157,7 +161,10 @@ def next_item(
 
 @router.post("/annotations/{annotation_id}/submit")
 def submit(
-    annotation_id: str, body: SubmitIn, rater: Rater = Depends(current_rater), session: Session = Depends(db)
+    annotation_id: str,
+    body: SubmitIn,
+    rater: Rater = Depends(current_rater),
+    session: Session = Depends(db, scope="function"),
 ) -> dict[str, Any]:
     try:
         ann = svc.submit_annotation(
@@ -190,7 +197,7 @@ def next_pair(
     dataset: str,
     criterion: str = "overall",
     rater: Rater = Depends(current_rater),
-    session: Session = Depends(db),
+    session: Session = Depends(db, scope="function"),
 ) -> dict[str, Any]:
     try:
         pair = svc.next_pair(session, rater, dataset, criterion)
@@ -203,7 +210,7 @@ def next_pair(
 
 @router.post("/pairs", status_code=201)
 def submit_pair(
-    body: PairIn, rater: Rater = Depends(current_rater), session: Session = Depends(db)
+    body: PairIn, rater: Rater = Depends(current_rater), session: Session = Depends(db, scope="function")
 ) -> dict[str, Any]:
     try:
         label = svc.submit_pair(
@@ -225,7 +232,7 @@ def submit_pair(
 
 @router.get("/adjudication-queue")
 def adjudication_queue(
-    dataset: str, rater: Rater = Depends(current_rater), session: Session = Depends(db)
+    dataset: str, rater: Rater = Depends(current_rater), session: Session = Depends(db, scope="function")
 ) -> list[dict[str, Any]]:
     if rater.role != "adjudicator":
         raise HTTPException(status.HTTP_403_FORBIDDEN, "adjudicators only")
@@ -234,7 +241,9 @@ def adjudication_queue(
 
 @router.post("/adjudications", status_code=201)
 def adjudicate(
-    body: AdjudicationIn, rater: Rater = Depends(current_rater), session: Session = Depends(db)
+    body: AdjudicationIn,
+    rater: Rater = Depends(current_rater),
+    session: Session = Depends(db, scope="function"),
 ) -> dict[str, Any]:
     try:
         adj = svc.adjudicate(

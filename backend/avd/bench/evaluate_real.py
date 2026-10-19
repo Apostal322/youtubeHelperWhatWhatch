@@ -74,6 +74,7 @@ class RunConfig:
     budget_usd: float | None = None
     dry_run: bool = False
     max_items: int | None = None
+    item_ids: tuple[str, ...] = ()  # restrict to these items of the split (e.g. a one-item smoke test)
     concurrency: int = 1
     timeout_seconds: float = 180.0
     max_retries: int = 2
@@ -133,6 +134,11 @@ def _settings(cfg: RunConfig, base: Settings, out: Path) -> Settings:
 
 def _select(cfg: RunConfig, manifest: dict[str, Any]) -> tuple[list[dict[str, Any]], list[dict[str, str]]]:
     items = sorted((it for it in manifest["items"] if it["split"] == cfg.split), key=lambda it: it["item_id"])
+    if cfg.item_ids:
+        unknown = set(cfg.item_ids) - {it["item_id"] for it in items}
+        if unknown:
+            raise PreflightError(f"not in split {cfg.split!r}: {', '.join(sorted(unknown))}")
+        items = [it for it in items if it["item_id"] in cfg.item_ids]
     excluded = []
     keep = []
     for it in items:
@@ -555,6 +561,7 @@ def add_parser(sub: Any) -> None:
     p.add_argument("--budget-usd", type=float, default=None, help="approved hard ceiling (required live)")
     p.add_argument("--dry-run", action="store_true", help="plan and project cost; no API calls")
     p.add_argument("--max-items", type=int, default=None)
+    p.add_argument("--items", default="", help="comma-separated item ids of the split")
     p.add_argument("--concurrency", type=int, default=1)
     p.add_argument("--timeout", type=float, default=180.0)
     p.add_argument("--max-retries", type=int, default=2)
@@ -583,6 +590,7 @@ def main(args: argparse.Namespace) -> None:
         budget_usd=args.budget_usd,
         dry_run=args.dry_run,
         max_items=args.max_items,
+        item_ids=tuple(i.strip() for i in args.items.split(",") if i.strip()),
         concurrency=args.concurrency,
         timeout_seconds=args.timeout,
         max_retries=args.max_retries,

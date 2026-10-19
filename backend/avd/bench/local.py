@@ -27,6 +27,7 @@ anything and says so; it never reports a run that did not happen.
 from __future__ import annotations
 
 import argparse
+import hashlib
 import itertools
 import json
 import platform
@@ -82,6 +83,7 @@ class LocalBenchConfig:
     repeats: int = 2
     num_ctx: list[int] = field(default_factory=list)  # default: the configured window
     max_items: int | None = None
+    item_ids: tuple[str, ...] = ()
     concurrency: int = 1
     timeout_seconds: float = 900.0
     probes: bool = True
@@ -363,6 +365,7 @@ def bench_local(
                     run_id=f"{cfg.bench_id}-{_slug(m)}-ctx{ctx}-r{rep}",
                     out_dir=out / "runs" / f"{_slug(m)}-ctx{ctx}-r{rep}",
                     max_items=cfg.max_items,
+                    item_ids=cfg.item_ids,
                     concurrency=cfg.concurrency,
                     timeout_seconds=cfg.timeout_seconds,
                     model=m,
@@ -383,14 +386,16 @@ def bench_local(
                 "chunk_target_tokens": st.llm_chunk_target_tokens,
                 "max_output_tokens": st.llm_max_output_tokens,
             }
-            agg["run_dirs"] = [str(out / "runs" / f"{_slug(m)}-ctx{ctx}-r{i}") for i in range(cfg.repeats)]
+            # Relative to the bench directory: absolute paths would reveal the contributor's
+            # user name when the report is shared.
+            agg["run_dirs"] = [f"runs/{_slug(m)}-ctx{ctx}-r{i}" for i in range(cfg.repeats)]
             agg["resources_per_repeat"] = resources
             entry["windows"][str(ctx)] = agg
             last_runs = runs
         first = last_runs[0]
         ids = [it["video_id"] for it in first["items"]]
         engine = make_engine(
-            f"sqlite:///{Path(entry['windows'][str(windows[-1])]['run_dirs'][0]) / 'run.db'}"
+            f"sqlite:///{out / entry['windows'][str(windows[-1])]['run_dirs'][0] / 'run.db'}"
         )
         sf = sessionmaker(bind=engine, expire_on_commit=False)
         st = run_settings(base, m, windows[0], 0)
@@ -409,6 +414,7 @@ def bench_local(
     from avd.datasets.pilot import load_manifest
 
     manifest = load_manifest(cfg.manifest)
+    first_meta = last_runs[0].get("meta", {}) if per_model else {}
     report = {
         "format": "avd-bench-local-report",
         "format_version": "1.0",
@@ -419,7 +425,10 @@ def bench_local(
             "transport_kind": "injected" if injected else "real",
             "started": cfg.bench_id,
             "finished_at": datetime.now(UTC).isoformat(timespec="seconds"),
-            "manifest": str(cfg.manifest),
+            "manifest": cfg.manifest.name,
+            "manifest_file_sha256": hashlib.sha256(cfg.manifest.read_bytes()).hexdigest(),
+            "prompt": first_meta.get("prompt"),
+            "rubric_version": first_meta.get("rubric_version"),
             "split": cfg.split,
             "models": cfg.models,
             "num_ctx": windows,
@@ -503,6 +512,7 @@ def add_parser(sub: Any) -> None:
     p.add_argument("--num-ctx", default="", help="comma-separated context windows, e.g. 8192,16384")
     p.add_argument("--repeats", type=int, default=2)
     p.add_argument("--max-items", type=int, default=None)
+    p.add_argument("--items", default="", help="comma-separated development item ids")
     p.add_argument("--concurrency", type=int, default=1)
     p.add_argument("--timeout", type=float, default=900.0)
     p.add_argument("--no-probes", action="store_true")
@@ -522,6 +532,7 @@ def main(args: argparse.Namespace) -> None:
         repeats=args.repeats,
         num_ctx=[int(x) for x in args.num_ctx.split(",") if x.strip()],
         max_items=args.max_items,
+        item_ids=tuple(i.strip() for i in args.items.split(",") if i.strip()),
         concurrency=args.concurrency,
         timeout_seconds=args.timeout,
         probes=not args.no_probes,

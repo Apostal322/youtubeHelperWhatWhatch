@@ -311,7 +311,10 @@ def submit_annotation(
     flags: list[str],
     notes: str | None,
     enjoyment: int | None = None,
+    client_duration_seconds: float | None = None,
 ) -> Annotation:
+    """``client_duration_seconds`` is used only for offline packets, where the server cannot
+    time the work; such annotations carry the ``client_timing`` flag."""
     ann = session.get(Annotation, annotation_id)
     if ann is None or ann.rater_id != rater.id:
         raise AnnotationError("annotation not found")
@@ -355,8 +358,13 @@ def submit_annotation(
             )
         )
     now = datetime.now(UTC)
-    started = _aware(ann.started_at)
-    ann.duration_seconds = round((now - started).total_seconds(), 1)
+    if client_duration_seconds is not None:
+        if not 0 <= client_duration_seconds <= 7 * 24 * 3600:
+            raise AnnotationError("reported duration is out of range")
+        ann.duration_seconds = round(client_duration_seconds, 1)
+        qc.append("client_timing")
+    else:
+        ann.duration_seconds = round((now - _aware(ann.started_at)).total_seconds(), 1)
     min_seconds = transcript.word_count / MAX_READING_WPM * 60
     if ann.duration_seconds < min_seconds:
         qc.append("too_fast")

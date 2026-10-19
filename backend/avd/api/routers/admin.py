@@ -22,7 +22,9 @@ router = APIRouter(prefix="/v1/admin", dependencies=[Depends(require_admin)])
 
 
 @router.post("/seed-demo")
-def seed_demo(session: Session = Depends(db), settings: Settings = Depends(get_settings)) -> dict[str, Any]:
+def seed_demo(
+    session: Session = Depends(db, scope="function"), settings: Settings = Depends(get_settings)
+) -> dict[str, Any]:
     from avd.services import seed_demo as _seed
 
     return {"seeded": _seed(session, settings)}
@@ -30,7 +32,9 @@ def seed_demo(session: Session = Depends(db), settings: Settings = Depends(get_s
 
 @router.post("/discover")
 def discover(
-    body: DiscoverIn, session: Session = Depends(db), settings: Settings = Depends(get_settings)
+    body: DiscoverIn,
+    session: Session = Depends(db, scope="function"),
+    settings: Settings = Depends(get_settings),
 ) -> dict[str, Any]:
     if settings.youtube_api_key is None:
         return {"enqueued": 0, "note": "YouTube Data API not configured (AVD_YOUTUBE_API_KEY)"}
@@ -40,7 +44,7 @@ def discover(
 
 
 @router.post("/reevaluate-stale")
-def reevaluate_stale(session: Session = Depends(db)) -> dict[str, Any]:
+def reevaluate_stale(session: Session = Depends(db, scope="function")) -> dict[str, Any]:
     job, created = queue.enqueue(
         session, "reevaluate_stale", f"reevaluate_stale:{datetime.now(UTC):%Y%m%d%H%M}", priority=2.0
     )
@@ -62,7 +66,7 @@ class CancelIn(BaseModel):
 
 
 @router.post("/jobs/cancel")
-def cancel_jobs(body: CancelIn, session: Session = Depends(db)) -> dict[str, Any]:
+def cancel_jobs(body: CancelIn, session: Session = Depends(db, scope="function")) -> dict[str, Any]:
     """Cancel queued jobs (all when no filter is given). Running jobs finish their attempt."""
     return {"cancelled": queue.cancel(session, job_ids=body.job_ids, job_types=body.job_types)}
 
@@ -84,7 +88,9 @@ def control_worker(action: str, request: Request) -> dict[str, Any]:
 
 @router.get("/jobs")
 def jobs(
-    status: str | None = None, limit: int = Query(50, le=500), session: Session = Depends(db)
+    status: str | None = None,
+    limit: int = Query(50, le=500),
+    session: Session = Depends(db, scope="function"),
 ) -> dict[str, Any]:
     q = select(PipelineJob).order_by(PipelineJob.updated_at.desc()).limit(limit)
     if status:
@@ -111,7 +117,9 @@ def jobs(
 
 
 @router.get("/costs")
-def costs(session: Session = Depends(db), settings: Settings = Depends(get_settings)) -> dict[str, Any]:
+def costs(
+    session: Session = Depends(db, scope="function"), settings: Settings = Depends(get_settings)
+) -> dict[str, Any]:
     by_model = session.execute(
         select(
             CostLedger.provider,
@@ -153,7 +161,7 @@ def costs(session: Session = Depends(db), settings: Settings = Depends(get_setti
 
 
 @router.get("/coverage")
-def coverage(session: Session = Depends(db)) -> dict[str, Any]:
+def coverage(session: Session = Depends(db, scope="function")) -> dict[str, Any]:
     """Catalog vs. evaluated coverage across genres, channel-size strata and languages."""
 
     def counts(col: Any, evaluated: bool) -> dict[str, int]:
@@ -179,7 +187,9 @@ class GenreOverrideIn(BaseModel):
 
 
 @router.put("/videos/{video_id}/genre")
-def override_genre(video_id: str, body: GenreOverrideIn, session: Session = Depends(db)) -> dict[str, Any]:
+def override_genre(
+    video_id: str, body: GenreOverrideIn, session: Session = Depends(db, scope="function")
+) -> dict[str, Any]:
     """Manual genre correction. The classifier's distribution is kept for audit; the video is
     re-queued so its evaluation is recomputed with the corrected profile."""
     from avd.services import enqueue_stage_a
@@ -198,7 +208,9 @@ def override_genre(video_id: str, body: GenreOverrideIn, session: Session = Depe
 
 
 @router.get("/dead-letters")
-def dead_letters(limit: int = Query(50, le=500), session: Session = Depends(db)) -> dict[str, Any]:
+def dead_letters(
+    limit: int = Query(50, le=500), session: Session = Depends(db, scope="function")
+) -> dict[str, Any]:
     """Jobs that exhausted their retries, grouped by type and error class, newest first."""
     rows = session.scalars(
         select(PipelineJob).where(PipelineJob.status == "dead").order_by(PipelineJob.updated_at.desc())
@@ -227,7 +239,7 @@ def dead_letters(limit: int = Query(50, le=500), session: Session = Depends(db))
 
 
 @router.post("/jobs/{job_id}/requeue")
-def requeue_job(job_id: str, session: Session = Depends(db)) -> dict[str, Any]:
+def requeue_job(job_id: str, session: Session = Depends(db, scope="function")) -> dict[str, Any]:
     """Return a dead job to the queue (attempts reset). Only dead jobs can be requeued."""
     job = session.get(PipelineJob, job_id)
     if job is None:

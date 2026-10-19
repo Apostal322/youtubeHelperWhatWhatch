@@ -73,7 +73,7 @@ def list_videos(
     evaluated: bool = True,
     limit: int = Query(50, le=200),
     offset: int = 0,
-    session: Session = Depends(db),
+    session: Session = Depends(db, scope="function"),
 ) -> dict[str, Any]:
     q = select(Video).order_by(Video.discovered_at.desc()).limit(limit).offset(offset)
     if genre:
@@ -92,7 +92,7 @@ def list_videos(
 
 
 @router.get("/videos/{video_id}")
-def get_video(video_id: str, session: Session = Depends(db)) -> dict[str, Any]:
+def get_video(video_id: str, session: Session = Depends(db, scope="function")) -> dict[str, Any]:
     _refuse_if_blinded(session, video_id)
     v = session.get(Video, video_id)
     if v is None:
@@ -120,7 +120,7 @@ def get_video(video_id: str, session: Session = Depends(db)) -> dict[str, Any]:
 
 
 @router.get("/videos/{video_id}/evaluation")
-def get_evaluation(video_id: str, session: Session = Depends(db)) -> dict[str, Any]:
+def get_evaluation(video_id: str, session: Session = Depends(db, scope="function")) -> dict[str, Any]:
     _refuse_if_blinded(session, video_id)
     ev = current_evaluation(session, video_id)
     if ev is None:
@@ -146,7 +146,7 @@ def get_evaluation(video_id: str, session: Session = Depends(db)) -> dict[str, A
 
 
 @router.get("/videos/{video_id}/imported-evaluations")
-def imported_evaluations(video_id: str, session: Session = Depends(db)) -> dict[str, Any]:
+def imported_evaluations(video_id: str, session: Session = Depends(db, scope="function")) -> dict[str, Any]:
     """Evaluations imported from other installations' exports: unverified, never merged into
     this instance's scores, rankings or benchmarks."""
     from avd.portability import imported_for_video
@@ -161,7 +161,7 @@ def imported_evaluations(video_id: str, session: Session = Depends(db)) -> dict[
 
 
 @router.get("/videos/{video_id}/evaluations")
-def evaluation_history(video_id: str, session: Session = Depends(db)) -> dict[str, Any]:
+def evaluation_history(video_id: str, session: Session = Depends(db, scope="function")) -> dict[str, Any]:
     _refuse_if_blinded(session, video_id)
     rows = session.scalars(
         select(Evaluation).where(Evaluation.video_id == video_id).order_by(Evaluation.created_at.desc())
@@ -181,7 +181,7 @@ def evaluation_history(video_id: str, session: Session = Depends(db)) -> dict[st
 
 
 @router.get("/videos/{video_id}/claims")
-def claims(video_id: str, session: Session = Depends(db)) -> dict[str, Any]:
+def claims(video_id: str, session: Session = Depends(db, scope="function")) -> dict[str, Any]:
     """Claims from the video's current evaluation(s). ``verdict`` is one of supported,
     contradicted, mixed, outdated (accurate when published, since changed), unverifiable,
     insufficient_evidence, not_applicable, or ``unchecked``
@@ -224,7 +224,7 @@ def search(
     min_quality: float | None = Query(None, ge=1, le=5),
     include_synthetic: bool = True,
     limit: int = Query(20, le=100),
-    session: Session = Depends(db),
+    session: Session = Depends(db, scope="function"),
     emb: Embedder = Depends(embedder),
 ) -> dict[str, Any]:
     return {

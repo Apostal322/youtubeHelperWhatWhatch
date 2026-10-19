@@ -1,0 +1,54 @@
+name: Benchmark result (local model)
+description: Submit a bench-local result packed with `avd community pack`
+labels: ["benchmark-result"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thank you for running the benchmark ([kit](https://github.com/Apostal322/youtubeHelperWhatWhatch/blob/main/docs/volunteer-pilot.md)).
+        Attach only the `.zip` written by `avd community pack`, never run directories or databases.
+        Results are recorded as **contributor-reported**; they are not treated as authoritative on their own.
+  - type: input
+    id: pseudonym
+    attributes:
+      label: Pseudonym to credit (optional)
+  - type: input
+    id: commit
+    attributes:
+      label: Commit or branch you ran
+    validations:
+      required: true
+  - type: input
+    id: model
+    attributes:
+      label: Model tag(s)
+      placeholder: qwen3.5:4b
+    validations:
+      required: true
+  - type: dropdown
+    id: os
+    attributes:
+      label: Operating system
+      options: [Windows, macOS, Linux]
+    validations:
+      required: true
+  - type: textarea
+    id: verify
+    attributes:
+      label: Output of `avd community verify pilot.zip`
+      render: json
+    validations:
+      required: true
+  - type: textarea
+    id: notes
+    attributes:
+      label: Anything that went wrong or needed a workaround
+  - type: checkboxes
+    id: confirm
+    attributes:
+      label: Confirmation
+      options:
+        - label: The run used a real local model (the smoke test said `transport: real`).
+          required: true
+        - label: I did not edit the packed files.
+          required: true
