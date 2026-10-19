@@ -31,8 +31,9 @@ For code contributions see [`CONTRIBUTING.md`](../CONTRIBUTING.md).
 | Contribution | How | Where it lands |
 |---|---|---|
 | A real local-model run | [`volunteer-pilot.md`](volunteer-pilot.md): `avd bench-local`, then `avd community pack` | `benchmarks/community/` (contributor-reported) |
-| Quality ratings | run an annotation instance (`docs/annotation.md`): 3 independent raters per item, blind | exported with `avd annotate export`, then `avd bench-real --labels` |
-| Relevance judgments | `avd bench-relevance sheet`, protocol in `benchmarks/datasets/relevance_v1/README.md` | `avd bench-relevance --judgments` |
+| Quality ratings | offline rating packets ([`annotation-pilot.md`](annotation-pilot.md)) or an annotation instance ([`annotation.md`](annotation.md)): 3 independent raters per item, blind | exported with `avd annotate export`, then `avd bench-real --labels` |
+| Relevance judgments | in the same packets, or `avd bench-relevance sheet`; protocol and query audit in `benchmarks/datasets/relevance_v1/README.md` | `avd bench-relevance --judgments` |
+| Evidence review | `avd evidence-review sheet <run dir>` on a local dev run, then label each quote | `avd evidence-review summarize` (share the summary only: the sheet holds transcript text) |
 | A new evaluator or model provider | [`extending.md`](extending.md); experimental evaluators cannot replace official scores | PR with tests |
 | A prompt or rubric change | register a new version (`avd/evaluation/prompts.py`), never edit one in place; justify it with dev-split evidence | PR; old and new versions stay comparable |
 
@@ -58,14 +59,15 @@ The end-to-end check of a whole installation, including the extension in Chromiu
 `python scripts/e2e/full_local.py --chromium <path>` (needs `pip install playwright` in the
 interpreter that runs it).
 
-## Current state of the evidence (2026-10-19)
+## Current state of the evidence (2026-10-20)
 
 | Question | Status |
 |---|---|
 | Does a real local model produce valid, grounded output? | **unknown**: no run yet (model registries unreachable from the development environment) |
 | Do human raters agree with each other? | **unknown**: no ratings collected |
 | Does the model agree with humans? | **unknown**: needs both of the above |
-| Is retrieval topical? | on proxy labels only (show membership); human relevance judgments not collected |
+| Is retrieval topical? | on proxy labels only (show membership); human relevance judgments not collected (they are gathered in the rating packets) |
+| Do model quotes support the scores? | existence and location are checked automatically; support is not. Human review: `avd evidence-review sheet` |
 | Is the quality score independent of popularity and production? | yes, by construction and by metamorphic tests (`tests/test_metamorphic.py`) |
 
 Release gates: 1 of 12 passes; 7 are blocked by missing human labels and 4 by missing real

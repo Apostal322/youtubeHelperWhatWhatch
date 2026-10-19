@@ -47,7 +47,7 @@ Popularity statistics are never returned by public endpoints.
 |---|---|---|
 | GET | `/health` | Liveness + demo-mode flag |
 | GET | `/v1/meta` | Framework version, `evaluation_mode` (`heuristic_baseline` when no AI evaluator is configured, else `llm`) + disclaimer, rubric (questions, anchors, required modalities), genre profiles (weights) |
-| GET | `/v1/status` | Operational status without secrets: database reachability, queue counts, evaluation mode, provider, whether LLM credentials are configured (yes/no only), versions |
+| GET | `/v1/status` | Operational status without secrets: database reachability, queue counts, catalog counts (`videos`, `synthetic`, `evaluated`, `hidden_for_blind_annotation`), evaluation mode, provider, whether LLM credentials are configured (yes/no only), versions |
 | GET | `/metrics` | Prometheus text (HTTP counters, rate-limited requests, jobs by status, today's LLM spend). Admin token required unless `AVD_METRICS_PUBLIC=true` |
 | GET | `/v1/videos?genre=&evaluated=true&limit=&offset=` | Catalog listing with quality summaries |
 | GET | `/v1/videos/{id}` | Video card, available modalities, content sources (type, authorization basis, license, attribution, provenance URL), current quality summary |
@@ -133,7 +133,29 @@ Phase 2 additions to the evaluation object:
 }
 ```
 
-The response wraps items as `{request_id, ranker_version, items, eligibility, notes}`.
+The response wraps items as
+`{request_id, ranker_version, selection_policy_version, items, eligibility, empty_reason?, notes}`.
+
+* `selection_policy_version` (Phase 3.4) is a digest of everything static that decides which
+  candidates can appear:
+  * retrieval sizes;
+  * the embedder and document recipe;
+  * the relevance floor and ceiling;
+  * the ranker's version, features and weights;
+  * the per-channel cap;
+  * diversification and the exploration quota.
+
+  Each impression stores it, together with the per-request user settings and per-item flags
+  (`selection_context`). Each distinct configuration is stored once in
+  `recommendation_policies`. Impressions logged before this have `NULL`: their policy is unknown,
+  not guessed.
+* `empty_reason`, set only when there are no items, is one of:
+  * `empty_catalog`: nothing has been imported and analyzed;
+  * `hidden_for_blind_annotation`: imported items are withheld while blind human annotation is
+    open; `avd annotate unblind` lifts it;
+  * `no_match`: the user's filters exclude everything.
+* `ranking.channel_cap_relaxed` marks an item shown although its channel already has two items,
+  because no other matching creator was left.
 `eligibility` = `{candidates, eligible, ineligible: {reason: count}}`. Candidates already pass
 the hard filters (language, duration bounds, synthetic toggle, not-interested, relevance floor);
 `ineligible` counts the candidates dropped after that (`no_current_evaluation`,

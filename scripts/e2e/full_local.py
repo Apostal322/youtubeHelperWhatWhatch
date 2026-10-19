@@ -202,6 +202,88 @@ def restart_flow(b: Backend, ctx: dict[str, Any], work: Path) -> None:
     step("19 cleanup verified (token rejected, data gone)", st2 == 401, f"old token now gets HTTP {st2}")
 
 
+def new_user_flow(avd: str, chromium: str, ext: Path, work: Path, port: int, shots: Path) -> None:
+    """A brand-new installation: empty catalog, then authorized content imported while watching."""
+    from playwright.sync_api import sync_playwright
+
+    fresh = Backend(avd, work / "fresh", port)
+    fresh.data.mkdir(parents=True, exist_ok=True)
+    fresh.start()
+    try:
+        with sync_playwright() as p:
+            ctx = p.chromium.launch_persistent_context(
+                tempfile.mkdtemp(),
+                executable_path=chromium,
+                headless=True,
+                args=[f"--disable-extensions-except={ext}", f"--load-extension={ext}", "--headless=new"],
+                viewport={"width": 420, "height": 760},
+            )
+            sw = ctx.service_workers[0] if ctx.service_workers else ctx.wait_for_event("serviceworker", timeout=15000)
+            page = ctx.new_page()
+            page.goto(f"chrome-extension://{sw.url.split('/')[2]}/popup.html")
+            page.evaluate("b => chrome.storage.local.set({'avd.apiBase': b})", fresh.url)
+            page.reload()
+            page.wait_for_timeout(2500)
+            text = page.inner_text("body")
+            step(
+                "new user: empty catalog explained, not shown as broken",
+                "starts empty" in text and "Cannot reach" not in text,
+                "first-run hint shown",
+            )
+            step(
+                "new user: no ratings are shown for an empty catalog",
+                page.locator("button.title").count() == 0 and "/5" not in text,
+            )
+            page.screenshot(path=str(shots / "00-new-user-empty.png"), full_page=True)
+            page.get_by_role("tab", name="Preferences").click()
+            page.wait_for_timeout(1500)
+            step("new user: diagnostics say the catalog is empty", "Catalog: empty" in page.inner_text("body"))
+            manifest = str(REPO / "benchmarks" / "datasets" / "real_pilot_v1" / "manifest.json")
+            try:
+                fresh.cli("dataset", "import", manifest, "--offline", "--evaluate")
+            except subprocess.CalledProcessError as exc:
+                step("new user: import authorized content", None, f"pilot not cached: {exc.stderr[-120:]}")
+                ctx.close()
+                return
+            lines = []
+            for _ in range(40):
+                page.get_by_role("button", name="Re-check connection").click()
+                page.wait_for_timeout(500)
+                line = next((x for x in page.inner_text("body").splitlines() if x.startswith("Catalog:")), "")
+                lines.append(line)
+                if "in progress" not in line and "evaluated" in line and not line.endswith(" 0 evaluated"):
+                    break
+            step(
+                "new user: import progress visible, then the evaluated count",
+                any("in progress" in x for x in lines) or any("evaluated" in x for x in lines),
+                lines[-1],
+            )
+            page.screenshot(path=str(shots / "00-new-user-imported.png"), full_page=True)
+            page.get_by_label("Interests (one per line)").fill("Go programming\nmachine learning in production")
+            page.get_by_role("button", name="Save preferences").click()
+            page.wait_for_timeout(800)
+            page.get_by_role("tab", name="Discover").click()
+            page.wait_for_timeout(2500)
+            step(
+                "new user: items hidden for blind annotation are explained, with the command to show them",
+                "hidden while blind human annotation" in page.inner_text("body"),
+            )
+            page.screenshot(path=str(shots / "00-new-user-blinded.png"), full_page=True)
+            fresh.cli("annotate", "unblind", "--dataset", "real_pilot@v1")
+            page.get_by_role("button", name="Refresh").click()
+            page.wait_for_timeout(2500)
+            text = page.inner_text("body")
+            step(
+                "new user: recommendations from real licensed items, labelled heuristic",
+                page.locator("button.title").count() > 0 and "Heuristic" in text,
+                f"{page.locator('button.title').count()} cards",
+            )
+            page.screenshot(path=str(shots / "00-new-user-recommendations.png"), full_page=True)
+            ctx.close()
+    finally:
+        fresh.stop()
+
+
 def browser_flow(b: Backend, chromium: str, ext: Path, shots: Path) -> None:
     from playwright.sync_api import sync_playwright
 
@@ -326,6 +408,7 @@ def main() -> int:
         if args.chromium and (ext / "manifest.json").exists():
             shots = work / "screenshots"
             shots.mkdir()
+            new_user_flow(args.avd, args.chromium, ext, work, args.port + 2, shots)
             browser_flow(b, args.chromium, ext, shots)
             print(f"screenshots: {shots}")
         else:

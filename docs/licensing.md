@@ -12,6 +12,36 @@
   `https://www.apache.org/licenses/LICENSE-2.0.txt` (SHA-256 `cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30`).
   Merging it is the owner's decision; closing it leaves everything as it is.
 
+## Recommendation (Phase 3.4 review of draft PR #5)
+
+**Merge PR #5 to adopt Apache-2.0.** The review found:
+
+* **Contributor rights:** the history to date has 2 commits by the owner and 69 authored with an
+  AI coding assistant on the owner's behalf, and no outside contributors. The owner alone can
+  license the code.
+* **Content of the change:** the PR adds only the unmodified license text (SHA-256 above), and
+  it matches what `README.md` and `backend/pyproject.toml` already declare.
+* **Dependencies:** all compatible (table below).
+* **No `NOTICE` file needed:** no third-party code is vendored, so there are no attribution
+  notices to carry.
+
+After merging, two follow-ups:
+
+* replace the "LICENSE file is not yet in the repository" sentences in `README.md`,
+  `CONTRIBUTING.md` and this page;
+* tick the license item in [`release-checklist.md`](release-checklist.md).
+
+The license covers **only this project's code** (and the synthetic fixtures under CC0-1.0). It
+does not cover:
+
+| | Governed by |
+|---|---|
+| Project code | Apache-2.0 (once PR #5 is merged) |
+| Synthetic fixtures and synthetic benchmark | CC0-1.0 (declared) |
+| Models: MiniLM embedder, local LLMs | each model's own license, accepted by the operator when downloading; never redistributed here |
+| Datasets: pilot transcripts | the publisher's terms: Changelog CC BY-SA 4.0; Talk Python unconfirmed (see below). Manifests contain hashes and references, not text |
+| Content: YouTube videos, captions, audio | their creators; nothing here grants rights to them |
+
 ## Who holds copyright today
 
 The commit history has two authors:

@@ -14,8 +14,8 @@
     }
   },
   "meta": {
-    "run_at": "2026-10-19T20:52:54+00:00",
-    "git_commit": "891750cbd5212e0d584824927139006e6cf0decc",
+    "run_at": "2026-10-19T21:12:06+00:00",
+    "git_commit": "f59c3c5b44c921243a0a61d99b3f9bedf51d9c95",
     "dataset": "real_pilot@v1",
     "split": "dev (exploratory; development data only)",
     "k": 5,
@@ -78,7 +78,7 @@
             "selected": 6,
             "below_relevance_floor": 4
           },
-          "latency_ms_mean": 35.675,
+          "latency_ms_mean": 31.5,
           "selection_policy_version": "two_stage_mmr_r2:c2ec3317ea49"
         },
         "0.3": {
@@ -92,7 +92,7 @@
             "selected": 6,
             "below_relevance_floor": 4
           },
-          "latency_ms_mean": 16.15,
+          "latency_ms_mean": 14.825,
           "selection_policy_version": "two_stage_mmr_r2:c2ec3317ea49"
         }
       },
@@ -120,7 +120,7 @@
               "relevant_fates": {
                 "selected": 3
               },
-              "latency_ms": 23.5,
+              "latency_ms": 24.1,
               "selection_policy_version": "two_stage_mmr_r2:c2ec3317ea49",
               "candidates": [
                 {
@@ -216,7 +216,7 @@
               "relevant_fates": {
                 "selected": 3
               },
-              "latency_ms": 15.1,
+              "latency_ms": 15.9,
               "selection_policy_version": "two_stage_mmr_r2:c2ec3317ea49",
               "candidates": [
                 {
@@ -327,7 +327,7 @@
                 "below_relevance_floor": 2,
                 "selected": 1
               },
-              "latency_ms": 13.1,
+              "latency_ms": 13.0,
               "selection_policy_version": "two_stage_mmr_r2:c2ec3317ea49",
               "candidates": [
                 {
@@ -424,7 +424,7 @@
                 "below_relevance_floor": 2,
                 "selected": 1
               },
-              "latency_ms": 14.9,
+              "latency_ms": 13.0,
               "selection_policy_version": "two_stage_mmr_r2:c2ec3317ea49",
               "candidates": [
                 {
@@ -535,7 +535,7 @@
                 "below_relevance_floor": 1,
                 "selected": 1
               },
-              "latency_ms": 15.9,
+              "latency_ms": 14.8,
               "selection_policy_version": "two_stage_mmr_r2:c2ec3317ea49",
               "candidates": [
                 {
@@ -632,7 +632,7 @@
                 "below_relevance_floor": 1,
                 "selected": 1
               },
-              "latency_ms": 19.6,
+              "latency_ms": 15.1,
               "selection_policy_version": "two_stage_mmr_r2:c2ec3317ea49",
               "candidates": [
                 {
@@ -740,10 +740,10 @@
               "exploration_slots": 1,
               "off_topic_rate_topical": 0.5,
               "relevant_fates": {
-                "below_relevance_floor": 1,
-                "selected": 1
+                "selected": 1,
+                "below_relevance_floor": 1
               },
-              "latency_ms": 90.2,
+              "latency_ms": 74.1,
               "selection_policy_version": "two_stage_mmr_r2:c2ec3317ea49",
               "candidates": [
                 {
@@ -837,10 +837,10 @@
               "exploration_slots": 1,
               "off_topic_rate_topical": 0.5,
               "relevant_fates": {
-                "below_relevance_floor": 1,
-                "selected": 1
+                "selected": 1,
+                "below_relevance_floor": 1
               },
-              "latency_ms": 15.0,
+              "latency_ms": 15.3,
               "selection_policy_version": "two_stage_mmr_r2:c2ec3317ea49",
               "candidates": [
                 {
@@ -951,11 +951,11 @@
           "returned": 4.25,
           "exploration_slots": 1.0,
           "relevant_fates": {
-            "channel_cap": 1,
             "selected": 8,
+            "channel_cap": 1,
             "not_selected": 1
           },
-          "latency_ms_mean": 23.2,
+          "latency_ms_mean": 28.5,
           "selection_policy_version": "two_stage_mmr_r2:b9d27ef50cc5"
         },
         "0.3": {
@@ -970,7 +970,7 @@
             "channel_cap": 1,
             "not_selected": 1
           },
-          "latency_ms_mean": 22.5,
+          "latency_ms_mean": 44.075,
           "selection_policy_version": "two_stage_mmr_r2:b9d27ef50cc5"
         }
       },
@@ -996,10 +996,10 @@
               "exploration_slots": 1,
               "off_topic_rate_topical": 0.5,
               "relevant_fates": {
-                "channel_cap": 1,
-                "selected": 2
+                "selected": 2,
+                "channel_cap": 1
               },
-              "latency_ms": 27.8,
+              "latency_ms": 28.8,
               "selection_policy_version": "two_stage_mmr_r2:b9d27ef50cc5",
               "candidates": [
                 {
@@ -1096,7 +1096,7 @@
                 "selected": 2,
                 "channel_cap": 1
               },
-              "latency_ms": 22.0,
+              "latency_ms": 20.7,
               "selection_policy_version": "two_stage_mmr_r2:b9d27ef50cc5",
               "candidates": [
                 {
@@ -1206,7 +1206,7 @@
               "relevant_fates": {
                 "selected": 3
               },
-              "latency_ms": 21.5,
+              "latency_ms": 22.1,
               "selection_policy_version": "two_stage_mmr_r2:b9d27ef50cc5",
               "candidates": [
                 {
@@ -1302,7 +1302,7 @@
               "relevant_fates": {
                 "selected": 3
               },
-              "latency_ms": 22.7,
+              "latency_ms": 21.4,
               "selection_policy_version": "two_stage_mmr_r2:b9d27ef50cc5",
               "candidates": [
                 {
@@ -1412,7 +1412,7 @@
               "relevant_fates": {
                 "selected": 2
               },
-              "latency_ms": 20.8,
+              "latency_ms": 24.4,
               "selection_policy_version": "two_stage_mmr_r2:b9d27ef50cc5",
               "candidates": [
                 {
@@ -1508,7 +1508,7 @@
               "relevant_fates": {
                 "selected": 2
               },
-              "latency_ms": 21.3,
+              "latency_ms": 101.3,
               "selection_policy_version": "two_stage_mmr_r2:b9d27ef50cc5",
               "candidates": [
                 {
@@ -1616,10 +1616,10 @@
               "exploration_slots": 1,
               "off_topic_rate_topical": 0.75,
               "relevant_fates": {
-                "selected": 1,
-                "not_selected": 1
+                "not_selected": 1,
+                "selected": 1
               },
-              "latency_ms": 22.7,
+              "latency_ms": 38.7,
               "selection_policy_version": "two_stage_mmr_r2:b9d27ef50cc5",
               "candidates": [
                 {
@@ -1713,10 +1713,10 @@
               "exploration_slots": 1,
               "off_topic_rate_topical": 0.75,
               "relevant_fates": {
-                "selected": 1,
-                "not_selected": 1
+                "not_selected": 1,
+                "selected": 1
               },
-              "latency_ms": 24.0,
+              "latency_ms": 32.9,
               "selection_policy_version": "two_stage_mmr_r2:b9d27ef50cc5",
               "candidates": [
                 {
@@ -1827,10 +1827,10 @@
           "returned": 4.25,
           "exploration_slots": 1.0,
           "relevant_fates": {
-            "channel_cap": 1,
-            "selected": 9
+            "selected": 9,
+            "channel_cap": 1
           },
-          "latency_ms_mean": 50.325,
+          "latency_ms_mean": 26.35,
           "selection_policy_version": "two_stage_mmr_r2:651dd4268a32"
         },
         "0.3": {
@@ -1845,7 +1845,7 @@
             "channel_cap": 1,
             "not_selected": 1
           },
-          "latency_ms_mean": 31.525,
+          "latency_ms_mean": 46.25,
           "selection_policy_version": "two_stage_mmr_r2:651dd4268a32"
         }
       },
@@ -1871,10 +1871,10 @@
               "exploration_slots": 1,
               "off_topic_rate_topical": 0.5,
               "relevant_fates": {
-                "channel_cap": 1,
-                "selected": 2
+                "selected": 2,
+                "channel_cap": 1
               },
-              "latency_ms": 31.0,
+              "latency_ms": 28.6,
               "selection_policy_version": "two_stage_mmr_r2:651dd4268a32",
               "candidates": [
                 {
@@ -1971,7 +1971,7 @@
                 "selected": 2,
                 "channel_cap": 1
               },
-              "latency_ms": 39.7,
+              "latency_ms": 98.9,
               "selection_policy_version": "two_stage_mmr_r2:651dd4268a32",
               "candidates": [
                 {
@@ -2081,7 +2081,7 @@
               "relevant_fates": {
                 "selected": 3
               },
-              "latency_ms": 36.0,
+              "latency_ms": 21.7,
               "selection_policy_version": "two_stage_mmr_r2:651dd4268a32",
               "candidates": [
                 {
@@ -2177,7 +2177,7 @@
               "relevant_fates": {
                 "selected": 3
               },
-              "latency_ms": 26.1,
+              "latency_ms": 22.3,
               "selection_policy_version": "two_stage_mmr_r2:651dd4268a32",
               "candidates": [
                 {
@@ -2287,7 +2287,7 @@
               "relevant_fates": {
                 "selected": 2
               },
-              "latency_ms": 21.7,
+              "latency_ms": 22.0,
               "selection_policy_version": "two_stage_mmr_r2:651dd4268a32",
               "candidates": [
                 {
@@ -2383,7 +2383,7 @@
               "relevant_fates": {
                 "selected": 2
               },
-              "latency_ms": 26.4,
+              "latency_ms": 31.6,
               "selection_policy_version": "two_stage_mmr_r2:651dd4268a32",
               "candidates": [
                 {
@@ -2493,7 +2493,7 @@
               "relevant_fates": {
                 "selected": 2
               },
-              "latency_ms": 112.6,
+              "latency_ms": 33.1,
               "selection_policy_version": "two_stage_mmr_r2:651dd4268a32",
               "candidates": [
                 {
@@ -2587,10 +2587,10 @@
               "exploration_slots": 1,
               "off_topic_rate_topical": 0.75,
               "relevant_fates": {
-                "selected": 1,
-                "not_selected": 1
+                "not_selected": 1,
+                "selected": 1
               },
-              "latency_ms": 33.9,
+              "latency_ms": 32.2,
               "selection_policy_version": "two_stage_mmr_r2:651dd4268a32",
               "candidates": [
                 {

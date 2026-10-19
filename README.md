@@ -36,16 +36,16 @@ or model endpoint run by the project, and none is needed
 |---|---|
 | Runs without any central server | **yes**: local mode (SQLite, embedded worker) and self-hosted full stack |
 | AI evaluation implemented | yes: local models through Ollama (no key, $0) and hosted APIs (optional) |
-| AI evaluation **run on real models** | **not yet.** The local-model path is tested against a protocol mock. The development environment could not download Ollama or model weights. No hosted model has been run either |
+| AI evaluation **run on real models** | **not yet: 0 real model calls.** The local-model path is tested against a protocol mock. The development environment cannot download Ollama or model weights. No hosted model has been run either. **You can be first:** [volunteer benchmark kit](docs/volunteer-pilot.md) |
 | What you see without a model | a keyword/structure **heuristic baseline**, labelled "Heuristic mode (not AI)" everywhere |
-| Accuracy against human judgement | **unknown.** The blind annotation workflow is ready; no human labels exist yet |
+| Accuracy against human judgement | **unknown: 0 human ratings.** Blind annotation works online and as [offline rating packets](docs/annotation-pilot.md) for volunteers; no raters yet |
 | Release gates | 12 gates: 1 passes, 7 are blocked by missing human labels, 4 by the absence of AI inference (Phase 3 record, `avd gates status`). Not release-ready |
 | Platforms | Linux tested end to end (`scripts/e2e/full_local.py`, including the extension in Chromium). **macOS and Windows not tested** |
 
 Synthetic demo videos (written for this project) are labelled `synthetic_demo` everywhere and
 do not exist on YouTube. Phase records with audits and measured results:
 [Phase 2](docs/phase2.md), [Phase 3](docs/phase3.md), [Phase 3.1](docs/phase3_1-report.md),
-[Phase 3.2](docs/phase3_2-report.md), [Phase 3.3](docs/phase3_3-report.md).
+[Phase 3.2](docs/phase3_2-report.md), [Phase 3.3](docs/phase3_3-report.md), [Phase 3.4](docs/phase3_4-report.md).
 
 ![Quality breakdown in the extension](docs/screenshots/extension-video-quality.png)
 
@@ -140,7 +140,8 @@ needed. Also see:
 
 * [contributing to the research](docs/research-contributing.md): model runs, ratings, relevance
   judgments, reproducing benchmarks;
-* [running a local model and sharing the result](docs/volunteer-pilot.md);
+* [running a local model and sharing the result](docs/volunteer-pilot.md) (Windows, macOS, Linux);
+* [rating transcripts as a volunteer](docs/annotation-pilot.md): one offline file, no installation;
 * [good first issues](docs/good-first-issues.md);
 * [extension points](docs/extending.md), including a custom-evaluator example;
 * [architecture](docs/architecture.md);
@@ -166,7 +167,7 @@ python scripts/e2e/full_local.py --avd backend/.venv/bin/avd    # real processes
 | Data | [privacy and data ownership](docs/privacy.md) · [evaluation export format](docs/evaluation-export.md) · [content permissions](docs/permissions.md) · [licensing and provenance](docs/licensing.md) |
 | Design | [architecture](docs/architecture.md) · [extending](docs/extending.md) · [API](docs/api.md) · [security](docs/security.md) · [infrastructure costs](docs/infrastructure-costs.md) |
 | Research | [evaluation framework](docs/evaluation.md) · [annotation](docs/annotation.md) · [reproducibility](docs/reproducibility.md) · [local-model protocol](docs/research/local-models.md) · [research contributions](docs/research-contributing.md) · [volunteer model runs](docs/volunteer-pilot.md) · [relevance protocol](benchmarks/datasets/relevance_v1/README.md) |
-| History | [Phase 2](docs/phase2.md) · [Phase 3](docs/phase3.md) · [Phase 3.1](docs/phase3_1-report.md) · [Phase 3.2](docs/phase3_2-report.md) · [Phase 3.3](docs/phase3_3-report.md) · [release checklist](docs/release-checklist.md) · [roadmap](docs/roadmap.md) |
+| History | [Phase 2](docs/phase2.md) · [Phase 3](docs/phase3.md) · [Phase 3.1](docs/phase3_1-report.md) · [Phase 3.2](docs/phase3_2-report.md) · [Phase 3.3](docs/phase3_3-report.md) · [Phase 3.4](docs/phase3_4-report.md) · [release checklist](docs/release-checklist.md) · [roadmap](docs/roadmap.md) |
 
 ## Repository layout
 

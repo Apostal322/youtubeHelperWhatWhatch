@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { ApiClient, ApiError, setApiBase, setInviteCode } from "../src/lib/api";
-import { diagnose, grantRemoteConsent, hasRemoteConsent, isLocalBase, validateBackendUrl } from "../src/lib/backend";
+import { catalogLine, diagnose, grantRemoteConsent, hasRemoteConsent, isLocalBase, validateBackendUrl } from "../src/lib/backend";
 import { badgeText, band, duration, fmtScore, modelLabel, timeLink, timestamp } from "../src/lib/format";
 import { parseVideoId } from "../src/lib/youtube";
 
@@ -202,5 +202,18 @@ describe("backend selection", () => {
       throw new TypeError("Failed to fetch");
     }) as unknown as typeof fetch);
     expect(down.reachable).toBe(false);
+  });
+});
+
+describe("catalogLine", () => {
+  it("tells an empty catalog from a broken one", () => {
+    expect(catalogLine({ reachable: true, catalog: { videos: 0, evaluated: 0, synthetic: 0 } })).toMatch(/empty/);
+    expect(
+      catalogLine({ reachable: true, catalog: { videos: 49, evaluated: 30, synthetic: 20 }, queue: { queued: 3, running: 1 } }),
+    ).toBe("Catalog: 49 videos (29 real, 20 synthetic demo) · 30 evaluated · 4 jobs in progress");
+    expect(catalogLine({ reachable: true })).toMatch(/unknown/);
+    expect(
+      catalogLine({ reachable: true, catalog: { videos: 29, evaluated: 29, synthetic: 0, hidden_for_blind_annotation: 29 } }),
+    ).toMatch(/29 hidden during blind annotation$/);
   });
 });

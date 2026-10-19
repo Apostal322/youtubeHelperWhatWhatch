@@ -131,3 +131,58 @@ def test_explanations_name_a_relaxed_cap(demo: DB) -> None:
     for it in out["items"]:
         if it["ranking"]["channel_cap_relaxed"]:
             assert any("channel already shown" in e for e in it["explanations"])
+
+
+def test_a_short_feed_says_why_it_is_short(demo: DB) -> None:
+    out, _ = _recommend(demo, 10, interests=["zxqv blorf quantum basket weaving"])
+    assert any("not filled up with unrelated videos" in n for n in out["notes"])
+
+
+def test_items_hidden_for_blind_annotation_are_explained(tmp_path: Path) -> None:
+    """Imported dataset items are withheld while blind annotation is open; the feed must say so
+    (it used to claim "no analyzed videos match your filters")."""
+    from avd.db.models import Dataset, DatasetItem, User, UserPreferences
+    from avd.recsys.recommender import recommend
+    from avd.services import seed_demo
+
+    db = _make_db(tmp_path, None)
+    with db.sf() as s:
+        seed_demo(s, db.settings)
+        s.add(
+            Dataset(
+                id="pilot@v1",
+                name="pilot",
+                version="v1",
+                manifest_sha256="0" * 64,
+                split_strategy="x",
+                split_seed=1,
+            )
+        )
+        s.flush()
+        s.add(DatasetItem(dataset_id="pilot@v1", video_id="syn_sci_001", split="dev", group_key="g"))
+        u = User(token_hash="blind")
+        u.preferences = UserPreferences(interests=["science"])
+        s.add(u)
+        s.flush()
+        out = recommend(s, u.id, HashingEmbedder(), limit=5, log_impressions=False)
+    assert any(
+        "hidden while blind human annotation of pilot@v1" in n and "avd annotate unblind" in n
+        for n in out["notes"]
+    )
+    assert "syn_sci_001" not in {it["video"]["id"] for it in out["items"]}
+
+
+def test_empty_catalog_and_no_match_are_told_apart(tmp_path: Path, demo: DB) -> None:
+    from avd.db.models import User, UserPreferences
+    from avd.recsys.recommender import recommend
+
+    db = _make_db(tmp_path, None)  # nothing imported
+    with db.sf() as s:
+        u = User(token_hash="empty")
+        u.preferences = UserPreferences(interests=["science"])
+        s.add(u)
+        s.flush()
+        out = recommend(s, u.id, HashingEmbedder(), limit=5, log_impressions=False)
+    assert out["empty_reason"] == "empty_catalog" and "catalog is empty" in out["notes"][0]
+    filtered, _ = _recommend(demo, 5, interests=["science"], languages=["xx"])
+    assert filtered["items"] == [] and filtered["empty_reason"] == "no_match"

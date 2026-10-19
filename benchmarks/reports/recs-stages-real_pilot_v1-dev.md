@@ -1,6 +1,6 @@
 # Recommendation stage analysis: real_pilot@v1 dev (exploratory; development data only)
 
-Commit `891750cbd5212e0d584824927139006e6cf0decc`. Labels: topical proxy: persona's matching publisher show (not human relevance judgements). Quality: heuristic baseline (no AI model available); quality features are not AI judgements.
+Commit `f59c3c5b44c921243a0a61d99b3f9bedf51d9c95`. Labels: topical proxy: persona's matching publisher show (not human relevance judgements). Quality: heuristic baseline (no AI model available); quality features are not AI judgements.
 4 personas; small n: read directions, not decimals.
 
 ## Retrieval only (similarity over the identical candidate pool)

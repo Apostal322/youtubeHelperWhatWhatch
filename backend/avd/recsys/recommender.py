@@ -21,7 +21,7 @@ from sqlalchemy import func, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session, selectinload
 
-from avd.datasets.blinding import blinded_video_ids
+from avd.datasets.blinding import blinded_video_ids, blinding_note
 from avd.db.models import (
     Channel,
     DimensionScoreRow,
@@ -235,14 +235,27 @@ def recommend(
         if vid not in prof.excluded:
             relevance.setdefault(vid, (0.0, None))
 
+    hidden = blinding_note(session)
     if not relevance:
+        # Say *why* nothing is shown: an empty catalog, items hidden for annotation, or no match.
+        any_evaluated = session.scalar(select(Evaluation.id).where(Evaluation.is_current.is_(True)).limit(1))
+        if hidden:
+            reason, note = "hidden_for_blind_annotation", hidden
+        elif any_evaluated is None:
+            reason, note = (
+                "empty_catalog",
+                "The catalog is empty: nothing has been imported and analyzed yet.",
+            )
+        else:
+            reason, note = "no_match", "No analyzed videos match your filters yet."
         return {
             "request_id": None,
             "ranker_version": ranker.version,
             "selection_policy_version": version,
             "items": [],
             "eligibility": {"candidates": 0, "ineligible": {}},
-            "notes": ["no analyzed videos match your filters yet"],
+            "empty_reason": reason,
+            "notes": [note],
         }
 
     videos = {v.id: v for v in session.scalars(select(Video).where(Video.id.in_(relevance.keys()))).all()}
@@ -413,7 +426,18 @@ def recommend(
                 "explanations": _explain(c, prof),
             }
         )
-    notes = []
+    notes = [hidden] if hidden else []
+    topical_shown = sum(1 for c in selected if not c.get("exploration"))
+    if prof.interests and topical_shown < limit:
+        notes.append(
+            f"{topical_shown} of {len(scored)} analyzed candidates match your interests closely enough; "
+            "the list is not filled up with unrelated videos."
+            + (
+                f" {len(selected) - topical_shown} exploration pick(s) outside them are labelled as such."
+                if len(selected) > topical_shown
+                else ""
+            )
+        )
     if prof.genre_weights_source == "intent":
         notes.append(f"Genre priorities come from your stated intent '{prof.intent}' (no genre weights set).")
     return {

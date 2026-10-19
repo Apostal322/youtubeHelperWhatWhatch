@@ -110,6 +110,7 @@ export function isReliable(item: RecommendationItem): boolean {
 export function DiscoverView({ onSelect }: { onSelect: Select }) {
   const [items, setItems] = useState<RecommendationItem[] | null>(null);
   const [notes, setNotes] = useState<string[]>([]);
+  const [emptyReason, setEmptyReason] = useState<string | null>(null);
   const [ineligible, setIneligible] = useState<Record<string, number>>({});
   const [onlyReliable, setOnlyReliable] = useState(false);
   const [error, setError] = useState<unknown>(null);
@@ -121,6 +122,7 @@ export function DiscoverView({ onSelect }: { onSelect: Select }) {
       .then((r) => {
         setItems(r.items);
         setNotes(r.notes);
+        setEmptyReason(r.empty_reason ?? null);
         setIneligible(r.eligibility?.ineligible ?? {});
       })
       .catch(setError);
@@ -156,8 +158,10 @@ export function DiscoverView({ onSelect }: { onSelect: Select }) {
         <Empty>
           {items.length > 0 && onlyReliable
             ? "None of the current recommendations has an evidence-checked assessment yet."
-            : notes[0] ?? "No recommendations yet. Add interests in Preferences."}
-          {items.length === 0 ? <FirstRunHint /> : null}
+            : notes.length > 0
+              ? "Nothing to recommend yet (see the note above)."
+              : "No recommendations yet. Add interests in Preferences."}
+          {items.length === 0 && (emptyReason === "empty_catalog" || notes.length === 0) ? <FirstRunHint /> : null}
         </Empty>
       ) : (
         <ul className="list">

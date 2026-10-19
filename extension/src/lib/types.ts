@@ -73,8 +73,11 @@ export interface RecommendationItem {
 export interface RecommendationResponse {
   request_id: string | null;
   ranker_version: string;
+  selection_policy_version?: string;
   items: RecommendationItem[];
   eligibility?: { candidates: number; eligible?: number; ineligible: Record<string, number> };
+  /** Why the list is empty, when it is. */
+  empty_reason?: "empty_catalog" | "hidden_for_blind_annotation" | "no_match";
   notes: string[];
 }
 

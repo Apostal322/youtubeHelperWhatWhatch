@@ -78,8 +78,22 @@ export interface Diagnosis {
   worker?: Record<string, unknown>;
   database?: string;
   queue?: Record<string, number>;
+  catalog?: { videos: number; evaluated: number; synthetic: number; hidden_for_blind_annotation?: number };
   framework?: string;
   problem?: string;
+}
+
+/** Catalog size in words, so an empty catalog reads as "nothing imported yet", not as broken. */
+export function catalogLine(d: Diagnosis): string {
+  const c = d.catalog;
+  if (!c) return "Catalog: unknown (older backend)";
+  if (c.videos === 0) return "Catalog: empty. Nothing has been imported yet (see Discover for how to start).";
+  const real = c.videos - c.synthetic;
+  const working = (d.queue?.queued ?? 0) + (d.queue?.running ?? 0);
+  const hidden = c.hidden_for_blind_annotation ?? 0;
+  return `Catalog: ${c.videos} video${c.videos === 1 ? "" : "s"} (${real} real, ${c.synthetic} synthetic demo) · ${c.evaluated} evaluated${
+    working ? ` · ${working} job${working === 1 ? "" : "s"} in progress` : ""
+  }${hidden ? ` · ${hidden} hidden during blind annotation` : ""}`;
 }
 
 /** Connection diagnostics against ``/v1/status`` (no credentials sent). */
@@ -117,6 +131,7 @@ export async function diagnose(base: string, fetchImpl: typeof fetch = (...a) =>
       worker: s.worker as Record<string, unknown> | undefined,
       database: s.database as string | undefined,
       queue: s.queue as Record<string, number> | undefined,
+      catalog: s.catalog as Diagnosis["catalog"],
       framework: versions.framework,
     };
   } catch (e) {

@@ -1,0 +1,46 @@
+{
+  "host": {
+    "os": "Linux-6.18.44-fc-v139-x86_64-with-glibc2.39",
+    "cpus": 4,
+    "python": "3.12.3"
+  },
+  "evaluator": "heuristic baseline (no model)",
+  "note": "rate-limit buckets raised to 10000 for the latency loop; limiter still active; measured on the Phase 3.4 branch with uncommitted changes on top of this commit",
+  "cold_start_s": 1.79,
+  "demo_queue_drain_s_20_items": 0.67,
+  "pilot_import_s_29_items": 1.44,
+  "pilot_queue_drain_s_29_items": 4.98,
+  "idle": {
+    "rss_mb": 119.1,
+    "cpu_percent_10s": 0.2
+  },
+  "search_ms": {
+    "p50": 23.1,
+    "p95": 26.2,
+    "n": 50
+  },
+  "recommendations_ms": {
+    "p50": 53.9,
+    "p95": 133.1,
+    "n": 50
+  },
+  "video_evaluation_ms": {
+    "p50": 6.8,
+    "p95": 8.6,
+    "n": 50
+  },
+  "rss_after_requests_mb": 122.6,
+  "export": {
+    "s": 1.02,
+    "evaluations": 20,
+    "with_quotes": 0,
+    "file_sha256": "1f67ea3921c6ac6005557e9579471e66200e31567078a13f08655f5631f6bf97",
+    "kib": 197.7
+  },
+  "import_s": 0.97,
+  "shutdown_s": 0.42,
+  "database_mb": 3.88,
+  "warm_start_s": 1.23,
+  "warm_shutdown_s": 0.47,
+  "commit": "f59c3c5b44c921243a0a61d99b3f9bedf51d9c95"
+}
