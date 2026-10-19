@@ -95,6 +95,24 @@ time, raw checksum, permitted processing, storage terms, restrictions and revoca
 | In this repo | manifest only (paths, checksums, metadata); transcripts are fetched at import, not redistributed | same |
 | Open legal question | Are evaluations "analysis" rather than adaptations? Needs counsel review. | Is GPL appropriate for prose? Analysis use needs counsel review. |
 
+**Phase 3 rights review (2026-10-19).** Verified against the upstream repositories at the pinned
+commits (`avd dataset rights`, `backend/avd/datasets/rights.py`):
+
+* **Changelog: explicit content licence.** The README's "License & Copyright" section applies
+  CC BY-SA 4.0 to the transcripts and carves out `bigtent/` (Grafana Labs), which is excluded.
+  Remaining assumption: Changelog holds the rights to guests' spoken contributions.
+* **Talk Python: licence scope unconfirmed.** The root `LICENSE` is the GPL v3, a software
+  licence. Nothing states that it is meant to cover the transcript text. The README invites
+  people to "use the files to help you explore the conversations". Phase 2 recorded "GPL-3.0" as
+  if it settled the question; it does not.
+  * Treated as confirmed: internal analysis only.
+  * **Pending and enforced:** showing the text to external raters (the items are skipped by
+    annotation assignment), quoting it publicly (the API withholds quotes), and redistribution.
+  * Remediation: obtain written confirmation from the publisher and record it in
+    `benchmarks/datasets/rights_confirmations.json`.
+  * All 7 Talk Python items are in the test split, so annotating the test split is partly blocked
+    until then.
+
 Attribution: transcripts © Changelog Media LLC (CC BY-SA 4.0) and © Talk Python To Me / Michael
 Kennedy (GPL-3.0). The annotation UI and exports show these attributions.
 

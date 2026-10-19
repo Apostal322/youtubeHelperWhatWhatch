@@ -256,6 +256,12 @@ def cmd_dataset_import(args: argparse.Namespace) -> None:
     print(json.dumps({k: v for k, v in result.items() if k != "video_ids"}))
 
 
+def cmd_dataset_rights(args: argparse.Namespace) -> None:
+    from avd.datasets.rights import report
+
+    print(json.dumps(report(), indent=2))
+
+
 def cmd_dataset_revoke(args: argparse.Namespace) -> None:
     from avd.datasets.importer import revoke_video_sources
     from avd.db.session import session_scope
@@ -381,6 +387,9 @@ def main(argv: list[str] | None = None) -> None:
     for sp in (bp, di):
         sp.add_argument("--cache-dir", default=None)
         sp.add_argument("--offline", action="store_true", help="use only the local cache")
+    ds.add_parser("rights", help="use-time rights review: facts, assumptions, pending uses").set_defaults(
+        fn=cmd_dataset_rights
+    )
     rv = ds.add_parser("revoke", help="revoke a video's content sources and withdraw its evaluations")
     rv.add_argument("video_id")
     rv.add_argument("--reason", required=True)

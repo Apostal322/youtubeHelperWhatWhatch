@@ -30,6 +30,7 @@ from sqlalchemy.orm import Session
 
 from avd.content.models import Transcript
 from avd.content.store import load_bundle
+from avd.datasets.rights import video_pending_uses
 from avd.db.models import (
     Adjudication,
     Annotation,
@@ -145,7 +146,11 @@ def next_assignment(session: Session, rater: Rater, dataset_id: str) -> Annotati
     ).all()
     done = {a.video_id for a in mine}
     if rater.status == "onboarding":
-        pending = [i for i in _items(session, dataset_id, ("calibration",)) if i.video_id not in done]
+        pending = [
+            i
+            for i in _items(session, dataset_id, ("calibration",))
+            if i.video_id not in done and _available(session, i.video_id)
+        ]
         if not pending:
             rater.status = "active"
             rater.onboarded_at = datetime.now(UTC)
@@ -186,7 +191,11 @@ def _split(session: Session, dataset_id: str, video_id: str) -> str | None:
 
 
 def _available(session: Session, video_id: str) -> bool:
-    return load_bundle(session, video_id).transcript is not None  # revoked content is not annotated
+    # Revoked content is not annotated, nor content whose publisher has not confirmed that it may
+    # be shown to external raters (avd.datasets.rights).
+    if "external_annotation" in video_pending_uses(session, video_id):
+        return False
+    return load_bundle(session, video_id).transcript is not None
 
 
 def _start(session: Session, rater: Rater, dataset_id: str, video_id: str, is_repeat: bool) -> Annotation:
@@ -207,6 +216,8 @@ def _start(session: Session, rater: Rater, dataset_id: str, video_id: str, is_re
 def item_payload(session: Session, ann: Annotation) -> dict[str, Any]:
     """What a rater sees: the transcript, descriptive metadata, attribution and the rubric.
     Deliberately excluded: other annotations, model evaluations, popularity statistics."""
+    if "external_annotation" in video_pending_uses(session, ann.video_id):
+        raise AnnotationError("item is not cleared for external annotation (rights confirmation pending)")
     video = session.get(Video, ann.video_id)
     bundle = load_bundle(session, ann.video_id)
     if video is None or bundle.transcript is None:

@@ -1,0 +1,4 @@
+{
+  "_comment": "Written confirmations from rights holders that lift a pending use (see backend/avd/datasets/rights.py). Each record needs source, uses, confirmed_by, evidence (a reference to the written confirmation, never its private contents) and date. Empty until a publisher confirms.",
+  "confirmations": []
+}

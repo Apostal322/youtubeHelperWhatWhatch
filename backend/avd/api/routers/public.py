@@ -9,6 +9,7 @@ from sqlalchemy.orm import Session
 from avd.api.deps import db, embedder
 from avd.config import Settings, get_settings
 from avd.content.store import active_sources
+from avd.datasets.rights import WITHHELD, video_pending_uses, withhold_quotes
 from avd.db.models import Evaluation, FactualClaim, Video
 from avd.embeddings.base import Embedder
 from avd.evaluation.profiles import PROFILES
@@ -113,7 +114,10 @@ def get_evaluation(video_id: str, session: Session = Depends(db)) -> dict[str, A
             404,
             "video not in catalog" if v is None else f"no evaluation yet (status: {v.status})",
         )
-    return serialize_evaluation(ev)
+    payload = serialize_evaluation(ev)
+    if "public_quotes" in video_pending_uses(session, video_id):
+        payload = withhold_quotes(payload)
+    return payload
 
 
 @router.get("/videos/{video_id}/evaluations")
@@ -147,12 +151,14 @@ def claims(video_id: str, session: Session = Depends(db)) -> dict[str, Any]:
         .where(Evaluation.video_id == video_id, Evaluation.is_current.is_(True))
         .order_by(FactualClaim.segment_index)
     ).all()
+    quotes_ok = "public_quotes" not in video_pending_uses(session, video_id)
     return {
         "video_id": video_id,
+        "quotes_withheld": not quotes_ok,
         "items": [
             {
                 "segment_index": c.segment_index,
-                "quote": c.quote,
+                "quote": c.quote if quotes_ok or not c.quote else WITHHELD,
                 "claim": c.claim,
                 "claim_type": c.claim_type,
                 "verdict": c.verdict,
