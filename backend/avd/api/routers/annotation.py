@@ -65,6 +65,7 @@ class SubmitIn(BaseModel):
     confidence: float | None = Field(default=None, ge=0, le=1)
     flags: list[str] = Field(default_factory=list, max_length=10)
     notes: str | None = Field(default=None, max_length=4000)
+    enjoyment: int | None = Field(default=None, ge=1, le=5)
 
 
 class PairIn(BaseModel):
@@ -177,6 +178,7 @@ def submit(
             body.confidence,
             body.flags,
             body.notes,
+            enjoyment=body.enjoyment,
         )
     except svc.AnnotationError as e:
         raise _bad(e) from e

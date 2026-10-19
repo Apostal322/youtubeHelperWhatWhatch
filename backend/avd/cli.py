@@ -307,11 +307,19 @@ def cmd_annotate(args: argparse.Namespace) -> None:
             out = Path(args.out)
             out.mkdir(parents=True, exist_ok=True)
             data = svc.export_labels(s, args.dataset)
-            for name in ("labels", "repeats", "pairs", "items"):
+            for name in ("labels", "repeats", "pairs", "items", "enjoyment"):
                 with (out / f"{name}.jsonl").open("w", encoding="utf-8") as f:
                     for row in data[name]:
                         f.write(json.dumps(row, ensure_ascii=False) + "\n")
             print(json.dumps({k: len(v) for k, v in data.items()}))
+        elif args.annotate_cmd in ("blind", "unblind"):
+            from avd.db.models import Dataset
+
+            ds = s.get(Dataset, args.dataset)
+            if ds is None:
+                sys.exit(f"unknown dataset {args.dataset}")
+            ds.public_blinding = args.annotate_cmd == "blind"
+            print(json.dumps({"dataset": ds.id, "public_blinding": ds.public_blinding}))
 
 
 def cmd_bench_real(args: argparse.Namespace) -> None:
@@ -437,9 +445,13 @@ def main(argv: list[str] | None = None) -> None:
     q = an.add_parser("qc")
     ex = an.add_parser("export")
     ex.add_argument("--out", required=True)
-    for sp in (q, ex):
+    bl = an.add_parser(
+        "blind", help="withhold model assessments of the dataset's items from public endpoints"
+    )
+    ub = an.add_parser("unblind", help="annotation closed: publish model assessments of the dataset's items")
+    for sp in (q, ex, bl, ub):
         sp.add_argument("--dataset", default="real_pilot@v1")
-    for sp in (cr, q, ex):
+    for sp in (cr, q, ex, bl, ub):
         sp.set_defaults(fn=cmd_annotate)
     br = sub.add_parser("bench-real", help="benchmark on a real licensed dataset against human labels")
     br.add_argument(

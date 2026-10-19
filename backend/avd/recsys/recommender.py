@@ -20,6 +20,7 @@ import numpy as np
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session, selectinload
 
+from avd.datasets.blinding import blinded_video_ids
 from avd.db.models import (
     Channel,
     DimensionScoreRow,
@@ -106,6 +107,7 @@ def build_profile(session: Session, user_id: str, embedder: Embedder) -> UserPro
         p.depth_preference = "advanced"
     if p.interests:
         p.interest_vectors = embedder.embed(p.interests)
+    p.excluded |= blinded_video_ids(session)  # open blind annotation: never surface these
     for vid, kind in session.execute(
         select(Feedback.video_id, Feedback.kind).where(Feedback.user_id == user_id)
     ).all():

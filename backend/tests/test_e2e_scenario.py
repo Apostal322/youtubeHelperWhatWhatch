@@ -169,7 +169,57 @@ def test_licensed_item_to_account_deletion(
     assert imported["imported"] == 3
     assert _run_worker(client)["succeeded"] >= 6  # Stage A + Stage B per item
 
-    # 2. The public evaluation says what kind of assessment it is; nothing pretends to be AI.
+    # 2. Blind annotation opens: the model's view of these items is withheld everywhere public.
+    assert client.get("/v1/videos/chl_podcast_1/evaluation").status_code == 403
+    assert client.get("/v1/videos/chl_podcast_1").status_code == 403
+    assert client.get("/v1/videos/chl_podcast_1/claims").status_code == 403
+    assert client.get("/v1/search", params={"q": "cache invalidation"}).json()["items"] == []
+    early = client.post("/v1/users").json()
+    eh = {"Authorization": f"Bearer {early['token']}"}
+    client.put("/v1/users/me/preferences", headers=eh, json={"interests": ["cache invalidation"]})
+    assert client.get("/v1/recommendations", headers=eh).json()["items"] == []
+    # The rater sees transcript and rubric, never model scores, popularity or the publisher's link.
+    rater = client.post("/v1/annotation/raters", json={"pseudonym": "e2e-rater"}, headers=ADMIN).json()
+    tok = {"Authorization": f"Bearer {rater['token']}"}
+    item = client.get("/v1/annotation/next", params={"dataset": "real_pilot@v1"}, headers=tok).json()
+    assert item["done"] is False and item["license"]
+    assert "overall" not in json.dumps(item) and "view_count" not in json.dumps(item)
+    assert "external_url" not in item and item["status_guide"]["requires_visual_material"]
+    seg = item["segments"][2]
+    scores = [
+        {"dimension": d["dimension"], "status": "insufficient_evidence"}
+        for d in item["rubric"]
+        if d["dimension"] not in ("clarity", "pacing")
+    ]
+    scores.append({"dimension": "pacing", "status": "requires_visual_material"})
+    scores.append(
+        {
+            "dimension": "clarity",
+            "status": "scored",
+            "score": 4,
+            "evidence": [{"segment_index": seg["index"], "quote": " ".join(seg["text"].split()[:6])}],
+        }
+    )
+    sub = client.post(
+        f"/v1/annotation/annotations/{item['annotation_id']}/submit",
+        json={"scores": scores, "enjoyment": 3},
+        headers=tok,
+    )
+    assert sub.status_code == 200, sub.text
+    exported = client.get("/v1/annotation/export", params={"dataset": "real_pilot@v1"}, headers=ADMIN).json()
+    rows = [x for x in exported["labels"] if x["dimension"] == "clarity"]
+    assert not item["is_calibration"]  # three single-item groups: no calibration split (test/dev/test)
+    assert rows and rows[0]["label_source"] == "human_annotation" and rows[0]["score"] == 4
+    assert rows[0]["evidence"][0]["segment_index"] == seg["index"]
+    assert any("CC BY-SA 4.0" in a or "CC-BY-SA-4.0" in a for a in exported["attributions"])
+    # Personal enjoyment is exported apart from quality labels, never as one.
+    assert exported["enjoyment"][0]["enjoyment"] == 3
+    assert all(x["dimension"] != "enjoyment" for x in exported["labels"])
+
+    # 3. Annotation closes: unblind, and the public evaluation is available again.
+    assert _cli(capsys, "annotate", "unblind", "--dataset", "real_pilot@v1")["public_blinding"] is False
+
+    # 4. The public evaluation says what kind of assessment it is; nothing pretends to be AI.
     meta = client.get("/v1/meta").json()
     assert meta["evaluation_mode"] == "heuristic_baseline"
     assert "No AI evaluator is configured" in meta["disclaimer"]
@@ -190,7 +240,7 @@ def test_licensed_item_to_account_deletion(
             assert e["verified"] is True
     assert client.get("/v1/videos/chl_podcast_1/claims").json()["items"] == []
 
-    # 3. A manual genre correction re-runs the evaluation with the corrected profile.
+    # 5. A manual genre correction re-runs the evaluation with the corrected profile.
     r = client.put("/v1/admin/videos/tpy_301/genre", json={"genre": "lecture", "by": "e2e"}, headers=ADMIN)
     assert r.status_code == 200 and r.json()["requeued"]
     _run_worker(client)
@@ -199,38 +249,7 @@ def test_licensed_item_to_account_deletion(
     assert corrected["evaluation_id"] != ev["evaluation_id"]
     assert client.get("/v1/videos/tpy_301").json()["video"]["genre_status"] == "overridden"
 
-    # 4. Blind annotation: the rater sees transcript and rubric, never model scores or popularity.
-    rater = client.post("/v1/annotation/raters", json={"pseudonym": "e2e-rater"}, headers=ADMIN).json()
-    tok = {"Authorization": f"Bearer {rater['token']}"}
-    item = client.get("/v1/annotation/next", params={"dataset": "real_pilot@v1"}, headers=tok).json()
-    assert item["done"] is False and item["license"]
-    assert "overall" not in json.dumps(item) and "view_count" not in json.dumps(item)
-    seg = item["segments"][2]
-    scores = [
-        {"dimension": d["dimension"], "status": "insufficient_evidence"}
-        for d in item["rubric"]
-        if d["dimension"] != "clarity"
-    ]
-    scores.append(
-        {
-            "dimension": "clarity",
-            "status": "scored",
-            "score": 4,
-            "evidence": [{"segment_index": seg["index"], "quote": " ".join(seg["text"].split()[:6])}],
-        }
-    )
-    sub = client.post(
-        f"/v1/annotation/annotations/{item['annotation_id']}/submit", json={"scores": scores}, headers=tok
-    )
-    assert sub.status_code == 200, sub.text
-    exported = client.get("/v1/annotation/export", params={"dataset": "real_pilot@v1"}, headers=ADMIN).json()
-    rows = [x for x in exported["labels"] if x["dimension"] == "clarity"]
-    assert not item["is_calibration"]  # three single-item groups: no calibration split (test/dev/test)
-    assert rows and rows[0]["label_source"] == "human_annotation" and rows[0]["score"] == 4
-    assert rows[0]["evidence"][0]["segment_index"] == seg["index"]
-    assert any("CC BY-SA 4.0" in a or "CC-BY-SA-4.0" in a for a in exported["attributions"])
-
-    # 5. Recommendations keep quality, relevance and ranking separate and explain themselves.
+    # 6. Recommendations keep quality, relevance and ranking separate and explain themselves.
     user = client.post("/v1/users").json()
     h = {"Authorization": f"Bearer {user['token']}"}
     prefs = {"interests": ["cache invalidation", "python packaging wheels"], "intent": "learn"}
@@ -245,18 +264,18 @@ def test_licensed_item_to_account_deletion(
         assert not any(k.startswith(("view", "like", "subscriber")) for k in it["ranking"]["features"])
         assert any("heuristic" in x.lower() for x in it["explanations"])
 
-    # 6. Feedback is tied to the impression it answers.
+    # 7. Feedback is tied to the impression it answers.
     it = recs["tpy_301"]
     fb = {"video_id": "tpy_301", "kind": "recommendation_useful", "impression_id": it["impression_id"]}
     assert client.post("/v1/feedback", headers=h, json=fb).status_code == 201
 
-    # 7. Takedown: revoked content is withdrawn everywhere.
+    # 8. Takedown: revoked content is withdrawn everywhere.
     _cli(capsys, "dataset", "revoke", "chl_podcast_1", "--reason", "rights holder request")
     assert client.get("/v1/videos/chl_podcast_1/evaluation").status_code == 404
     again = client.get("/v1/recommendations", headers=h, params={"limit": 5}).json()["items"]
     assert "chl_podcast_1" not in {x["video"]["id"] for x in again}
 
-    # 8. Account deletion removes the user's data and invalidates the token.
+    # 9. Account deletion removes the user's data and invalidates the token.
     gone = client.delete("/v1/users/me", headers=h)
     assert gone.status_code == 200 and gone.json()["deleted"] is True and gone.json()["feedback"] >= 1
     assert client.get("/v1/users/me/preferences", headers=h).status_code == 401

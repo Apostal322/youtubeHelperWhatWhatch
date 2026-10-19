@@ -29,6 +29,7 @@ from sqlalchemy import (
     Text,
     UniqueConstraint,
 )
+from sqlalchemy import true as sa_true
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 
 from avd.db.types import EmbeddingVector
@@ -427,6 +428,9 @@ class Dataset(Base):
     split_strategy: Mapped[str] = mapped_column(String(64))
     split_seed: Mapped[int] = mapped_column(Integer)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+    # While annotation is open, model assessments of the dataset's items are withheld from public
+    # endpoints so raters cannot look them up before rating (avd annotate unblind <dataset>).
+    public_blinding: Mapped[bool] = mapped_column(Boolean, default=True, server_default=sa_true())
 
 
 class DatasetItem(Base):
@@ -481,6 +485,8 @@ class Annotation(Base):
     )  # ambiguous_rubric | insufficient_material | ...
     notes: Mapped[str | None] = mapped_column(Text, nullable=True)
     exclusion_reason: Mapped[str | None] = mapped_column(Text, nullable=True)
+    # Optional personal enjoyment (1-5), kept apart from quality: never exported as a quality label.
+    enjoyment: Mapped[int | None] = mapped_column(Integer, nullable=True)
 
     scores: Mapped[list[AnnotationScore]] = relationship(
         back_populates="annotation", cascade="all, delete-orphan"

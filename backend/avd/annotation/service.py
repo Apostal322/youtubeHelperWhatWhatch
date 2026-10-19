@@ -48,7 +48,27 @@ from avd.evaluation.schema import RUBRIC_VERSION, EvidenceRef
 from avd.evaluation.validation import verify_quote
 
 ANNOTATION_DIMENSIONS = tuple(d.value for d in TEXT_DIMENSIONS)
-SCORE_STATUSES = ("scored", "abstain", "insufficient_evidence", "ambiguous", "not_applicable")
+SCORE_STATUSES = (
+    "scored",
+    "insufficient_evidence",
+    "not_applicable",
+    "cannot_determine",
+    "requires_subject_expertise",
+    "requires_visual_material",
+    "ambiguous",
+    "abstain",
+)
+# Shown to raters next to the status selector. No status forces a number.
+STATUS_GUIDE = {
+    "scored": "You can justify a 1-5 score from the transcript; cite at least one segment.",
+    "insufficient_evidence": "The transcript does not contain enough material on this dimension.",
+    "not_applicable": "The dimension does not apply to this kind of content.",
+    "cannot_determine": "There is material, but you cannot reach a justified judgement.",
+    "requires_subject_expertise": "Judging this needs domain expertise you do not have (e.g. checking technical claims).",
+    "requires_visual_material": "Judging this needs the video or audio, not just the transcript.",
+    "ambiguous": "The rubric question is unclear for this item; say why in the note.",
+    "abstain": "You prefer not to rate this dimension for another reason; say why in the note.",
+}
 PAIR_CRITERIA = ("content", "presentation", "overall")
 PAIR_PREFERENCES = ("a", "b", "equal", "insufficient")
 RATERS_PER_ITEM = 3
@@ -229,7 +249,6 @@ def item_payload(session: Session, ann: Annotation) -> dict[str, Any]:
         "video_id": video.id,
         "title": video.title,
         "platform": video.platform,
-        "external_url": video.external_url,
         "is_calibration": _split(session, ann.dataset_id, ann.video_id) == "calibration",
         "attribution": src.attribution if src else None,
         "license": src.license if src else None,
@@ -251,6 +270,15 @@ def item_payload(session: Session, ann: Annotation) -> dict[str, Any]:
             for d, dim in ((d.value, d) for d in TEXT_DIMENSIONS)
         ],
         "statuses": list(SCORE_STATUSES),
+        "status_guide": STATUS_GUIDE,
+        "blinding": (
+            "Rate the content, not the speakers or the show. You will not see any automated "
+            "assessment of this item; please do not look for one before submitting."
+        ),
+        "enjoyment_question": (
+            "Optional: how much did you personally enjoy this? (1-5). This is recorded separately "
+            "and is never used as a quality label."
+        ),
         "started_at": ann.started_at.isoformat(),
     }
 
@@ -282,6 +310,7 @@ def submit_annotation(
     confidence: float | None,
     flags: list[str],
     notes: str | None,
+    enjoyment: int | None = None,
 ) -> Annotation:
     ann = session.get(Annotation, annotation_id)
     if ann is None or ann.rater_id != rater.id:
@@ -299,6 +328,8 @@ def submit_annotation(
     transcript = load_bundle(session, ann.video_id).transcript
     if transcript is None:
         raise AnnotationError("item content is unavailable (revoked?)")
+    if enjoyment is not None and not 1 <= enjoyment <= 5:
+        raise AnnotationError("enjoyment must be 1-5 (or omitted)")
     qc: list[str] = []
     rows: list[AnnotationScore] = []
     for s in scores:
@@ -333,6 +364,7 @@ def submit_annotation(
     if len(scored) >= 5 and len(set(scored)) == 1:
         qc.append("straight_lining")
     ann.scores = rows
+    ann.enjoyment = enjoyment
     ann.submitted_at = now
     ann.status = "submitted"
     ann.confidence = confidence
@@ -678,7 +710,18 @@ def export_labels(session: Session, dataset_id: str) -> dict[str, list[dict[str,
         {"video_id": v, "split": i.split, "group_key": i.group_key, "stratum": i.stratum}
         for v, i in sorted(items.items())
     ]
-    return {"labels": labels, "repeats": repeats, "pairs": pairs, "items": item_rows}
+    enjoyment = [
+        {
+            "video_id": a.video_id,
+            "rater_id": raters.get(a.rater_id, a.rater_id),
+            "enjoyment": a.enjoyment,
+            "label_source": "human_personal_enjoyment",  # not a quality label
+            "split": items[a.video_id].split if a.video_id in items else None,
+        }
+        for a in _submitted(session, dataset_id)
+        if a.enjoyment is not None and a.video_id in items and items[a.video_id].split != "calibration"
+    ]
+    return {"labels": labels, "repeats": repeats, "pairs": pairs, "items": item_rows, "enjoyment": enjoyment}
 
 
 def source_attributions(session: Session, dataset_id: str) -> list[str]:
