@@ -303,6 +303,18 @@ class SpendGuardProvider:
         return resp
 
 
+def model_revision(provider: Any, model: str) -> str | None:
+    """The innermost provider's runtime revision for ``model`` (local models only; hosted APIs
+    return ``None``). Raises an ``LLMError`` when a local server cannot be asked."""
+    p = provider
+    while p is not None:
+        rev = getattr(p, "revision", None)
+        if callable(rev):
+            return str(rev(model))
+        p = getattr(p, "_inner", None)
+    return None
+
+
 class CachedProvider:
     """Content-addressed response cache. Identical requests (same prompt, schema, model, sampling
     settings, sample index) are served from the database: re-running the pipeline is free and
@@ -314,7 +326,13 @@ class CachedProvider:
         self.name = inner.name
 
     def complete_json(self, request: LLMRequest) -> LLMResponse:
-        key = request.cache_key(self.name)
+        try:
+            rev = model_revision(self._inner, request.model)
+        except LLMError:
+            # A local model whose revision cannot be read: never serve or store a cached answer
+            # that might belong to other weights. The call itself will report the problem.
+            return self._inner.complete_json(request)
+        key = request.cache_key(self.name if rev is None else f"{self.name}|{rev}")
         with self._session_factory() as s:
             hit = s.get(LLMCache, key)
             if hit is not None:

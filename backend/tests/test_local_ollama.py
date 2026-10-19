@@ -1,3 +1,4 @@
+# ruff: noqa: F811  (the `manifest` fixture is imported, then requested by name)
 """Phase 3.1: local inference through Ollama.
 
 Everything except the ``live`` tests runs against ``tests/ollama_mock.py``, a protocol mock of the
@@ -176,10 +177,93 @@ class TestLocalOnly:
     def test_local_and_private_urls_are_allowed(self, url: str) -> None:
         check_local_url(url, allow_remote=False)
 
-    def test_public_url_needs_explicit_opt_in(self) -> None:
+    def test_service_names_resolving_to_private_addresses_are_local(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        import socket
+
+        table = {"ollama": "172.18.0.4", "evil.example": "93.184.216.34"}
+        monkeypatch.setattr(
+            socket, "getaddrinfo", lambda h, p: [(0, 0, 0, "", (table[h], 0))] if h in table else []
+        )
+        check_local_url("http://ollama:11434", allow_remote=False)
+        with pytest.raises(LLMConfigurationError, match="not local"):
+            check_local_url("http://evil.example:11434", allow_remote=False)
+        with pytest.raises(LLMConfigurationError, match="does not resolve"):
+            check_local_url("http://nowhere:11434", allow_remote=False)
+
+    def test_public_url_needs_explicit_opt_in(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        import socket
+
+        monkeypatch.setattr(socket, "getaddrinfo", lambda h, p: [(0, 0, 0, "", ("93.184.216.34", 0))])
         with pytest.raises(LLMConfigurationError, match="not local"):
             OllamaProvider("https://inference.example.com")
         check_local_url("https://inference.example.com", allow_remote=True)
+
+
+class TestModelRevision:
+    def test_new_weights_under_the_same_tag_invalidate_cache_and_config(self, tmp_path: Path) -> None:
+        from sqlalchemy.orm import sessionmaker
+
+        from avd.db.models import Base
+        from avd.db.session import make_engine
+        from avd.evaluation.pipeline import build_pipeline
+
+        engine = make_engine(f"sqlite:///{tmp_path / 'c.db'}")
+        Base.metadata.create_all(engine)
+        sf = sessionmaker(bind=engine, expire_on_commit=False)
+        st = _local_settings(tmp_path)
+        fake = FakeOllama(answer=lambda b: {"a": "x"})
+
+        def chain() -> Any:
+            return build_llm_provider(st, sf, raw=_provider(fake))
+
+        chain().complete_json(_req())
+        assert chain().complete_json(_req()).cached and len(fake.chat_bodies) == 1
+        h1 = build_pipeline("B", st, chain()).config_hash()
+        fake.models[MODEL]["digest"] = "sha256:" + "cd" * 32  # re-pulled: new weights, same tag
+        assert not chain().complete_json(_req()).cached and len(fake.chat_bodies) == 2
+        assert build_pipeline("B", st, chain()).config_hash() != h1
+        engine.dispose()
+
+    def test_down_server_bypasses_the_cache_and_hosted_hashes_are_unchanged(self, tmp_path: Path) -> None:
+        from avd.evaluation.pipeline import build_pipeline
+        from tests.conftest import ScriptedProvider
+
+        fake = FakeOllama()
+        fake.down = True
+        st = _local_settings(tmp_path)
+        desc = build_pipeline("B", st, build_llm_provider(st, None, raw=_provider(fake))).config()
+        assert desc["evaluators"][0]["model_revision"] == "unresolved"
+        hosted = make_settings(tmp_path, llm_provider="anthropic")
+        d = build_pipeline(
+            "B", hosted, build_llm_provider(hosted, None, raw=ScriptedProvider(lambda r, i: {}))
+        ).config()
+        assert "model_revision" not in d["evaluators"][0]
+
+
+class TestExperimentalVision:
+    def test_images_are_sent_only_to_vision_models(self) -> None:
+        fake = FakeOllama(answer=lambda b: {"caption": "a slide"})
+        p = _provider(fake)
+        schema = {"type": "object", "properties": {"caption": {"type": "string"}}}
+        out = p.describe_images(MODEL, [b"\x89PNG fake"], "Describe the frame.", schema)
+        assert out["experimental"] is True and out["data"] == {"caption": "a slide"}
+        assert fake.chat_bodies[0]["messages"][0]["images"] == ["iVBORyBmYWtl"]
+        fake.models[MODEL]["capabilities"] = ["completion"]
+        with pytest.raises(LLMConfigurationError, match="vision"):
+            _provider(fake).describe_images(MODEL, [b"x"], "p", schema)
+
+    def test_visual_dimensions_still_abstain_with_a_local_model(self, tmp_path: Path) -> None:
+        from avd.evaluation.pipeline import build_pipeline
+        from tests.conftest import make_input
+
+        st = _local_settings(tmp_path)
+        res = build_pipeline("B", st, build_llm_provider(st, None, raw=_provider(FakeOllama()))).run(
+            make_input()
+        )
+        visual = [d for d in res.dimensions if d.group.value == "technical" and "video" in d.missing_inputs]
+        assert visual and all(d.status.value != "scored" and d.score is None for d in visual)
 
 
 # ------------------------------------------------------------------------------ configuration
@@ -290,7 +374,7 @@ def _local_settings(tmp_path: Path, **kw: Any) -> Settings:
     return make_settings(tmp_path, llm_provider="ollama", **kw)
 
 
-def _cfg(tmp_path: Path, manifest: tuple[Path, Path], **kw: Any) -> er.RunConfig:  # noqa: F811
+def _cfg(tmp_path: Path, manifest: tuple[Path, Path], **kw: Any) -> er.RunConfig:
     path, cache = manifest
     kw.setdefault("run_id", "local")
     kw.setdefault("out_dir", tmp_path / "run")
@@ -298,7 +382,7 @@ def _cfg(tmp_path: Path, manifest: tuple[Path, Path], **kw: Any) -> er.RunConfig
 
 
 class TestEvaluateRealLocal:
-    def test_end_to_end_through_the_protocol_mock(self, tmp_path: Path, manifest: tuple[Path, Path]) -> None:  # noqa: F811
+    def test_end_to_end_through_the_protocol_mock(self, tmp_path: Path, manifest: tuple[Path, Path]) -> None:
         fake = FakeOllama()
         r = er.run(_cfg(tmp_path, manifest), _local_settings(tmp_path), _provider(fake))
         s, m = r["summary"], r["meta"]
@@ -315,7 +399,28 @@ class TestEvaluateRealLocal:
             for b in fake.chat_bodies
         )
 
-    def test_resume_makes_no_duplicate_calls(self, tmp_path: Path, manifest: tuple[Path, Path]) -> None:  # noqa: F811
+    def test_results_are_labelled_local_ai_for_the_api(
+        self, tmp_path: Path, manifest: tuple[Path, Path]
+    ) -> None:
+        from sqlalchemy import select
+        from sqlalchemy.orm import Session
+
+        from avd.db.models import Evaluation
+        from avd.db.session import make_engine
+        from avd.evaluation.service import serialize_evaluation, summary
+
+        er.run(_cfg(tmp_path, manifest), _local_settings(tmp_path), _provider(FakeOllama()))
+        engine = make_engine(f"sqlite:///{tmp_path / 'run' / 'run.db'}")
+        with Session(engine) as s:
+            ev = s.scalars(select(Evaluation).where(Evaluation.is_current.is_(True))).first()
+            assert ev is not None
+            payload = serialize_evaluation(ev)
+            assert payload["evaluator_source"] == "local_ai" and summary(ev)["evaluator_source"] == "local_ai"  # type: ignore[index]
+            assert any(m.startswith(f"ollama:{MODEL}@") for m in payload["models"])
+            assert all(e["verified"] for d in payload["dimensions"] for e in d["evidence"])
+        engine.dispose()
+
+    def test_resume_makes_no_duplicate_calls(self, tmp_path: Path, manifest: tuple[Path, Path]) -> None:
         fake = FakeOllama()
         er.run(_cfg(tmp_path, manifest), _local_settings(tmp_path), _provider(fake))
         n = len(fake.chat_bodies)
@@ -342,13 +447,13 @@ class TestEvaluateRealLocal:
             prompt = sum(len(x["content"]) for x in b["messages"]) / 3
             assert prompt + b["options"]["num_predict"] <= num_ctx + 1
 
-    def test_server_down_refuses_before_running(self, tmp_path: Path, manifest: tuple[Path, Path]) -> None:  # noqa: F811
+    def test_server_down_refuses_before_running(self, tmp_path: Path, manifest: tuple[Path, Path]) -> None:
         fake = FakeOllama()
         fake.down = True
         with pytest.raises(er.PreflightError, match="local model not usable"):
             er.run(_cfg(tmp_path, manifest), _local_settings(tmp_path), _provider(fake))
 
-    def test_missing_model_refuses_before_running(self, tmp_path: Path, manifest: tuple[Path, Path]) -> None:  # noqa: F811
+    def test_missing_model_refuses_before_running(self, tmp_path: Path, manifest: tuple[Path, Path]) -> None:
         with pytest.raises(er.PreflightError, match="ollama pull"):
             er.run(
                 _cfg(tmp_path, manifest),
@@ -363,7 +468,7 @@ class TestEvaluateRealLocal:
         assert st.llm_provider == LLMProviderName.OLLAMA and st.llm_model_stage_b == "qwen3.5:4b"
         assert st.llm_single_pass_max_tokens < 60_000
 
-    def test_popularity_never_reaches_the_model(self, tmp_path: Path, manifest: tuple[Path, Path]) -> None:  # noqa: F811
+    def test_popularity_never_reaches_the_model(self, tmp_path: Path, manifest: tuple[Path, Path]) -> None:
         fake = FakeOllama()
         er.run(_cfg(tmp_path, manifest), _local_settings(tmp_path), _provider(fake))
         text = json.dumps(fake.chat_bodies).lower()
@@ -399,11 +504,22 @@ class TestOllamaDownWorker:
             assert s.scalar(select(func.count()).select_from(Evaluation)) == 0
 
 
+def test_meta_reports_where_inference_runs(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    from tests.test_ratelimit_shared import _app
+
+    monkeypatch.delenv("AVD_REDIS_URL", raising=False)
+    gen = _app(tmp_path, monkeypatch, AVD_LLM_PROVIDER="ollama", AVD_OLLAMA_MODEL="qwen3.5:9b")
+    c = next(gen)
+    m = c.get("/v1/meta").json()
+    assert m["inference"] == "local" and m["models"]["stage_b"] == "qwen3.5:9b"
+    gen.close()
+
+
 # ------------------------------------------------------------------------------ bench-local
 
 
 class TestBenchLocal:
-    def test_report_is_labelled_as_injected(self, tmp_path: Path, manifest: tuple[Path, Path]) -> None:  # noqa: F811
+    def test_report_is_labelled_as_injected(self, tmp_path: Path, manifest: tuple[Path, Path]) -> None:
         path, cache = manifest
         fake = FakeOllama()
         cfg = bl.LocalBenchConfig(
@@ -424,12 +540,12 @@ class TestBenchLocal:
         md = (tmp_path / "b" / "report.md").read_text()
         assert "NOT real inference" in md and "agreement with people needs human labels" in md
 
-    def test_refuses_held_out_data(self, tmp_path: Path, manifest: tuple[Path, Path]) -> None:  # noqa: F811
+    def test_refuses_held_out_data(self, tmp_path: Path, manifest: tuple[Path, Path]) -> None:
         cfg = bl.LocalBenchConfig(manifest=manifest[0], models=[MODEL], split="test")
         with pytest.raises(er.PreflightError, match="development data only"):
             bl.bench_local(cfg, make_settings(tmp_path))
 
-    def test_missing_model_runs_nothing(self, tmp_path: Path, manifest: tuple[Path, Path]) -> None:  # noqa: F811
+    def test_missing_model_runs_nothing(self, tmp_path: Path, manifest: tuple[Path, Path]) -> None:
         path, cache = manifest
         cfg = bl.LocalBenchConfig(
             manifest=path, models=["qwen3.5:9b"], cache_dir=cache, out_dir=tmp_path / "b"

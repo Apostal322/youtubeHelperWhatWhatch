@@ -3,15 +3,15 @@ from __future__ import annotations
 from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException, Query
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from avd.api.deps import db, embedder
-from avd.config import Settings, get_settings
+from avd.config import LLMProviderName, Settings, get_settings
 from avd.content.store import active_sources
 from avd.datasets.blinding import WITHHELD_MESSAGE, blinded_video_ids, is_blinded
 from avd.datasets.rights import WITHHELD, video_pending_uses, withhold_quotes
-from avd.db.models import Evaluation, FactualClaim, Video
+from avd.db.models import Annotation, Evaluation, FactualClaim, Video
 from avd.embeddings.base import Embedder
 from avd.evaluation.profiles import PROFILES
 from avd.evaluation.rubric import RUBRIC
@@ -43,6 +43,10 @@ def meta(settings: Settings = Depends(get_settings), emb: Embedder = Depends(emb
         "evaluation_mode": "heuristic_baseline" if settings.demo_mode else "llm",
         "disclaimer": HEURISTIC_MODE_DISCLAIMER if settings.demo_mode else LLM_DISCLAIMER,
         "llm_provider": settings.llm_provider.value,
+        # Where model inference runs: "local" (Ollama on the operator's hardware), "hosted", or none.
+        "inference": None
+        if settings.demo_mode
+        else ("local" if settings.llm_provider == LLMProviderName.OLLAMA else "hosted"),
         "models": {}
         if settings.demo_mode
         else {"stage_b": settings.llm_model_stage_b, "stage_c": settings.llm_model_stage_c},
@@ -126,6 +130,16 @@ def get_evaluation(video_id: str, session: Session = Depends(db)) -> dict[str, A
             "video not in catalog" if v is None else f"no evaluation yet (status: {v.status})",
         )
     payload = serialize_evaluation(ev)
+    # Independent human ratings of this video (released only once annotation is unblinded, which
+    # _refuse_if_blinded enforces). They are a separate judgement, never merged into the AI scores.
+    payload["human_reviews"] = int(
+        session.scalar(
+            select(func.count())
+            .select_from(Annotation)
+            .where(Annotation.video_id == video_id, Annotation.status == "submitted")
+        )
+        or 0
+    )
     if "public_quotes" in video_pending_uses(session, video_id):
         payload = withhold_quotes(payload)
     return payload

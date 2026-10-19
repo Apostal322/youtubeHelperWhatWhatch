@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { ApiClient, ApiError, setApiBase } from "../src/lib/api";
-import { badgeText, band, duration, fmtScore, timestamp } from "../src/lib/format";
+import { badgeText, band, duration, fmtScore, modelLabel, timestamp } from "../src/lib/format";
 import { parseVideoId } from "../src/lib/youtube";
 
 describe("parseVideoId", () => {
@@ -88,5 +88,12 @@ describe("ApiClient", () => {
     const client = new ApiClient(fetchMock as unknown as typeof fetch);
     await expect(client.preferences()).rejects.toEqual(new ApiError(401, "invalid token"));
     expect(window.localStorage.getItem("avd.token")).toBeNull();
+  });
+});
+
+describe("modelLabel", () => {
+  it("shows tag and quantization for local models and leaves hosted ids alone", () => {
+    expect(modelLabel("ollama:qwen3.5:9b@0123456789ab:Q4_K_M")).toBe("qwen3.5:9b (Q4_K_M)");
+    expect(modelLabel("claude-opus-5-5")).toBe("claude-opus-5-5");
   });
 });

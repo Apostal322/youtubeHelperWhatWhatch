@@ -22,6 +22,7 @@ from avd.evaluation.schema import (
     EvaluationResult,
     Genre,
 )
+from avd.llm.pricing import LOCAL_PREFIX
 from avd.observability import correlation_id
 
 SYNTHETIC_DISCLAIMER = (
@@ -250,6 +251,7 @@ def serialize_evaluation(ev: Evaluation, include_evidence: bool = True) -> dict[
         "review_reasons": ev.review_reasons,
         "assessment_state": state,
         "assessment_state_reasons": state_reasons,
+        "evaluator_source": evaluator_source(ev),
     }
 
 
@@ -300,6 +302,19 @@ def _public_coverage(report: dict[str, Any]) -> dict[str, Any]:
         evaluators[name] = {k: v for k, v in r.items() if k not in ("claims_extracted", "claims")}
     out["evaluators"] = evaluators
     return out
+
+
+def evaluator_source(ev: Evaluation) -> str:
+    """Who produced the scores: ``local_ai`` (an open-weight model on this deployment's own
+    hardware, via Ollama), ``hosted_ai`` (a model API), ``heuristic`` or ``synthetic``. Orthogonal
+    to :func:`assessment_state`, which says how much the scores can be trusted."""
+    if ev.is_synthetic or ev.mode == EvaluationMode.SYNTHETIC_DEMO.value:
+        return "synthetic"
+    if ev.mode == EvaluationMode.HEURISTIC_BASELINE.value:
+        return "heuristic"
+    if any(str(m).startswith(LOCAL_PREFIX) for m in ev.models or []):
+        return "local_ai"
+    return "hosted_ai"
 
 
 def assessment_state(ev: Evaluation) -> tuple[str, list[str]]:
@@ -364,6 +379,7 @@ def summary(ev: Evaluation | None) -> dict[str, Any] | None:
         "genre": ev.genre,
         "stage": ev.stage,
         "assessment_state": assessment_state(ev)[0],
+        "evaluator_source": evaluator_source(ev),
         "needs_review": ev.needs_review,
     }
 

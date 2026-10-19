@@ -2,7 +2,7 @@ import { useState } from "react";
 import { api } from "../../lib/api";
 import { STATUS_LABEL, VERDICT_LABEL, fmtScore, humanize, pct, plainSummary, timestamp } from "../../lib/format";
 import type { Claim, DimensionResult, Evaluation } from "../../lib/types";
-import { AssessmentBadge, ErrorBox, ModeBanner, ScoreBar, Spinner } from "./common";
+import { AssessmentBadge, ErrorBox, ModeBanner, ScoreBar, SourceLine, Spinner } from "./common";
 
 /** Claims extracted from the transcript and, where checked, their verdicts from licensed reference
  * passages (never from model knowledge). Loaded on demand. */
@@ -174,6 +174,7 @@ export function QualityBreakdown({ ev, videoUrl }: { ev: Evaluation; videoUrl: s
   return (
     <div className="breakdown">
       <AssessmentBadge state={ev.assessment_state ?? (ev.synthetic ? "synthetic_demo" : "preliminary")} reasons={ev.assessment_state_reasons} />
+      <SourceLine source={ev.evaluator_source} models={ev.models} humanReviews={ev.human_reviews} />
       <ModeBanner synthetic={ev.synthetic} text={ev.disclaimer} />
       <p className="summary">{plainSummary(ev)}</p>
       <div className="overall">

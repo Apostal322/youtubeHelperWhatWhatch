@@ -23,8 +23,10 @@ Safety properties (each covered by tests):
 
 from __future__ import annotations
 
+import base64
 import ipaddress
 import json
+import socket
 import time
 from dataclasses import dataclass
 from typing import Any
@@ -70,18 +72,30 @@ def is_cloud_model(name: str) -> bool:
     return name.endswith("-cloud") or name.endswith(":cloud")
 
 
+def _is_local_ip(ip: ipaddress.IPv4Address | ipaddress.IPv6Address) -> bool:
+    return ip.is_loopback or ip.is_private or ip.is_link_local
+
+
 def check_local_url(base_url: str, allow_remote: bool) -> None:
+    """Loopback, private-network addresses, and hostnames that resolve *only* to such addresses
+    (e.g. a Docker Compose service name) are local. Anything else needs ``allow_remote``."""
     host = urlparse(base_url).hostname or ""
-    if allow_remote:
-        return
-    if host in ("localhost", "host.docker.internal") or host.endswith(".svc.cluster.local"):
+    if allow_remote or host in ("localhost", "host.docker.internal"):
         return
     try:
-        ip = ipaddress.ip_address(host)
+        if _is_local_ip(ipaddress.ip_address(host)):
+            return
     except ValueError:
-        ip = None
-    if ip is not None and (ip.is_loopback or ip.is_private):
-        return
+        try:
+            addrs = {ipaddress.ip_address(a[4][0]) for a in socket.getaddrinfo(host, None)}
+        except (OSError, ValueError):
+            addrs = set()
+        if addrs and all(_is_local_ip(a) for a in addrs):
+            return
+        if not addrs:
+            raise LLMConfigurationError(
+                f"Ollama host {host!r} does not resolve (is the server/service running?)"
+            ) from None
     raise LLMConfigurationError(
         f"Ollama endpoint {base_url} is not local; set AVD_OLLAMA_ALLOW_REMOTE=true only for a host you control"
     )
@@ -183,9 +197,61 @@ class OllamaProvider:
         self._info[model] = info
         return info
 
+    def revision(self, model: str) -> str:
+        """Everything about the local runtime that changes answers for the same request: weights
+        (digest), quantization, context window, seed and thinking mode. Part of the cache key and
+        the evaluation config hash, so re-pulling a tag with new weights re-evaluates instead of
+        serving or keeping old answers. Raises when the server cannot be asked."""
+        info = self.model_info(model)
+        return f"{info.fingerprint}|ctx={self.effective_context(model)}|seed={self.seed}|think={self.think}"
+
     def effective_context(self, model: str) -> int:
         native = self.model_info(model).context_length
         return min(self.num_ctx, native) if native else self.num_ctx
+
+    # ------------------------------------------------------------------------------ experimental
+
+    def describe_images(
+        self,
+        model: str,
+        images: list[bytes],
+        prompt: str,
+        json_schema: dict[str, Any],
+        max_tokens: int = 1024,
+    ) -> dict[str, Any]:
+        """EXPERIMENTAL image input (e.g. authorized video frames) for vision-capable local models.
+
+        Not wired into scoring: no visual dimension is scored from it, and the visual evaluator
+        keeps abstaining until a validated frame protocol and human labels for visual quality
+        exist. Refused for models whose ``/api/show`` capabilities lack ``vision``."""
+        info = self.model_info(model)
+        if "vision" not in info.capabilities:
+            raise LLMConfigurationError(f"{model} does not report the vision capability")
+        if not images:
+            raise LLMConfigurationError("no images given")
+        body = {
+            "model": model,
+            "messages": [
+                {"role": "user", "content": prompt, "images": [base64.b64encode(b).decode() for b in images]}
+            ],
+            "format": json_schema,
+            "stream": False,
+            "keep_alive": self.keep_alive,
+            "options": {"num_ctx": self.effective_context(model), "num_predict": max_tokens},
+        }
+        try:
+            r = self._http.post("/api/chat", json=body)
+        except httpx.HTTPError as exc:
+            raise LLMTransientError(f"Ollama unreachable at {self.base_url}: {type(exc).__name__}") from exc
+        if r.status_code != 200:
+            raise LLMError(f"Ollama HTTP {r.status_code}: {r.text[:300]}")
+        try:
+            data = json.loads(r.json()["message"]["content"])
+        except (ValueError, KeyError, TypeError) as exc:
+            raise LLMOutputError(f"invalid image-description output: {exc}") from exc
+        if not isinstance(data, dict):
+            raise LLMOutputError("JSON output is not an object")
+        return {"data": data, "served_model": f"ollama:{info.fingerprint}", "experimental": True}
 
     # ------------------------------------------------------------------------------ inference
 

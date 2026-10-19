@@ -56,4 +56,28 @@ describe("QualityBreakdown", () => {
     render(<QualityBreakdown ev={{ ...ev, overall: { ...ev.overall, score: null, abstain_reason: "content coverage too low" } }} videoUrl={null} />);
     expect(screen.getByText(/No overall score: content coverage too low/)).toBeTruthy();
   });
+
+  it("labels a local-model evaluation with the model and keeps human ratings separate", () => {
+    const local: Evaluation = {
+      ...ev,
+      mode: "llm",
+      synthetic: false,
+      disclaimer: "AI evaluation",
+      models: [`ollama:qwen3.5:4b@${"ab".repeat(6)}:Q4_K_M`],
+      assessment_state: "grounded",
+      evaluator_source: "local_ai",
+      human_reviews: 2,
+    };
+    render(<QualityBreakdown ev={local} videoUrl={null} />);
+    expect(screen.getByText("Local AI evaluation")).toBeTruthy();
+    expect(screen.getByText(/qwen3\.5:4b \(Q4_K_M\)/)).toBeTruthy();
+    expect(screen.getByText(/2 independent ratings/)).toBeTruthy();
+    expect(screen.getByText("Evidence-checked")).toBeTruthy();
+  });
+
+  it("does not call a heuristic run AI", () => {
+    render(<QualityBreakdown ev={{ ...ev, evaluator_source: "synthetic" }} videoUrl={null} />);
+    expect(screen.getByText("Synthetic")).toBeTruthy();
+    expect(screen.queryByText("Local AI evaluation")).toBeNull();
+  });
 });
