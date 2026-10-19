@@ -25,6 +25,11 @@ evaluation — not as features, not in prompts, not through priorities. This is 
   resumable as soon as a key and a budget are provided (`docs/model-configuration.md`). Without
   credentials, scores come from a keyword/structure *heuristic baseline*: the API reports
   `evaluation_mode: heuristic_baseline` and the extension says *Heuristic mode (not AI)*.
+* **Local AI (Phase 3.1).** The evaluator can run on your own hardware with open-weight models
+  through Ollama: no key, no cloud and $0 per call (`avd local doctor`, then
+  `avd evaluate-real --provider ollama`; see [`docs/local-ai.md`](docs/local-ai.md)). It is
+  tested against a protocol mock only. No local model has been run here yet, because the
+  development container could not reach the Ollama or Hugging Face model registries.
 * **Real, licensed content is in the repo; real human labels are not.**
   * `real_pilot_v1`: 29 podcast episodes, fetched at pinned commits with checksums.
   * `real_holdout_v2`: a sealed hold-out of 12 more episodes.
@@ -81,6 +86,17 @@ See [`docs/annotation.md`](docs/annotation.md) and the dataset datasheet in
 
 ### 5. Real evaluations
 
+Locally, with no key or cost (see [`docs/local-ai.md`](docs/local-ai.md)):
+
+```bash
+avd local doctor                                   # hardware + model recommendation; downloads nothing
+ollama serve & avd local pull qwen3.5:4b --approve-gb 3
+avd evaluate-real --provider ollama --offline --run-id dev-local
+avd bench-local --offline --models qwen3.5:4b,qwen3.5:9b --num-ctx 8192,16384
+```
+
+With a hosted model:
+
 ```bash
 export AVD_LLM_PROVIDER=anthropic AVD_ANTHROPIC_API_KEY=sk-ant-...   # model: claude-opus-5-5 by default
 export AVD_YOUTUBE_API_KEY=AIza...                                    # discovery + metadata
@@ -112,6 +128,9 @@ cd extension && npm run typecheck && npm test && npm run build
   measured results, blockers.
 * [Model configuration](docs/model-configuration.md): running live AI evaluation safely
   (credentials, budget ceilings, resume).
+* [Local AI](docs/local-ai.md): Ollama setup, hardware-aware model choice, safety properties
+  and the local benchmark, with the [research protocol](docs/research/local-models.md) and the
+  [Phase 3.1 report](docs/phase3_1-report.md).
 * [Reproducibility and data provenance](docs/reproducibility.md): the command behind every
   report.
 * [API reference](docs/api.md)

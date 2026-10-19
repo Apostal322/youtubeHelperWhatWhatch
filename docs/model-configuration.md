@@ -3,11 +3,16 @@
 No live model has been run in this repository yet. This page is the checklist for the first
 run, and every one after it.
 
+**To run without an API key or any paid call**, use a local open-weight model through Ollama
+(`AVD_LLM_PROVIDER=ollama`). See [`local-ai.md`](local-ai.md). Local runs need no budget, and
+everything below about prices and budgets applies to the hosted providers.
+
 ## 1. Credentials (never in code)
 
 | Provider | Settings |
 |---|---|
 | Anthropic (default) | `AVD_LLM_PROVIDER=anthropic`, `AVD_ANTHROPIC_API_KEY` |
+| Ollama (local, no key) | `AVD_LLM_PROVIDER=ollama`, `AVD_OLLAMA_BASE_URL` (default `http://localhost:11434`, must be local), `AVD_OLLAMA_MODEL`; see [`local-ai.md`](local-ai.md) |
 | OpenAI-compatible (incl. local servers) | `AVD_LLM_PROVIDER=openai_compatible`, `AVD_OPENAI_BASE_URL` (default `https://api.openai.com/v1`), `AVD_OPENAI_API_KEY` (required unless the endpoint is localhost) |
 
 * Set keys as environment secrets: the deployment's secret store, or the cloud environment's
