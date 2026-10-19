@@ -333,6 +333,31 @@ def cmd_gates(args: argparse.Namespace) -> None:
 
     if args.gates_cmd == "lock":
         print(json.dumps(lock_gates(args.statement, new_test_set=args.new_test_set), indent=2))
+    elif args.gates_cmd == "status":
+        from avd.bench.real import evaluate_gates, load_exposures
+
+        report = json.loads(Path(args.report).read_text())
+        meta = report.get("meta", {})
+        manifest = Path(args.manifest) if args.manifest else None
+        res = evaluate_gates(
+            load_gates(),
+            report,
+            meta.get("split", "dev"),
+            meta.get("evaluator", "heuristic"),
+            load_exposures(manifest),
+        )
+        out = {
+            "report": args.report,
+            "dataset": meta.get("dataset"),
+            "split": meta.get("split"),
+            "evaluator": res["evaluator"],
+            "binding": res["binding"],
+            "release_ready": res["release_ready"],
+            "counts": res["counts"],
+            "by_status": {st: [r["id"] for r in res["results"] if r["status"] == st] for st in res["counts"]},
+            "results": res["results"],
+        }
+        print(json.dumps(out, indent=2))
     else:
         g = load_gates()
         print(json.dumps({"sha256": g["sha256"], "lock_valid": g["lock_valid"], "lock": g["lock"]}, indent=2))
@@ -474,6 +499,9 @@ def main(argv: list[str] | None = None) -> None:
     gl.add_argument("--statement", required=True)
     gl.add_argument("--new-test-set", action="store_true")
     gt.add_parser("check")
+    gs = gt.add_parser("status", help="classify every gate for a benchmark report (machine-readable)")
+    gs.add_argument("--report", required=True, help="a bench-real JSON report")
+    gs.add_argument("--manifest", default=None, help="dataset manifest (to apply its exposure ledger)")
     for sp in gt.choices.values():
         sp.set_defaults(fn=cmd_gates)
     em = sub.add_parser("embeddings", help="embedding model and index maintenance").add_subparsers(
