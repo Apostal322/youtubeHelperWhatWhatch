@@ -810,6 +810,9 @@ def main(argv: list[str] | None = None) -> None:
 
     add_local_parser(sub)
     add_bench_local_parser(sub)
+    from avd.bench.community import add_parser as add_community_parser
+
+    add_community_parser(sub)
     sub.add_parser("prompts", help="list registered evaluation prompts and their metadata").set_defaults(
         fn=cmd_prompts
     )
