@@ -44,6 +44,7 @@ from avd.evaluation.schema import (
     ReasonCode,
     UsageRecord,
 )
+from avd.evaluation.support import audit as audit_support
 from avd.evaluation.validation import validate_dimensions
 from avd.llm.base import LLMBudgetExceeded, LLMError, LLMProvider
 from avd.logging import get_logger
@@ -219,8 +220,16 @@ class EvaluationPipeline:
             for d in validated
         ]
         agg = aggregate(final, profile)
+        support = audit_support(final, inp.transcript)
 
         review: list[str] = []
+        severe = sorted(
+            d
+            for d, codes in support.flags.items()
+            if {"invented_quote_in_justification", "timestamp_not_in_cited_evidence"} & set(codes)
+        )
+        if severe:
+            review.append(f"justification cites text or times not in the evidence: {', '.join(severe)}")
         if findings:
             review.append(f"suspected prompt injection ({len(findings)} finding(s))")
         if not report.passed:
@@ -268,6 +277,7 @@ class EvaluationPipeline:
                 "evaluators": evaluator_reports,
                 "modalities": sorted(m.value for m in inp.modalities),
                 "sanitized_popularity_spans": inp.sanitized_spans,
+                "support_audit": support.as_dict(),
             },
             needs_review=bool(review),
             review_reasons=review,
