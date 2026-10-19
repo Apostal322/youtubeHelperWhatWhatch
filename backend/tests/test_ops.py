@@ -177,3 +177,36 @@ def test_security_headers_and_annotation_csp(api: TestClient) -> None:
     page = api.get("/annotate")
     csp = page.headers["Content-Security-Policy"]
     assert "connect-src 'self'" in csp and "frame-ancestors 'none'" in csp and "default-src 'none'" in csp
+
+
+def test_feedback_is_idempotent_capped_and_never_rewrites_evaluations(
+    api: TestClient, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from avd.api.routers import users as users_router
+
+    c = api
+    admin = {"X-Admin-Token": "test-admin"}
+    c.post("/v1/admin/seed-demo", headers=admin)
+    c.post("/v1/admin/worker/run", headers=admin)
+    h = {"Authorization": f"Bearer {c.post('/v1/users').json()['token']}"}
+    before = c.get("/v1/videos/syn_sci_001/evaluation").json()
+    body = {
+        "video_id": "syn_sci_001",
+        "kind": "evaluation_incorrect",
+        "evaluation_id": before["evaluation_id"],
+        "dimension": "depth",
+        "suggested_score": 1,
+    }
+    first = c.post("/v1/feedback", headers=h, json=body)
+    again = c.post("/v1/feedback", headers=h, json=body)
+    assert first.status_code == 201 and again.status_code == 200
+    assert again.json() == {"id": first.json()["id"], "status": "duplicate"}
+    after = c.get("/v1/videos/syn_sci_001/evaluation").json()
+    assert after["evaluation_id"] == before["evaluation_id"]
+    assert after["overall"] == before["overall"]  # a personal report never edits the global score
+    monkeypatch.setattr(users_router, "MAX_FEEDBACK_PER_DAY", 2)
+    c.post("/v1/feedback", headers=h, json={"video_id": "syn_sci_001", "kind": "recommendation_useful"})
+    capped = c.post(
+        "/v1/feedback", headers=h, json={"video_id": "syn_sci_002", "kind": "recommendation_useful"}
+    )
+    assert capped.status_code == 429
