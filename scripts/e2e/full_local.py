@@ -54,13 +54,13 @@ class Backend:
 
     def start(self, *extra: str) -> float:
         t0 = time.monotonic()
-        log = open(self.data.parent / f"server-{int(t0)}.log", "w")
-        self.proc = subprocess.Popen(
-            [self.avd, "start", "--data-dir", str(self.data), "--port", str(self.port), *extra],
-            env=self.env,
-            stdout=log,
-            stderr=subprocess.STDOUT,
-        )
+        with open(self.data.parent / f"server-{int(t0)}.log", "w") as log:  # the child keeps its own copy
+            self.proc = subprocess.Popen(
+                [self.avd, "start", "--data-dir", str(self.data), "--port", str(self.port), *extra],
+                env=self.env,
+                stdout=log,
+                stderr=subprocess.STDOUT,
+            )
         for _ in range(240):
             try:
                 urllib.request.urlopen(f"{self.url}/health", timeout=1)
@@ -79,7 +79,9 @@ class Backend:
             self.proc.kill()
             return False
 
-    def req(self, path: str, method: str = "GET", body: Any = None, token: str | None = None) -> tuple[int, Any]:
+    def req(
+        self, path: str, method: str = "GET", body: Any = None, token: str | None = None
+    ) -> tuple[int, Any]:
         data = json.dumps(body).encode() if body is not None else None
         r = urllib.request.Request(f"{self.url}{path}", data=data, method=method)
         r.add_header("Content-Type", "application/json")
@@ -107,13 +109,29 @@ def backend_flow(b: Backend, work: Path) -> dict[str, Any]:
     step("1-2 start backend, initialize database", True, f"healthy after {t:.2f}s")
     try:
         out = b.cli("dataset", "import", "--offline", "--evaluate")
-        step("3 import authorized content (licensed pilot, pinned cache)", '"imported"' in out, out.strip()[-120:])
+        step(
+            "3 import authorized content (licensed pilot, pinned cache)",
+            '"imported"' in out,
+            out.strip()[-120:],
+        )
     except subprocess.CalledProcessError as e:
-        step("3 import authorized content (licensed pilot, pinned cache)", None, f"pilot not cached: {e.stderr[-160:]}")
-    step("4-6 jobs created, processed and stored", b.wait_idle(), json.dumps(b.req("/v1/status")[1].get("worker")))
+        step(
+            "3 import authorized content (licensed pilot, pinned cache)",
+            None,
+            f"pilot not cached: {e.stderr[-160:]}",
+        )
+    step(
+        "4-6 jobs created, processed and stored",
+        b.wait_idle(),
+        json.dumps(b.req("/v1/status")[1].get("worker")),
+    )
     st, vids = b.req("/v1/videos?limit=200")
     ctx["videos"] = [v["video"]["id"] for v in vids["items"]]
-    step("7 evaluated videos indexed and listed", st == 200 and len(ctx["videos"]) > 0, f"{len(ctx['videos'])} visible")
+    step(
+        "7 evaluated videos indexed and listed",
+        st == 200 and len(ctx["videos"]) > 0,
+        f"{len(ctx['videos'])} visible",
+    )
     st, s = b.req("/v1/search?q=hash%20tables")
     step("8 search", st == 200 and len(s["items"]) > 0, f"{len(s['items'])} results")
     st, u = b.req("/v1/users", "POST")
@@ -126,13 +144,21 @@ def backend_flow(b: Backend, work: Path) -> dict[str, Any]:
         st, f = b.req(
             "/v1/feedback",
             "POST",
-            {"video_id": ctx["rec"]["video"]["id"], "kind": "recommendation_useful", "impression_id": ctx["rec"]["impression_id"]},
+            {
+                "video_id": ctx["rec"]["video"]["id"],
+                "kind": "recommendation_useful",
+                "impression_id": ctx["rec"]["impression_id"],
+            },
             ctx["token"],
         )
         step("12 submit feedback", st == 201, json.dumps(f)[:80])
     ex = work / "export.json"
     out = json.loads(b.cli("evaluations", "export", "--out", str(ex)))
-    step("13 export permitted evaluation records", out["evaluations"] > 0, f"{out['evaluations']} records, sha256 {out['file_sha256'][:12]}")
+    step(
+        "13 export permitted evaluation records",
+        out["evaluations"] > 0,
+        f"{out['evaluations']} records, sha256 {out['file_sha256'][:12]}",
+    )
     ctx["export"] = ex
     return ctx
 
@@ -153,7 +179,11 @@ def restart_flow(b: Backend, ctx: dict[str, Any], work: Path) -> None:
     other.data.mkdir(parents=True, exist_ok=True)
     other.cli("migrate")
     out = json.loads(other.cli("evaluations", "import", str(ctx["export"]), "--origin", "e2e first instance"))
-    step("16 import compatible evaluation records into a second instance", out["imported"] > 0 and out["trusted"] is False, json.dumps(out)[:120])
+    step(
+        "16 import compatible evaluation records into a second instance",
+        out["imported"] > 0 and out["trusted"] is False,
+        json.dumps(out)[:120],
+    )
     other.start()
     vid = ctx["videos"][0]
     st, imp = other.req(f"/v1/videos/{vid}/imported-evaluations")
@@ -183,7 +213,11 @@ def browser_flow(b: Backend, chromium: str, ext: Path, shots: Path) -> None:
             args=[f"--disable-extensions-except={ext}", f"--load-extension={ext}", "--headless=new"],
             viewport={"width": 420, "height": 760},
         )
-        sw = ctx.service_workers[0] if ctx.service_workers else ctx.wait_for_event("serviceworker", timeout=15000)
+        sw = (
+            ctx.service_workers[0]
+            if ctx.service_workers
+            else ctx.wait_for_event("serviceworker", timeout=15000)
+        )
         ext_id = sw.url.split("/")[2]
         page = ctx.new_page()
         popup = f"chrome-extension://{ext_id}/popup.html"
@@ -195,7 +229,11 @@ def browser_flow(b: Backend, chromium: str, ext: Path, shots: Path) -> None:
 
         page.reload()
         page.wait_for_timeout(2500)
-        step("10 extension connects to the local backend", "Heuristic mode (not AI)" in body(), "mode label shown")
+        step(
+            "10 extension connects to the local backend",
+            "Heuristic mode (not AI)" in body(),
+            "mode label shown",
+        )
         page.screenshot(path=str(shots / "01-discover.png"), full_page=True)
         titles = page.locator("button.title")
         step("10 recommendations rendered", titles.count() > 0, f"{titles.count()} cards")
@@ -209,7 +247,8 @@ def browser_flow(b: Backend, chromium: str, ext: Path, shots: Path) -> None:
         txt = body()
         step(
             "11 quality breakdown with labels and evidence",
-            "Synthetic" in txt and any(":" in line and line.strip()[:1].isdigit() for line in txt.splitlines()),
+            "Synthetic" in txt
+            and any(":" in line and line.strip()[:1].isdigit() for line in txt.splitlines()),
             "synthetic label and timestamped evidence visible",
         )
         page.screenshot(path=str(shots / "02-breakdown.png"), full_page=True)
@@ -225,7 +264,9 @@ def browser_flow(b: Backend, chromium: str, ext: Path, shots: Path) -> None:
         page.wait_for_timeout(1000)
         step("preferences saved from the extension", "Saved" in body())
         status = [line for line in body().splitlines() if line.startswith(("Connected", "Evaluator"))]
-        step("connection diagnostics", any(line.startswith("Connected") for line in status), " | ".join(status))
+        step(
+            "connection diagnostics", any(line.startswith("Connected") for line in status), " | ".join(status)
+        )
         addr = page.get_by_label("Backend address")
         for bad, expect in (("http://avd.example.org", "HTTPS"), ("not a url", "Not a valid URL")):
             addr.fill(bad)
@@ -253,7 +294,8 @@ def browser_flow(b: Backend, chromium: str, ext: Path, shots: Path) -> None:
         step(
             "expired credentials recover with a new anonymous session",
             page.locator("button.title").count() > 0,
-            "first view: " + ("session-expired message" if "session expired" in first.lower() else "recovered directly"),
+            "first view: "
+            + ("session-expired message" if "session expired" in first.lower() else "recovered directly"),
         )
         # Unavailable server, then restart.
         b.stop()

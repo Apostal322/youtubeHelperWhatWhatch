@@ -15,7 +15,6 @@ import json
 import os
 import platform
 import signal
-import statistics
 import subprocess
 import tempfile
 import time
@@ -116,7 +115,11 @@ def _measure(a, env, data, base, work, res, p, start, stop, idle) -> None:  # ty
     cli_env = {**env, "AVD_DATABASE_URL": f"sqlite:///{data / 'avd.db'}"}
     t0 = time.monotonic()
     subprocess.run(
-        [a.avd, "dataset", "import", "--offline", "--evaluate"], env=cli_env, capture_output=True, text=True, check=True
+        [a.avd, "dataset", "import", "--offline", "--evaluate"],
+        env=cli_env,
+        capture_output=True,
+        text=True,
+        check=True,
     )
     res["pilot_import_s_29_items"] = round(time.monotonic() - t0, 2)
     res["pilot_queue_drain_s_29_items"] = idle()
@@ -126,7 +129,9 @@ def _measure(a, env, data, base, work, res, p, start, stop, idle) -> None:  # ty
         "rss_mb": round(rss_mb(p.pid), 1),
         "cpu_percent_10s": round(100 * (cpu_seconds(p.pid) - cpu0) / (time.monotonic() - t0), 2),
     }
-    token = json.loads(urllib.request.urlopen(urllib.request.Request(f"{base}/v1/users", method="POST")).read())["token"]
+    token = json.loads(
+        urllib.request.urlopen(urllib.request.Request(f"{base}/v1/users", method="POST")).read()
+    )["token"]
     req = urllib.request.Request(
         f"{base}/v1/users/me/preferences",
         data=json.dumps({"interests": ["science", "programming"]}).encode(),
@@ -144,12 +149,27 @@ def _measure(a, env, data, base, work, res, p, start, stop, idle) -> None:  # ty
     res["rss_after_requests_mb"] = round(rss_mb(p.pid), 1)
     ex = work / "export.json"
     t0 = time.monotonic()
-    out = subprocess.run([a.avd, "evaluations", "export", "--out", str(ex)], env=cli_env, capture_output=True, text=True, check=True)
-    res["export"] = {"s": round(time.monotonic() - t0, 2), **json.loads(out.stdout), "kib": round(ex.stat().st_size / 1024, 1)}
+    out = subprocess.run(
+        [a.avd, "evaluations", "export", "--out", str(ex)],
+        env=cli_env,
+        capture_output=True,
+        text=True,
+        check=True,
+    )
+    res["export"] = {
+        "s": round(time.monotonic() - t0, 2),
+        **json.loads(out.stdout),
+        "kib": round(ex.stat().st_size / 1024, 1),
+    }
     other = {**env, "AVD_DATABASE_URL": f"sqlite:///{work / 'other.db'}"}
     subprocess.run([a.avd, "migrate"], env=other, capture_output=True, check=True)
     t0 = time.monotonic()
-    subprocess.run([a.avd, "evaluations", "import", str(ex), "--origin", "perf"], env=other, capture_output=True, check=True)
+    subprocess.run(
+        [a.avd, "evaluations", "import", str(ex), "--origin", "perf"],
+        env=other,
+        capture_output=True,
+        check=True,
+    )
     res["import_s"] = round(time.monotonic() - t0, 2)
     res["shutdown_s"] = stop(p)
     res["database_mb"] = round((data / "avd.db").stat().st_size / 2**20, 2)

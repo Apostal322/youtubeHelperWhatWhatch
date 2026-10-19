@@ -40,12 +40,12 @@ or model endpoint run by the project, and none is needed
 | What you see without a model | a keyword/structure **heuristic baseline**, labelled "Heuristic mode (not AI)" everywhere |
 | Accuracy against human judgement | **unknown.** The blind annotation workflow is ready; no human labels exist yet |
 | Release gates | 12 gates: 1 passes, 7 are blocked by missing human labels, 4 by the absence of AI inference (Phase 3 record, `avd gates status`). Not release-ready |
-| Platforms | Linux tested end to end. **macOS and Windows not tested** |
+| Platforms | Linux tested end to end (`scripts/e2e/full_local.py`, including the extension in Chromium). **macOS and Windows not tested** |
 
 Synthetic demo videos (written for this project) are labelled `synthetic_demo` everywhere and
 do not exist on YouTube. Phase records with audits and measured results:
 [Phase 2](docs/phase2.md), [Phase 3](docs/phase3.md), [Phase 3.1](docs/phase3_1-report.md),
-[Phase 3.2](docs/phase3_2-report.md).
+[Phase 3.2](docs/phase3_2-report.md), [Phase 3.3](docs/phase3_3-report.md).
 
 ![Quality breakdown in the extension](docs/screenshots/extension-video-quality.png)
 
@@ -138,6 +138,10 @@ video.** Scores are transparent, reproducible assessments with stated uncertaint
 Start with [`CONTRIBUTING.md`](CONTRIBUTING.md): setup takes five minutes, and no GPU or key is
 needed. Also see:
 
+* [contributing to the research](docs/research-contributing.md): model runs, ratings, relevance
+  judgments, reproducing benchmarks;
+* [running a local model and sharing the result](docs/volunteer-pilot.md);
+* [good first issues](docs/good-first-issues.md);
 * [extension points](docs/extending.md), including a custom-evaluator example;
 * [architecture](docs/architecture.md);
 * [roadmap](docs/roadmap.md);
@@ -151,6 +155,7 @@ needed. Also see:
 cd backend && ruff check avd tests && mypy avd && pytest -q          # SQLite only
 AVD_TEST_DATABASE_URL=postgresql+psycopg://... AVD_TEST_REDIS_URL=redis://... pytest -q   # + pgvector/Redis
 cd extension && npm run typecheck && npm test && npm run build
+python scripts/e2e/full_local.py --avd backend/.venv/bin/avd    # real processes; add --chromium <path> for the extension
 ```
 
 ## Documentation
@@ -160,8 +165,8 @@ cd extension && npm run typecheck && npm test && npm run build
 | Install | [local setup (Linux/macOS/Windows)](docs/local-setup.md) · [self-hosting](docs/self-hosting.md) · [local AI](docs/local-ai.md) · [providers](docs/model-configuration.md) |
 | Data | [privacy and data ownership](docs/privacy.md) · [evaluation export format](docs/evaluation-export.md) · [content permissions](docs/permissions.md) · [licensing and provenance](docs/licensing.md) |
 | Design | [architecture](docs/architecture.md) · [extending](docs/extending.md) · [API](docs/api.md) · [security](docs/security.md) · [infrastructure costs](docs/infrastructure-costs.md) |
-| Research | [evaluation framework](docs/evaluation.md) · [annotation](docs/annotation.md) · [reproducibility](docs/reproducibility.md) · [local-model protocol](docs/research/local-models.md) |
-| History | [Phase 2](docs/phase2.md) · [Phase 3](docs/phase3.md) · [Phase 3.1](docs/phase3_1-report.md) · [Phase 3.2](docs/phase3_2-report.md) · [roadmap](docs/roadmap.md) |
+| Research | [evaluation framework](docs/evaluation.md) · [annotation](docs/annotation.md) · [reproducibility](docs/reproducibility.md) · [local-model protocol](docs/research/local-models.md) · [research contributions](docs/research-contributing.md) · [volunteer model runs](docs/volunteer-pilot.md) · [relevance protocol](benchmarks/datasets/relevance_v1/README.md) |
+| History | [Phase 2](docs/phase2.md) · [Phase 3](docs/phase3.md) · [Phase 3.1](docs/phase3_1-report.md) · [Phase 3.2](docs/phase3_2-report.md) · [Phase 3.3](docs/phase3_3-report.md) · [release checklist](docs/release-checklist.md) · [roadmap](docs/roadmap.md) |
 
 ## Repository layout
 
@@ -178,6 +183,7 @@ docs/               Setup, design, research and phase records
 ## License
 
 Declared: **Apache-2.0** for code, **CC0-1.0** for synthetic fixtures and benchmark data. The
-`LICENSE` file is not yet in the repository; adding it is the owner's decision
-([`docs/licensing.md`](docs/licensing.md)). The software license grants nothing about
+`LICENSE` file is not yet in the repository; adding it is the owner's decision. The exact
+change (the Apache-2.0 text from apache.org) is prepared in a separate draft pull request for the
+owner to approve or reject ([`docs/licensing.md`](docs/licensing.md)). The software license grants nothing about
 third-party video content.
