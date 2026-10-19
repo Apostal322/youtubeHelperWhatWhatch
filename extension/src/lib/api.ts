@@ -43,6 +43,12 @@ export function friendlyMessage(e: unknown): string {
       return "The backend took too long to respond. Try again.";
     case "unavailable":
       return `The backend is temporarily unavailable: ${e.message}`;
+    case "unauthenticated":
+      return "Your session expired, so a new anonymous session will be used. Try again.";
+    case "forbidden":
+      return /blind human annotation/.test(e.message)
+        ? "This video's assessment is withheld while independent human raters are scoring it."
+        : e.message;
     default:
       return e.message;
   }
