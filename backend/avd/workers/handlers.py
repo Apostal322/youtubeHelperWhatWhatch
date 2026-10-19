@@ -160,7 +160,10 @@ def handle_stage_a(ctx: WorkerContext, session: Session, job: PipelineJob) -> Ha
     _, created = enqueue(
         session,
         "stage_b",
-        f"stage_b:{video.id}:{FRAMEWORK_VERSION}:{_content_key(session, video.id)}",
+        # The evaluator configuration (model, prompt, rubric, settings) is part of the key: a new
+        # configuration must re-evaluate unchanged content (audit defect D2, job path).
+        f"stage_b:{video.id}:{FRAMEWORK_VERSION}:{_content_key(session, video.id)}:"
+        f"{ctx.pipeline('B').config_hash()[:12]}",
         video_id=video.id,
         priority=priority,
         estimated_cost_usd=est,
@@ -247,7 +250,8 @@ def _evaluate(ctx: WorkerContext, session: Session, job: PipelineJob, stage: str
             enqueue(
                 session,
                 "stage_c",
-                f"stage_c:{video.id}:{FRAMEWORK_VERSION}:{result.input_fingerprint[:12]}",
+                f"stage_c:{video.id}:{FRAMEWORK_VERSION}:{result.input_fingerprint[:12]}:"
+                f"{ctx.pipeline('C').config_hash()[:12]}",
                 video_id=video.id,
                 priority=priority,
                 estimated_cost_usd=estimate_cost(
