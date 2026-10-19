@@ -80,6 +80,8 @@ def main() -> None:
             "volunteer-a",
             "--out",
             str(tmp / "packet.html"),
+            "--consent-file",
+            str(ROOT / "docs" / "templates" / "rating-consent.txt"),
         )
     )
     step(
@@ -138,6 +140,17 @@ def main() -> None:
             "progress survives a reload",
             "✓" in page.locator("nav button").first.inner_text(),
         )
+        alerts: list[str] = []
+        page.once("dialog", lambda d: (alerts.append(d.message), d.dismiss()))
+        page.get_by_role("button", name="Download ratings file").click()
+        page.wait_for_timeout(500)
+        step(
+            "no ratings file before consent is given",
+            any("consent" in m for m in alerts),
+            alerts[0][:60] if alerts else "",
+        )
+        step("consent text is shown", "Your choices" in page.inner_text("body"))
+        page.locator("#consent-box").check()
         with page.expect_download() as dl:
             page.get_by_role("button", name="Download ratings file").click()
         out = tmp / "ratings.json"

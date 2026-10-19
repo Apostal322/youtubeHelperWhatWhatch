@@ -23,6 +23,12 @@ from avd.db.models import Annotation, AnnotationPacket, Rater
 from tests.conftest import DB
 from tests.test_annotation import DS, SPLITS, full_scores, rater, seed
 
+CONSENT = "Test consent text: ratings are pseudonymous and can be withdrawn."
+
+
+def _issue(*args: Any, **kw: Any) -> tuple[AnnotationPacket, str, list[dict[str, Any]]]:
+    return offline.issue_packet(*args, consent_text=CONSENT, **kw)
+
 
 @pytest.fixture
 def sess(db: DB) -> Iterator[Session]:
@@ -60,19 +66,20 @@ def _return(packet: AnnotationPacket, secret: str, results: list[dict[str, Any]]
         "format_version": "1.0",
         "packet_id": packet.id,
         "secret": secret,
+        "consent": {"agreed": True, "text_sha256": packet.consent_sha256},
         "results": results,
     }
 
 
 def test_onboarding_packet_is_calibration_only_then_dev(sess: Session) -> None:
     r = rater(sess, "r1", active=False)
-    packet, secret, payloads = offline.issue_packet(sess, r, DS, max_items=3)
+    packet, secret, payloads = _issue(sess, r, DS, max_items=3)
     assert [p["video_id"] for p in payloads] == ["cal_1"] and payloads[0]["is_calibration"]
     with pytest.raises(svc.AnnotationError, match="calibration packet first"):
-        offline.issue_packet(sess, r, DS)
+        _issue(sess, r, DS)
     out = offline.import_return(sess, _return(packet, secret, [_result(packet.annotation_ids[0])]))
     assert out["accepted"] == packet.annotation_ids and out["rater_status"] == "active"
-    _, _, dev = offline.issue_packet(sess, r, DS, max_items=3)
+    _, _, dev = _issue(sess, r, DS, max_items=3)
     assert len(dev) == 3 and {SPLITS[p["video_id"]] for p in dev} == {"dev"}
 
 
@@ -80,20 +87,20 @@ def test_items_are_never_assigned_to_more_raters_than_needed(sess: Session) -> N
     raters = [rater(sess, f"r{i}") for i in range(4)]
     assigned: Counter[str] = Counter()
     for r in raters[:3]:
-        _, _, payloads = offline.issue_packet(sess, r, DS, max_items=5)
+        _, _, payloads = _issue(sess, r, DS, max_items=5)
         assigned.update(p["video_id"] for p in payloads)
     assert assigned == Counter({"dev_1": 3, "dev_2": 3, "dev_3": 3})  # dev only, 3 raters each
     with pytest.raises(svc.AnnotationError, match="nothing to assign"):
-        offline.issue_packet(sess, raters[3], DS)
-    _, _, both = offline.issue_packet(sess, raters[3], DS, splits=("dev", "test"))
+        _issue(sess, raters[3], DS)
+    _, _, both = _issue(sess, raters[3], DS, splits=("dev", "test"))
     assert {SPLITS[p["video_id"]] for p in both} == {"test"}
 
 
 def test_packet_file_is_blind_offline_and_escaped(sess: Session) -> None:
     r = rater(sess, "r1")
-    packet, secret, payloads = offline.issue_packet(sess, r, DS, max_items=1)
+    packet, secret, payloads = _issue(sess, r, DS, max_items=1)
     payloads[0]["segments"][0]["text"] = "</script><script>alert(1)</script>"
-    html = offline.render_packet(packet, r, payloads, secret)
+    html = offline.render_packet(packet, r, payloads, secret, CONSENT)
     assert "default-src 'none'" in html  # no network access from the file
     assert html.count("</script>") == 2  # the data cannot close the script block early
     data = json.loads(
@@ -114,14 +121,14 @@ def test_items_without_rights_or_content_are_never_packed(
         svc, "video_pending_uses", lambda s, vid: {"external_annotation"} if vid == "dev_1" else real(s, vid)
     )
     revoke_video_sources(sess, "dev_2", "test revocation")
-    _, _, payloads = offline.issue_packet(sess, rater(sess, "r1"), DS, max_items=5)
+    _, _, payloads = _issue(sess, rater(sess, "r1"), DS, max_items=5)
     assert [p["video_id"] for p in payloads] == ["dev_3"]
 
 
 class TestImport:
     def test_valid_return_is_recorded_with_offline_and_client_timing_flags(self, sess: Session) -> None:
         r = rater(sess, "r1")
-        packet, secret, _ = offline.issue_packet(sess, r, DS, max_items=2)
+        packet, secret, _ = _issue(sess, r, DS, max_items=2)
         out = offline.import_return(
             sess, _return(packet, secret, [_result(a) for a in packet.annotation_ids])
         )
@@ -138,7 +145,7 @@ class TestImport:
 
     def test_wrong_secret_or_unknown_packet_is_refused(self, sess: Session) -> None:
         r = rater(sess, "r1")
-        packet, secret, _ = offline.issue_packet(sess, r, DS, max_items=1)
+        packet, secret, _ = _issue(sess, r, DS, max_items=1)
         res = [_result(packet.annotation_ids[0])]
         with pytest.raises(svc.AnnotationError, match="secret"):
             offline.import_return(sess, _return(packet, "pkt_guess", res))
@@ -150,8 +157,8 @@ class TestImport:
     def test_each_item_is_validated_on_its_own(self, sess: Session) -> None:
         r = rater(sess, "r1")
         other = rater(sess, "r2")
-        packet, secret, _ = offline.issue_packet(sess, r, DS, max_items=2)
-        theirs, _, _ = offline.issue_packet(sess, other, DS, max_items=1)
+        packet, secret, _ = _issue(sess, r, DS, max_items=2)
+        theirs, _, _ = _issue(sess, other, DS, max_items=1)
         good, bad = packet.annotation_ids
         bad_scores = full_scores()
         bad_scores[0].evidence = [
@@ -179,7 +186,7 @@ class TestImport:
 
     def test_qc_still_applies_to_offline_work(self, sess: Session) -> None:
         r = rater(sess, "r1")
-        packet, secret, _ = offline.issue_packet(sess, r, DS, max_items=2)
+        packet, secret, _ = _issue(sess, r, DS, max_items=2)
         a, b = packet.annotation_ids
         offline.import_return(
             sess,
@@ -190,7 +197,7 @@ class TestImport:
 
     def test_release_frees_unreturned_items_and_blocks_late_returns(self, sess: Session) -> None:
         r = rater(sess, "r1")
-        packet, secret, _ = offline.issue_packet(sess, r, DS, max_items=3)
+        packet, secret, _ = _issue(sess, r, DS, max_items=3)
         offline.import_return(sess, _return(packet, secret, [_result(packet.annotation_ids[0])]))
         assert offline.release_packet(sess, packet.id) == 2
         assert sess.scalars(select(Annotation).where(Annotation.status == "in_progress")).all() == []
@@ -200,7 +207,7 @@ class TestImport:
 
     def test_suspended_raters_cannot_return_work(self, sess: Session) -> None:
         r = rater(sess, "r1")
-        packet, secret, _ = offline.issue_packet(sess, r, DS, max_items=1)
+        packet, secret, _ = _issue(sess, r, DS, max_items=1)
         sess.get(Rater, r.id).status = "suspended"  # type: ignore[union-attr]
         with pytest.raises(svc.AnnotationError, match="suspended"):
             offline.import_return(sess, _return(packet, secret, [_result(packet.annotation_ids[0])]))
@@ -211,7 +218,7 @@ class TestRelevance:
         from avd.bench.relevance import Judgment
 
         r = rater(sess, "r1")
-        packet, secret, payloads = offline.issue_packet(sess, r, DS, max_items=1)
+        packet, secret, payloads = _issue(sess, r, DS, max_items=1)
         assert len(payloads[0]["relevance_queries"]) == 10
         res = _result(packet.annotation_ids[0])
         res["relevance"] = [
@@ -228,7 +235,7 @@ class TestRelevance:
 
     def test_bad_relevance_rejects_the_item_and_test_items_get_no_queries(self, sess: Session) -> None:
         r = rater(sess, "r1")
-        packet, secret, _ = offline.issue_packet(sess, r, DS, max_items=1)
+        packet, secret, _ = _issue(sess, r, DS, max_items=1)
         res = _result(packet.annotation_ids[0])
         res["relevance"] = [{"query_id": "q01", "grade": 3}]
         out = offline.import_return(sess, _return(packet, secret, [res]))
@@ -236,6 +243,31 @@ class TestRelevance:
         assert sess.get(Annotation, packet.annotation_ids[0]).status == "in_progress"  # type: ignore[union-attr]
         assert offline.export_relevance(sess) == []
         for other in [rater(sess, f"x{i}") for i in range(3)]:
-            offline.issue_packet(sess, other, DS, max_items=3)
-        _, _, test_items = offline.issue_packet(sess, rater(sess, "late"), DS, splits=("dev", "test"))
+            _issue(sess, other, DS, max_items=3)
+        _, _, test_items = _issue(sess, rater(sess, "late"), DS, splits=("dev", "test"))
         assert test_items and all(p["relevance_queries"] == [] for p in test_items)
+
+
+def test_consent_is_required_shown_and_checked(sess: Session) -> None:
+    r = rater(sess, "r1")
+    with pytest.raises(svc.AnnotationError, match="consent text is required"):
+        offline.issue_packet(sess, r, DS, max_items=1, consent_text="  ")
+    packet, secret, payloads = _issue(sess, r, DS, max_items=1)
+    html = offline.render_packet(packet, r, payloads, secret, CONSENT)
+    assert CONSENT in html and "consent-box" in html
+    with pytest.raises(svc.AnnotationError, match="not the consent text"):
+        offline.render_packet(packet, r, payloads, secret, "some other text")
+    res = [_result(packet.annotation_ids[0])]
+    for consent in (
+        None,
+        {"agreed": False, "text_sha256": packet.consent_sha256},
+        {"agreed": True, "text_sha256": "0" * 64},
+    ):
+        data = _return(packet, secret, res)
+        data["consent"] = consent
+        with pytest.raises(svc.AnnotationError, match="has not agreed"):
+            offline.import_return(sess, data)
+    assert sess.get(Annotation, packet.annotation_ids[0]).status == "in_progress"  # type: ignore[union-attr]
+    offline.import_return(sess, _return(packet, secret, res))
+    ann = sess.get(Annotation, packet.annotation_ids[0])
+    assert ann is not None and f"consent:{packet.consent_sha256[:12]}" in ann.flags

@@ -23,7 +23,7 @@ button.primary { background:var(--accent); color:var(--bg); border-color:var(--a
 .seg { padding:4px 6px; border-bottom:1px solid var(--line); }
 .seg .ix { color:var(--muted); font-size:12px; margin-right:6px; user-select:none; }
 .dims { max-height:80vh; overflow:auto; }
-.dim { border:1px solid var(--line); border-radius:8px; padding:8px 10px; margin-bottom:10px; }
+.dim, .consent { border:1px solid var(--line); border-radius:8px; padding:8px 10px; margin-bottom:10px; }
 .anchors label { display:block; margin:2px 0; }
 .cite { font-size:13px; background:var(--panel); border-radius:6px; padding:4px 6px; margin:4px 0; }
 select, textarea, input[type=number] { font:inherit; color:var(--fg); background:var(--bg); border:1px solid var(--line); border-radius:6px; padding:4px; }
@@ -42,6 +42,12 @@ details { margin:6px 0; }
   <p class="small muted">Your work is saved in this browser as you go (if the browser allows it). When you are done,
   press <strong>Download ratings file</strong> and send that file back to the coordinator. You can stop and come back.
   Expect about an hour per item: the transcripts are long.</p>
+  <section class="consent" aria-label="Consent">
+    <h2>Before you start: consent</h2>
+    <div class="small" id="consent-text" style="white-space: pre-wrap"></div>
+    <p><label><input type="checkbox" id="consent-box"> I have read this and agree to take part on these terms.</label></p>
+    <p class="small muted">Your ratings can only be downloaded after you agree. You can stop at any time.</p>
+  </section>
   <nav class="bar" id="nav" aria-label="Items"></nav>
   <p class="bar"><button class="primary" id="download">Download ratings file</button>
   <span class="small" id="status" role="status"></span></p>
@@ -202,12 +208,18 @@ document.getElementById("download").addEventListener("click", () => {
       relevance: Object.entries(st.relevance || {}).map(([query_id, grade]) => ({ query_id, grade })),
     };
   });
+  if (!state.__consent) return alert("Please read the consent text at the top and tick the box first.");
   if (!results.length) return alert("Mark at least one item complete first.");
-  const out = { format: "avd-annotation-return", format_version: "1.0", packet_id: P.packet_id, secret: P.secret, rater: P.rater, results };
+  const out = { format: "avd-annotation-return", format_version: "1.0", packet_id: P.packet_id, secret: P.secret, rater: P.rater,
+    consent: { agreed: true, text_sha256: P.consent_sha256 }, results };
   const a = el("a", { href: URL.createObjectURL(new Blob([JSON.stringify(out, null, 1)], { type: "application/json" })), download: `ratings-${P.rater}-${P.packet_id.slice(0, 8)}.json` });
   document.body.append(a); a.click(); a.remove();
   document.getElementById("status").textContent = `Ratings file with ${results.length} of ${P.items.length} item(s) downloaded. Send it to the coordinator.`;
 });
+document.getElementById("consent-text").textContent = P.consent_text;
+const consentBox = document.getElementById("consent-box");
+consentBox.checked = state.__consent === true;
+consentBox.addEventListener("change", (e) => { state.__consent = e.target.checked; save(); });
 document.getElementById("pid").textContent = P.packet_id.slice(0, 8);
 document.getElementById("who").textContent = P.rater;
 render();

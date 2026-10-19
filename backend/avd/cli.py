@@ -25,6 +25,17 @@ def _migrate() -> None:
     command.upgrade(cfg, "head")
 
 
+def _ensure_schema() -> None:
+    """Create the schema on a brand-new database (a volunteer's fresh checkout). An existing
+    database is left as it is: upgrading it stays an explicit `avd migrate`."""
+    from sqlalchemy import inspect
+
+    from avd.db.session import get_engine
+
+    if not inspect(get_engine()).get_table_names():
+        _migrate()
+
+
 def cmd_eval_export(args: argparse.Namespace) -> None:
     from avd.db.session import session_scope
     from avd.portability import export_evaluations, write_export
@@ -477,6 +488,7 @@ def cmd_dataset_import(args: argparse.Namespace) -> None:
     from avd.db.session import session_scope
     from avd.services import enqueue_stage_a
 
+    _ensure_schema()
     with session_scope() as s:
         result = import_manifest(s, Path(args.manifest), _fetcher(args))
         if args.evaluate:
@@ -562,14 +574,15 @@ def cmd_annotate(args: argparse.Namespace) -> None:
             if found is None:
                 sys.exit(f"unknown rater {args.rater} (avd annotate create-rater)")
             rater = found
+            consent = Path(args.consent_file).read_text(encoding="utf-8")
             try:
                 packet, secret, payloads = offline.issue_packet(
-                    s, rater, args.dataset, args.items, tuple(args.splits.split(","))
+                    s, rater, args.dataset, args.items, tuple(args.splits.split(",")), consent_text=consent
                 )
             except svc.AnnotationError as exc:
                 sys.exit(str(exc))
             out = Path(args.out or f"packet-{rater.pseudonym}-{packet.id[:8]}.html")
-            out.write_text(offline.render_packet(packet, rater, payloads, secret), encoding="utf-8")
+            out.write_text(offline.render_packet(packet, rater, payloads, secret, consent), encoding="utf-8")
             print(
                 json.dumps(
                     {
@@ -802,6 +815,11 @@ def main(argv: list[str] | None = None) -> None:
     pk.add_argument("--items", type=int, default=3, help="dev items per packet (calibration comes first)")
     pk.add_argument("--splits", default="dev", help="dev, or dev,test once the dev round is analysed")
     pk.add_argument("--out", default=None)
+    pk.add_argument(
+        "--consent-file",
+        required=True,
+        help="consent text approved by the project owner (template: docs/templates/rating-consent.txt)",
+    )
     ip = an.add_parser("import-packet", help="validate and record a returned ratings file")
     ip.add_argument("file")
     rp = an.add_parser("release-packet", help="withdraw a packet's unreturned assignments")

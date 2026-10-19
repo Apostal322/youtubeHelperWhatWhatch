@@ -20,6 +20,7 @@ flagged ``client_timing``. The ``too_fast`` check still applies to the reported 
 
 from __future__ import annotations
 
+import hashlib
 import hmac
 import json
 import secrets
@@ -76,10 +77,19 @@ def _open_counts(session: Session, dataset_id: str) -> dict[str, int]:
 
 
 def issue_packet(
-    session: Session, rater: Rater, dataset_id: str, max_items: int = 3, splits: tuple[str, ...] = ("dev",)
+    session: Session,
+    rater: Rater,
+    dataset_id: str,
+    max_items: int = 3,
+    splits: tuple[str, ...] = ("dev",),
+    *,
+    consent_text: str,
 ) -> tuple[AnnotationPacket, str, list[dict[str, Any]]]:
     """Assign up to ``max_items`` items. A rater who is still onboarding gets the calibration
-    items first, and nothing else, until those are returned."""
+    items first, and nothing else, until those are returned. ``consent_text`` (approved by the
+    project owner) is shown in the packet; ratings are accepted only with agreement to it."""
+    if not consent_text.strip():
+        raise AnnotationError("a consent text is required (approved by the project owner)")
     if session.get(Dataset, dataset_id) is None:
         raise AnnotationError(f"unknown dataset {dataset_id}")
     if rater.status == "suspended":
@@ -145,15 +155,24 @@ def issue_packet(
         rater_id=rater.id,
         annotation_ids=[a.id for a in anns],
         secret_hash=hash_token(secret),
+        consent_sha256=consent_digest(consent_text),
     )
     session.add(packet)
     session.flush()
     return packet, secret, payloads
 
 
-def render_packet(packet: AnnotationPacket, rater: Rater, payloads: list[dict[str, Any]], secret: str) -> str:
+def consent_digest(text: str) -> str:
+    return hashlib.sha256(text.strip().encode("utf-8")).hexdigest()
+
+
+def render_packet(
+    packet: AnnotationPacket, rater: Rater, payloads: list[dict[str, Any]], secret: str, consent_text: str
+) -> str:
     """A single self-contained HTML file. Its content security policy forbids every network
     request, so it works offline and cannot send anything anywhere."""
+    if consent_digest(consent_text) != packet.consent_sha256:
+        raise AnnotationError("this is not the consent text the packet was issued with")
     data = {
         "format": PACKET_FORMAT,
         "format_version": FORMAT_VERSION,
@@ -163,6 +182,8 @@ def render_packet(packet: AnnotationPacket, rater: Rater, payloads: list[dict[st
         "dataset_id": packet.dataset_id,
         "created_at": datetime.now(UTC).isoformat(timespec="seconds"),
         "flags": list(FLAGS),
+        "consent_text": consent_text.strip(),
+        "consent_sha256": packet.consent_sha256,
         "status_guide": STATUS_GUIDE,
         "items": payloads,
     }
@@ -183,6 +204,9 @@ def import_return(session: Session, data: dict[str, Any]) -> dict[str, Any]:
         raise AnnotationError("the packet secret does not match")
     if packet.status == "released":
         raise AnnotationError("this packet was released; its items were reassigned")
+    consent = data.get("consent") or {}
+    if consent.get("agreed") is not True or consent.get("text_sha256") != packet.consent_sha256:
+        raise AnnotationError("the rater has not agreed to this packet's consent text; nothing was recorded")
     rater = session.get(Rater, packet.rater_id)
     if rater is None or rater.status == "suspended":
         raise AnnotationError("rater is unknown or suspended")
@@ -226,7 +250,7 @@ def import_return(session: Session, data: dict[str, Any]) -> dict[str, Any]:
                     res.get("enjoyment"),
                     client_duration_seconds=float(duration) if duration is not None else 0.0,
                 )
-                done.flags = sorted({*done.flags, "offline_packet"})
+                done.flags = sorted({*done.flags, "offline_packet", f"consent:{packet.consent_sha256[:12]}"})
                 relevance_added += _record_relevance(session, rater, ann, res.get("relevance") or [])
             accepted.append(ann_id)
         except (AnnotationError, TypeError, ValueError) as exc:

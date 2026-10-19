@@ -599,6 +599,7 @@ def smoke(
     manifest_path: Path | None = None,
     base: Any = None,
     provider_factory: Any = None,
+    timeout_seconds: float = 1800.0,
 ) -> dict[str, Any]:
     """One real evaluation of the shortest shareable development transcript, then a package dry
     run. Use it before committing hours to the full benchmark."""
@@ -615,31 +616,61 @@ def smoke(
         item_ids=(item["item_id"],),
         probes=False,
         offline=True,
+        # Per model call. A long transcript on a CPU can take many minutes per call; a timeout
+        # is retried, so a limit that is too low wastes the volunteer's time and then fails.
+        timeout_seconds=timeout_seconds,
         cache_dir=cache_dir or default_cache_dir(),
         bench_id=f"smoke-{datetime.now(UTC).strftime('%Y%m%dT%H%M%SZ')}",
     )
     report = bl.bench_local(cfg, base, provider_factory)
     entry = report["models"][model]
     window = next(iter(entry["windows"].values()))
+    info = entry["runtime"]["models"].get(model) or {}
+    hw = entry["runtime"].get("hardware") or {}
+    version = str(entry["runtime"].get("ollama_version") or "")
+    warnings = []
+    if "mock" in version.lower():
+        warnings.append(
+            "the server reports itself as a mock: this is not real inference and cannot be submitted"
+        )
+    if report["meta"].get("git_dirty") is not False:
+        warnings.append("the checkout has uncommitted changes: verify will refuse it (run `git status`)")
+    if not window.get("calls"):
+        warnings.append("no model call completed")
     plan = inspect(out, cfg.cache_dir, manifest_path)
     return {
         "item": {"id": item["item_id"], "words": item.get("words"), "title": item.get("title")},
         "transport": report["meta"]["transport_kind"],
-        "model": (entry["runtime"]["models"].get(model) or {}).get("fingerprint"),
-        "runtime_version": entry["runtime"].get("ollama_version"),
-        "accelerator": (entry["runtime"].get("hardware") or {}).get("accelerator"),
+        "model": info.get("fingerprint"),
+        "model_digest": info.get("digest"),
+        "quantization": info.get("quantization"),
+        "runtime_version": version,
+        "prompt": report["meta"].get("prompt"),
+        "rubric_version": report["meta"].get("rubric_version"),
+        "git_commit": report["meta"].get("git_commit"),
+        "git_clean": report["meta"].get("git_dirty") is False,
+        "hardware": {
+            k: hw.get(k)
+            for k in ("os", "arch", "cpu_model", "cpu_logical", "ram_total_gb", "gpus", "accelerator")
+        },
         "model_calls": window.get("calls"),
+        "errors": window.get("errors"),
         "structured_validity": window.get("structured_validity"),
+        "evidence_claimed": window.get("evidence_claimed"),
+        "evidence_verified": window.get("evidence_verified"),
         "citation_correctness": window.get("citation_correctness"),
         "abstention_rate": window.get("abstention_rate"),
-        "errors": window.get("errors"),
+        "latency_ms_p50": window.get("latency_ms_p50"),
+        "latency_ms_p95": window.get("latency_ms_p95"),
         "wall_seconds": window.get("wall_seconds"),
         "output_tokens_per_second": window.get("output_tokens_per_wall_second"),
         "server_rss_peak_gb": window.get("server_rss_peak_gb"),
         "vram_peak_gb": window.get("vram_peak_gb"),
         "pack_dry_run_ok": plan["ok"],
         "pack_blocking_findings": plan["blocking_findings"],
-        "next": "If this looks right, run the full benchmark (docs/volunteer-pilot.md, step 8).",
+        "warnings": warnings,
+        "next": "If this looks right: avd community pack <this directory> --out smoke.zip, then "
+        "avd community verify smoke.zip (docs/volunteer-pilot.md, steps 10-12).",
     }
 
 
@@ -661,6 +692,7 @@ def add_parser(sub: Any) -> None:
     sm.add_argument("--num-ctx", type=int, default=None)
     sm.add_argument("--out", default="smoke-run")
     sm.add_argument("--cache-dir", default=None)
+    sm.add_argument("--timeout", type=float, default=1800.0, help="seconds per model call (slow CPU: 3600)")
     sm.set_defaults(fn=_smoke_main)
     vf = p.add_parser("verify", help="check a contributed report or pack")
     vf.add_argument("file")
@@ -692,7 +724,11 @@ def _smoke_main(args: Any) -> None:
 
     try:
         out = smoke(
-            args.model, Path(args.out), args.num_ctx, Path(args.cache_dir) if args.cache_dir else None
+            args.model,
+            Path(args.out),
+            args.num_ctx,
+            Path(args.cache_dir) if args.cache_dir else None,
+            timeout_seconds=args.timeout,
         )
     except (CommunityError, PreflightError) as exc:
         raise SystemExit(str(exc)) from exc

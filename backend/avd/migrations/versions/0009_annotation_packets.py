@@ -29,6 +29,7 @@ def upgrade() -> None:
         sa.Column("rater_id", sa.String(length=36), nullable=False),
         sa.Column("annotation_ids", sa.JSON(), nullable=False),
         sa.Column("secret_hash", sa.String(length=64), nullable=False),
+        sa.Column("consent_sha256", sa.String(length=64), nullable=False),
         sa.Column("status", sa.String(length=16), nullable=False),
         sa.Column("created_at", sa.DateTime(timezone=True), nullable=False),
         sa.Column("returned_at", sa.DateTime(timezone=True), nullable=True),

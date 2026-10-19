@@ -379,6 +379,25 @@ def test_smoke_runs_one_item_and_reports_the_transport(
     assert out["transport"] == "injected"  # a mock run is labelled as such, never as real inference
     assert out["item"]["id"].startswith("chl_")  # never an item with unconfirmed rights
     assert out["model_calls"] >= 1 and out["structured_validity"] is not None
+    assert out["model_digest"].startswith("sha256:") and out["quantization"] == "Q4_K_M"
+    assert out["hardware"]["cpu_model"] and out["hardware"]["ram_total_gb"]
+    assert out["evidence_verified"] <= out["evidence_claimed"] and "latency_ms_p50" in out
+    assert out["prompt"] and out["rubric_version"]
+    assert any("mock" in w for w in out["warnings"])  # the protocol mock says it is one
     assert out["pack_dry_run_ok"], out["pack_blocking_findings"]
     plan = json.loads(next((tmp_path / "smoke" / "runs").iterdir()).joinpath("plan.json").read_text())
     assert plan["meta"]["items"] == [out["item"]["id"]]
+
+
+def test_windows_and_macos_user_paths_are_redacted(bench: Bench, tmp_path: Path) -> None:
+    win = r"C:\Users\alice\AppData\Local\Programs\Ollama\ollama.exe"
+    mac = "/Users/alice/.ollama/models"
+
+    def edit(d: dict[str, Any]) -> None:
+        d["models"][MODEL]["runtime"]["hardware"]["ollama_binary"] = win
+        d["meta"]["note"] = f"models in {mac}"
+
+    _edit(bench, "report.json", edit)
+    cm.pack(bench.dir, tmp_path / "p.zip")
+    report = zipfile.ZipFile(tmp_path / "p.zip").read("report.json").decode()
+    assert "alice" not in report and cm.REDACTED_PATH in report

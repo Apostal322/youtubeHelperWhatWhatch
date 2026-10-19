@@ -1,0 +1,21 @@
+AI Video Discovery: volunteer rating, consent
+
+What you are asked to do
+You will read transcripts of public technical podcast episodes (Changelog Media, published under CC BY-SA 4.0) and rate each on ten aspects of content quality, following the written descriptions in this file. You can always answer "the transcript doesn't show this" instead of guessing. This is unpaid, voluntary work for an open-source research project.
+
+What is recorded
+- your ratings, citations and notes, under the pseudonym you chose;
+- how long each item was open in your browser (reported by this file, not measured by a server);
+- nothing else: no name, e-mail, IP address or device information is stored with your ratings.
+
+How it is used
+- to measure how well people agree with each other, and later whether automated assessments agree with people;
+- results may be published in aggregate (for example, agreement statistics), and your pseudonymous ratings may appear in the project's benchmark files;
+- automated assessments of these items are hidden from you on purpose; please do not look for them before you finish.
+
+Your choices
+- You can stop at any time; partial work is welcome but never required.
+- You can ask the coordinator to withdraw your ratings at any time; they are then excluded from every export, with the reason recorded.
+- Questions: contact the coordinator who sent you this file.
+
+By ticking the box below you confirm that you are at least 18 years old and agree to take part on these terms.

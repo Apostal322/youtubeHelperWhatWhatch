@@ -36,7 +36,7 @@ or model endpoint run by the project, and none is needed
 |---|---|
 | Runs without any central server | **yes**: local mode (SQLite, embedded worker) and self-hosted full stack |
 | AI evaluation implemented | yes: local models through Ollama (no key, $0) and hosted APIs (optional) |
-| AI evaluation **run on real models** | **not yet: 0 real model calls.** The local-model path is tested against a protocol mock. The development environment cannot download Ollama or model weights. No hosted model has been run either. **You can be first:** [volunteer benchmark kit](docs/volunteer-pilot.md) |
+| AI evaluation **run on real models** | **not yet: 0 real model calls.** The local-model path is tested against a protocol mock. The development environment cannot download Ollama or model weights. No hosted model has been run either. **You can be first:** [the one-transcript experiment](docs/first-experiment.md) |
 | What you see without a model | a keyword/structure **heuristic baseline**, labelled "Heuristic mode (not AI)" everywhere |
 | Accuracy against human judgement | **unknown: 0 human ratings.** Blind annotation works online and as [offline rating packets](docs/annotation-pilot.md) for volunteers; no raters yet |
 | Release gates | 12 gates: 1 passes, 7 are blocked by missing human labels, 4 by the absence of AI inference (Phase 3 record, `avd gates status`). Not release-ready |

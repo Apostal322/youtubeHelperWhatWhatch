@@ -44,7 +44,7 @@ actual time: `avd annotate qc` reports reported durations.
 ```
 coordinator (has the data)                        rater (any computer, offline)
 avd annotate create-rater <pseudonym>
-avd annotate packet --rater <p> --items 3  ──►  packet-<p>.html (one file, opens in a browser,
+avd annotate packet --rater <p> --consent-file c.txt ──►  packet-<p>.html (one file, opens in a browser,
                                                  no network access, progress saved locally)
                                            ◄──  ratings-<p>-xxxx.json (Download ratings file)
 avd annotate import-packet ratings.json
@@ -69,21 +69,27 @@ avd annotate export --out benchmarks/labels/…
   accepted item records nothing twice.
 * **Timing is self-reported.** Offline ratings carry `client_timing` (time the item was open and
   visible) and `offline_packet`, so analyses can separate them from server-timed work.
+* **Consent first.** The packet shows the owner-approved consent text, and the ratings file can
+  be downloaded only after the rater ticks agreement. The import refuses a file without that
+  agreement to the exact text the packet was issued with. Each accepted rating records the
+  text's hash (`consent:<hash>`).
 * **A rater who stops.** `avd annotate release-packet <id>` frees their unreturned items for
   someone else, and keeps whatever they already returned.
 
 ## Coordinator checklist
 
-1. **Before recruiting:** approve the consent text below (it is a template; adapt it).
-   Decide where returned files are kept and for how long.
+1. **Before recruiting:** approve the consent text in `docs/templates/rating-consent.txt` (a
+   template; adapt it and keep your copy). Decide where returned files are kept and for how
+   long.
 2. `avd dataset import benchmarks/datasets/real_pilot_v1/manifest.json` on the coordinator's
    machine. Blinding of model assessments is on by default.
 3. For each volunteer: `avd annotate create-rater <pseudonym> --expertise <self-declared tags>`.
    Ignore the printed token; packets do not need it.
-4. `avd annotate packet --rater <pseudonym>`. The first packet holds the 2 calibration items.
+4. `avd annotate packet --rater <pseudonym> --consent-file rating-consent.txt`. The first packet
+   holds the 2 calibration items.
    Send the file with the instructions below.
 5. When a ratings file comes back: `avd annotate import-packet <file>`. Send the next packet with
-   `avd annotate packet --rater <pseudonym> --items 2`, or `--items 3`.
+   `avd annotate packet --rater <pseudonym> --items 2 --consent-file rating-consent.txt`.
 6. After the calibration round, hold a short call, optional and voluntary, to discuss
    disagreements on the practice items. Do not discuss development items while they are being
    rated.
@@ -144,6 +150,10 @@ avd annotate export --out benchmarks/labels/…
    send that file to the coordinator. You can send partial work and continue later.
 
 ## Consent (template, must be approved by the project owner before use)
+
+The text that packets actually show is in
+[`templates/rating-consent.txt`](templates/rating-consent.txt). The summary below is for
+reference.
 
 > I agree to rate the transcripts in this packet for the AI Video Discovery research project. I
 > understand that:

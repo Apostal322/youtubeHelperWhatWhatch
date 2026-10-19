@@ -1,5 +1,8 @@
 # Volunteer local-AI benchmark kit
 
+> **Just want the one-transcript experiment?** [`first-experiment.md`](first-experiment.md)
+> has the copy-paste commands for Windows and Linux.
+
 **Status (2026-10-20): no real model has evaluated anything for this project yet.** Its
 development environment cannot download Ollama or model weights (the registries are blocked by
 its network policy), and it has no GPU. If your computer can run a small model, your run would be

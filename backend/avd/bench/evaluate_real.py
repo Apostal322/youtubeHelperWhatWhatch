@@ -490,7 +490,7 @@ def run(
         ),
     }
     (out / "summary.json").write_text(json.dumps(report, indent=2))
-    (out / "report.md").write_text(render_markdown(report))
+    (out / "report.md").write_text(render_markdown(report), encoding="utf-8")
     return report
 
 

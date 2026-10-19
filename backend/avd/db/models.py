@@ -520,6 +520,8 @@ class AnnotationPacket(Base):
     rater_id: Mapped[str] = mapped_column(ForeignKey("raters.id", ondelete="CASCADE"), index=True)
     annotation_ids: Mapped[list[Any]] = mapped_column(JSON, default=list)
     secret_hash: Mapped[str] = mapped_column(String(64))
+    # SHA-256 of the consent text shown in the packet; a return must confirm agreement to it.
+    consent_sha256: Mapped[str] = mapped_column(String(64))
     status: Mapped[str] = mapped_column(String(16), default="issued")  # issued | returned | released
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
     returned_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
