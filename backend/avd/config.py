@@ -74,6 +74,8 @@ class Settings(BaseSettings):
     # Optional sampling temperature. Leave unset for models that reject sampling parameters
     # (e.g. claude-opus-5-5); OpenAI-compatible servers usually accept it.
     llm_temperature: float | None = None
+    # Registered prompt key (avd.evaluation.prompts); variants exist for the sensitivity experiment.
+    llm_prompt: str = "rubric_prompt_v2"
     llm_timeout_seconds: float = 180.0
     llm_max_retries: int = 3  # bounded retries for transient errors, exponential backoff
     llm_retry_base_seconds: float = 2.0

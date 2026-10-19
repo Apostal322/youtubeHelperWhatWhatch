@@ -33,6 +33,7 @@ from avd.evaluation.evaluators.visual import VisualSignalEvaluator
 from avd.evaluation.injection import scan as scan_injection
 from avd.evaluation.inputs import EvaluationInput
 from avd.evaluation.profiles import profile_for
+from avd.evaluation.prompts import get_prompt
 from avd.evaluation.rubric import RUBRIC
 from avd.evaluation.schema import (
     Dimension,
@@ -304,6 +305,7 @@ def build_pipeline(
                 temperature=settings.llm_temperature,
                 single_pass_max_tokens=settings.llm_single_pass_max_tokens,
                 chunk_target_tokens=settings.llm_chunk_target_tokens,
+                prompt=get_prompt(settings.llm_prompt),
             ),
             AudioSignalEvaluator(),
             VisualSignalEvaluator(),
@@ -329,6 +331,7 @@ def build_pipeline(
                 temperature=settings.llm_temperature,
                 single_pass_max_tokens=settings.llm_single_pass_max_tokens,
                 chunk_target_tokens=settings.llm_chunk_target_tokens,
+                prompt=get_prompt(settings.llm_prompt),
             ),
             AudioSignalEvaluator(),
             VisualSignalEvaluator(),

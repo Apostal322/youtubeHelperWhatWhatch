@@ -272,6 +272,12 @@ def cmd_dataset_build_holdout(args: argparse.Namespace) -> None:
     print(json.dumps({"items": len(manifest["items"]), "items_sha256": manifest["items_sha256"]}))
 
 
+def cmd_prompts(args: argparse.Namespace) -> None:
+    from avd.evaluation.prompts import describe
+
+    print(json.dumps(describe(), indent=2))
+
+
 def cmd_dataset_rights(args: argparse.Namespace) -> None:
     from avd.datasets.rights import report
 
@@ -473,9 +479,14 @@ def main(argv: list[str] | None = None) -> None:
     from avd.bench.recs_real import add_parser as add_recs_parser
 
     add_recs_parser(sub)
+    from avd.bench.evaluate_real import add_parser as add_evaluate_real_parser
     from avd.bench.throughput import add_parser as add_throughput_parser
 
     add_throughput_parser(sub)
+    add_evaluate_real_parser(sub)
+    sub.add_parser("prompts", help="list registered evaluation prompts and their metadata").set_defaults(
+        fn=cmd_prompts
+    )
     b = sub.add_parser("bench", help="run the evaluation benchmark harness")
     b.add_argument("--dataset", default=str(REPO_ROOT / "benchmarks" / "datasets" / "synthetic_v1"))
     b.add_argument("--fixtures", default=str(REPO_ROOT / "data" / "fixtures"))

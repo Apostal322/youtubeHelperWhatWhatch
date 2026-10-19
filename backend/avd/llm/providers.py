@@ -430,10 +430,69 @@ class LoggingProvider:
             log.exception("failed to record model run")
 
 
+class RunBudget:
+    """A hard spend ceiling for one experiment run, safe under concurrency and across resumes.
+
+    Each call *reserves* its worst-case cost before it is made (prompt at ~3 characters per token,
+    the full ``max_tokens`` as output, billed at the model's price) and settles to the actual cost
+    afterwards. A call whose worst case would cross the ceiling is refused, so the ceiling cannot
+    be exceeded by in-flight calls or retries."""
+
+    CHARS_PER_TOKEN_WORST = 3.0
+
+    def __init__(self, ceiling_usd: float, already_spent_usd: float = 0.0) -> None:
+        self.ceiling_usd = ceiling_usd
+        self.spent_usd = already_spent_usd
+        self.reserved_usd = 0.0
+        self.refused = 0
+        self._lock = threading.Lock()
+
+    def worst_case(self, request: LLMRequest) -> float:
+        tokens = int((len(request.system) + len(request.user)) / self.CHARS_PER_TOKEN_WORST) + 1
+        return cost_usd(request.model, tokens, request.max_tokens)
+
+    def reserve(self, amount: float) -> bool:
+        with self._lock:
+            if self.spent_usd + self.reserved_usd + amount > self.ceiling_usd:
+                self.refused += 1
+                return False
+            self.reserved_usd += amount
+            return True
+
+    def settle(self, reserved: float, actual: float) -> None:
+        with self._lock:
+            self.reserved_usd -= reserved
+            self.spent_usd += actual
+
+
+class RunBudgetGuard:
+    def __init__(self, inner: LLMProvider, budget: RunBudget) -> None:
+        self._inner = inner
+        self.name = inner.name
+        self.budget = budget
+
+    def complete_json(self, request: LLMRequest) -> LLMResponse:
+        worst = self.budget.worst_case(request)
+        if not self.budget.reserve(worst):
+            raise LLMBudgetExceeded(
+                f"run ceiling: spent ${self.budget.spent_usd:.4f}, worst case of this call "
+                f"${worst:.4f}, ceiling ${self.budget.ceiling_usd:.2f}",
+                scope="job",
+            )
+        try:
+            resp = self._inner.complete_json(request)
+        except BaseException:
+            self.budget.settle(worst, 0.0)  # a failed call is not billed by the providers we support
+            raise
+        self.budget.settle(worst, cost_usd(resp.served_model, resp.input_tokens, resp.output_tokens))
+        return resp
+
+
 def build_llm_provider(
     settings: Settings,
     session_factory: Callable[[], Session] | None = None,
     raw: LLMProvider | None = None,
+    run_budget: RunBudget | None = None,
 ) -> LLMProvider | None:
     """Returns ``None`` in demo mode (heuristic baseline, no LLM). ``raw`` injects a provider for
     tests; the production wrapper chain is still applied."""
@@ -455,6 +514,8 @@ def build_llm_provider(
         inner = OpenAICompatibleProvider(settings.openai_base_url, key, timeout=settings.llm_timeout_seconds)
     else:  # pragma: no cover
         raise LLMConfigurationError(f"unknown provider {settings.llm_provider}")
+    if run_budget is not None:  # innermost: every attempt, including retries, is checked
+        inner = RunBudgetGuard(inner, run_budget)
     provider: LLMProvider = RetryingProvider(inner, settings.llm_max_retries, settings.llm_retry_base_seconds)
     limiter: RateLimiter = (
         RedisTokenBucket(settings.redis_url, settings.llm_requests_per_minute)
