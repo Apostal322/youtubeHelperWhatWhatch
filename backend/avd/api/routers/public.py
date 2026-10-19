@@ -6,7 +6,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
-from avd.api.deps import db, embedder
+from avd.api.deps import db, embedder, optional_reader
 from avd.config import LLMProviderName, Settings, get_settings
 from avd.content.store import active_sources
 from avd.datasets.blinding import WITHHELD_MESSAGE, blinded_video_ids, is_blinded
@@ -26,7 +26,7 @@ from avd.evaluation.service import (
 from avd.recsys.recommender import video_card
 from avd.recsys.search import search as search_videos
 
-router = APIRouter(prefix="/v1")
+router = APIRouter(prefix="/v1", dependencies=[Depends(optional_reader)])
 
 
 def _refuse_if_blinded(session: Session, video_id: str) -> None:
@@ -143,6 +143,21 @@ def get_evaluation(video_id: str, session: Session = Depends(db)) -> dict[str, A
     if "public_quotes" in video_pending_uses(session, video_id):
         payload = withhold_quotes(payload)
     return payload
+
+
+@router.get("/videos/{video_id}/imported-evaluations")
+def imported_evaluations(video_id: str, session: Session = Depends(db)) -> dict[str, Any]:
+    """Evaluations imported from other installations' exports: unverified, never merged into
+    this instance's scores, rankings or benchmarks."""
+    from avd.portability import imported_for_video
+
+    _refuse_if_blinded(session, video_id)
+    return {
+        "video_id": video_id,
+        "status": "imported_unverified",
+        "note": "From other installations; not produced or verified here.",
+        "items": imported_for_video(session, video_id),
+    }
 
 
 @router.get("/videos/{video_id}/evaluations")

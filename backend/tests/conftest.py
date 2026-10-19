@@ -22,6 +22,9 @@ from avd.llm.base import LLMRequest, LLMResponse
 FIXTURES = REPO_ROOT / "data" / "fixtures"
 PG_URL = os.environ.get("AVD_TEST_DATABASE_URL")
 REDIS_URL = os.environ.get("AVD_TEST_REDIS_URL")
+# Starlette's TestClient sends ``Host: testserver``; production keeps the loopback-only default.
+TEST_HOSTS = ["testserver", "localhost", "127.0.0.1"]
+os.environ.setdefault("AVD_ALLOWED_HOSTS", json.dumps(TEST_HOSTS))
 
 
 @dataclass
@@ -40,6 +43,7 @@ def make_settings(tmp_path: Path, url: str | None = None, **kw: Any) -> Settings
         "redis_url": None,
         "admin_token": "test-admin",
         "log_json": False,
+        "allowed_hosts": TEST_HOSTS,
     }
     base.update(kw)
     return Settings(**base)

@@ -253,6 +253,31 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
         return await call_next(request)
 
 
+def _inference_status(s: Any, check: bool) -> dict[str, Any]:
+    from avd.config import LLMProviderName
+
+    if s.llm_provider == LLMProviderName.HEURISTIC:
+        return {"location": None, "provider": "heuristic", "note": "no model configured: heuristic baseline"}
+    out: dict[str, Any] = {
+        "location": "local" if s.llm_provider == LLMProviderName.OLLAMA else "hosted",
+        "provider": s.llm_provider.value,
+        "model": s.llm_model_stage_b,
+    }
+    if check and s.llm_provider == LLMProviderName.OLLAMA:
+        from avd.llm.base import LLMError
+        from avd.llm.ollama import OllamaProvider
+
+        try:
+            p = OllamaProvider(s.ollama_base_url, allow_remote=s.ollama_allow_remote, timeout=3.0)
+            out["server_version"] = p.version()
+            out["model_installed"] = s.llm_model_stage_b in {m.get("name") for m in p.installed()}
+            out["reachable"] = True
+        except LLMError as exc:
+            out["reachable"] = False
+            out["error"] = str(exc)
+    return out
+
+
 def install(app: FastAPI, settings: Settings) -> None:
     # Order: the request context wraps everything (added last = outermost).
     app.add_middleware(SecurityHeadersMiddleware)
@@ -296,14 +321,21 @@ def install(app: FastAPI, settings: Settings) -> None:
         return PlainTextResponse(METRICS.render(gauges), media_type="text/plain; version=0.0.4")
 
     @app.get("/v1/status")
-    def status() -> dict[str, Any]:
+    def status(request: Request, check_inference: bool = False) -> dict[str, Any]:
         """Operational status without secrets: database reachability, queue counts, evaluator
-        mode and versions."""
+        mode, deployment mode, worker state and versions. ``check_inference=true`` also asks the
+        configured *local* model server whether the model is installed (never a hosted API)."""
         from avd.content import media as _media
         from avd.evaluation.pipeline import EvaluationPipeline
 
         s = get_settings()
+        worker = getattr(request.app.state, "worker", None)
         out: dict[str, Any] = {
+            "deployment_mode": s.deployment_mode.value,
+            "registration": s.registration.value,
+            "auth_required_for_read": s.deployment_mode.value == "server" and s.require_auth_for_read,
+            "worker": worker.status() if worker is not None else {"embedded": False},
+            "inference": _inference_status(s, check_inference),
             "evaluation_mode": "heuristic_baseline" if s.demo_mode else "llm",
             "llm_provider": s.llm_provider.value,
             "llm_credentials_configured": s.anthropic_api_key is not None or s.openai_api_key is not None,

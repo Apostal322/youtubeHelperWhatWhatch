@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hmac
 import secrets
 import uuid
 from datetime import UTC, datetime, timedelta
@@ -10,9 +11,9 @@ from fastapi.responses import JSONResponse
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
-from avd.api.deps import current_user, db, embedder, hash_token
+from avd.api.deps import backlog_guard, current_user, db, embedder, hash_token
 from avd.api.schemas import FeedbackIn, PreferencesIn, TranscriptIn
-from avd.config import Settings, get_settings
+from avd.config import Registration, Settings, get_settings
 from avd.db.models import Evaluation, Feedback, RecommendationImpression, User, UserPreferences, Video
 from avd.embeddings.base import Embedder
 from avd.recsys.recommender import recommend
@@ -23,9 +24,37 @@ router = APIRouter(prefix="/v1")
 MAX_FEEDBACK_PER_DAY = 500  # per user; far above honest use, bounds spam from one token
 
 
+def _registration_allowed(settings: Settings, invite: str | None, admin: str | None) -> bool:
+    if (
+        admin
+        and settings.admin_token is not None
+        and hmac.compare_digest(admin, settings.admin_token.get_secret_value())
+    ):
+        return True
+    if settings.registration == Registration.OPEN:
+        return True
+    if settings.registration == Registration.INVITE and invite and settings.invite_codes is not None:
+        codes = [c.strip() for c in settings.invite_codes.get_secret_value().split(",") if c.strip()]
+        return any(hmac.compare_digest(invite, c) for c in codes)
+    return False
+
+
 @router.post("/users", status_code=201)
-def create_user(session: Session = Depends(db)) -> dict[str, str]:
-    """Anonymous account for the extension. The token is shown once; only its hash is stored."""
+def create_user(
+    session: Session = Depends(db),
+    settings: Settings = Depends(get_settings),
+    x_invite_code: str | None = Header(default=None, max_length=200),
+    x_admin_token: str | None = Header(default=None, max_length=200),
+) -> dict[str, str]:
+    """Anonymous account for the extension. The token is shown once; only its hash is stored.
+    Local instances register freely (loopback only); servers need an invite code by default."""
+    if not _registration_allowed(settings, x_invite_code, x_admin_token):
+        raise HTTPException(
+            403,
+            "registration is closed on this server"
+            if settings.registration == Registration.CLOSED
+            else "an invite code is required to create an account on this server",
+        )
     token = secrets.token_urlsafe(32)
     user = User(token_hash=hash_token(token))
     user.preferences = UserPreferences()
@@ -148,7 +177,7 @@ def feedback(
     return {"id": fb.id, "status": "recorded"}
 
 
-@router.post("/videos/{video_id}/transcripts", status_code=202)
+@router.post("/videos/{video_id}/transcripts", status_code=202, dependencies=[Depends(backlog_guard)])
 def submit_transcript(
     video_id: str,
     body: TranscriptIn,
@@ -178,7 +207,7 @@ def submit_transcript(
     }
 
 
-@router.put("/videos/{video_id}/media", status_code=202)
+@router.put("/videos/{video_id}/media", status_code=202, dependencies=[Depends(backlog_guard)])
 async def submit_media(
     video_id: str,
     request: Request,
@@ -241,6 +270,14 @@ async def submit_media(
         "modalities": row.modalities,
         "status": "queued for evaluation" if created else "identical media already on file",
     }
+
+
+@router.get("/users/me/export")
+def export_me(user: User = Depends(current_user), session: Session = Depends(db)) -> dict[str, Any]:
+    """Everything this instance stores about your account (preferences, feedback, submissions)."""
+    from avd.datactl import user_export
+
+    return user_export(session, user.id)
 
 
 @router.delete("/users/me")

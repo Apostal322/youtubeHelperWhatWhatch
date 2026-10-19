@@ -46,6 +46,21 @@ class TaskBackend(StrEnum):
     CELERY = "celery"  # Celery workers + beat dispatcher, Redis broker
 
 
+class DeploymentMode(StrEnum):
+    # One person's computer: loopback clients only, Host/Origin checks against DNS rebinding and
+    # cross-site requests, embedded worker, no account needed.
+    LOCAL = "local"
+    # A shared or public server: explicit allowed hosts, an admin token and controlled user
+    # registration are required before the API will start.
+    SERVER = "server"
+
+
+class Registration(StrEnum):
+    OPEN = "open"  # anyone who can reach the API gets an anonymous account
+    INVITE = "invite"  # account creation needs an invite code (or the admin token)
+    CLOSED = "closed"  # only the admin token can create accounts
+
+
 class EmbeddingProviderName(StrEnum):
     HASHING = "hashing"
     SENTENCE_TRANSFORMERS = "sentence_transformers"
@@ -141,6 +156,32 @@ class Settings(BaseSettings):
     job_max_attempts: int = 4
     job_retry_base_seconds: float = 30.0
 
+    # Experimental evaluators ("package.module:Class"), lowest precedence, recorded in every
+    # evaluation's versions and config hash (avd.plugins). Empty = the official protocol only.
+    experimental_evaluators: list[str] = Field(default_factory=list)
+
+    # --- Deployment ---------------------------------------------------------------------------
+    deployment_mode: DeploymentMode = DeploymentMode.LOCAL
+    # Host headers the API answers (DNS-rebinding protection). Local default: loopback names only.
+    # Server mode must set them explicitly (e.g. ["avd.example.org"]).
+    allowed_hosts: list[str] = Field(default_factory=lambda: ["localhost", "127.0.0.1", "[::1]", "::1"])
+    # Local mode: extra peer networks treated as "this computer", e.g. the Docker bridge when the
+    # API runs in a container whose port is published on 127.0.0.1 only. Never a LAN or the internet.
+    local_peer_networks: list[str] = Field(default_factory=list)
+    # Who may create accounts. Default: open locally (loopback only), invite on a server.
+    user_registration: Registration | None = None
+    invite_codes: SecretStr | None = None  # comma-separated invite codes for registration=invite
+    # Server mode only: require a user token for catalog/evaluation reads as well (private instance).
+    require_auth_for_read: bool = False
+    # Run queued jobs in a background thread inside the API process (`avd start`); no Redis/Celery.
+    embedded_worker: bool = False
+    embedded_worker_poll_seconds: float = 3.0
+    # New submissions are refused (HTTP 503) while this many jobs are queued: bounded backlog.
+    max_queued_jobs: int = 500
+    # Outbound network calls the operator has not configured are never made; this only governs the
+    # optional, explicit update check, which is off.
+    telemetry: bool = False
+
     # --- API ---------------------------------------------------------------------------------
     admin_token: SecretStr | None = None
     # API protection: per-caller token bucket (0 disables); /metrics needs the admin token unless public.
@@ -155,7 +196,9 @@ class Settings(BaseSettings):
     cors_allow_origins: list[str] = Field(
         default_factory=lambda: ["http://localhost:5173", "http://127.0.0.1:5173"]
     )
-    cors_allow_origin_regex: str = r"chrome-extension://.*"
+    # The extension does not need CORS: its pages fetch with host permissions the user granted.
+    # Set a regex (e.g. "chrome-extension://<your-extension-id>") only for other browser clients.
+    cors_allow_origin_regex: str | None = None
 
     fixtures_dir: Path = REPO_ROOT / "data" / "fixtures"
     media_cache_dir: Path = REPO_ROOT / "backend" / ".media_cache"
@@ -163,6 +206,51 @@ class Settings(BaseSettings):
     dataset_cache_dir: Path = REPO_ROOT / "backend" / ".dataset_cache"
     # Directory of licensed reference documents enabling Stage-C retrieval fact checking.
     reference_corpus_dir: Path | None = None
+
+    @property
+    def registration(self) -> Registration:
+        if self.user_registration is not None:
+            return self.user_registration
+        return Registration.OPEN if self.deployment_mode == DeploymentMode.LOCAL else Registration.INVITE
+
+    def server_mode_problems(self) -> list[str]:
+        """Why this configuration must not serve a shared instance (empty = fine)."""
+        if self.deployment_mode != DeploymentMode.SERVER:
+            return []
+        out = []
+        if self.admin_token is None or len(self.admin_token.get_secret_value()) < 24:
+            out.append("AVD_ADMIN_TOKEN must be set (at least 24 characters)")
+        elif self.admin_token.get_secret_value().startswith("change-me"):
+            out.append("AVD_ADMIN_TOKEN is still the placeholder value")
+        if not self.allowed_hosts or set(self.allowed_hosts) <= {"localhost", "127.0.0.1", "[::1]", "::1"}:
+            out.append('AVD_ALLOWED_HOSTS must list the public host names (e.g. ["avd.example.org"])')
+        if self.registration == Registration.INVITE and self.invite_codes is None:
+            out.append("AVD_USER_REGISTRATION=invite needs AVD_INVITE_CODES (or choose open/closed)")
+        if self.metrics_public:
+            out.append("AVD_METRICS_PUBLIC must be false on a shared server")
+        if self.is_postgres and ":avd@" in self.database_url:
+            out.append("the database password is the default 'avd': set POSTGRES_PASSWORD")
+        return out
+
+    @model_validator(mode="after")
+    def _empty_secrets_are_unset(self) -> Settings:
+        # An empty env var (e.g. AVD_ADMIN_TOKEN= in Compose) must disable a secret, never make
+        # the empty string a valid credential.
+        for f in ("admin_token", "invite_codes", "anthropic_api_key", "openai_api_key", "youtube_api_key"):
+            v = getattr(self, f)
+            if v is not None and not v.get_secret_value().strip():
+                setattr(self, f, None)
+        return self
+
+    @model_validator(mode="after")
+    def _local_peers_are_private(self) -> Settings:
+        import ipaddress
+
+        for n in self.local_peer_networks:
+            net = ipaddress.ip_network(n, strict=False)
+            if not (net.is_private or net.is_loopback) or net.prefixlen < 8:
+                raise ValueError(f"local_peer_networks may only contain private networks (got {n})")
+        return self
 
     @model_validator(mode="after")
     def _local_model_defaults(self) -> Settings:
