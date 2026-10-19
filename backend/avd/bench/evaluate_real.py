@@ -224,8 +224,10 @@ def _check_live_config(cfg: RunConfig, settings: Settings, raw: LLMProvider | No
         raise PreflightError(
             "AVD_ANTHROPIC_API_KEY is not set (add it as an environment secret, never in code)"
         )
-    if settings.llm_provider == LLMProviderName.OPENAI_COMPATIBLE and settings.openai_base_url is None:
-        raise PreflightError("AVD_OPENAI_BASE_URL is not set")
+    if settings.llm_provider == LLMProviderName.OPENAI_COMPATIBLE and settings.openai_api_key is None:
+        host = settings.openai_base_url.split("//", 1)[-1].split("/", 1)[0].split(":", 1)[0]
+        if host not in ("localhost", "127.0.0.1", "::1"):
+            raise PreflightError("AVD_OPENAI_API_KEY is not set for a remote OpenAI-compatible endpoint")
     if not cfg.budget_usd or cfg.budget_usd <= 0:
         raise PreflightError("--budget-usd is required for a live run (an explicitly approved ceiling)")
 

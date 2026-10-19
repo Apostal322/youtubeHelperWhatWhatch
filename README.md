@@ -20,19 +20,24 @@ evaluation — not as features, not in prompts, not through priorities. This is 
 
 ## Status — read this first
 
-* **No AI evaluator has been run against a live model in this repository.** The LLM path
-  (`AVD_LLM_PROVIDER=anthropic`) is implemented and tested with scripted responses. Without
+* **No AI evaluator has been run against a live model in this repository.** The LLM path is
+  implemented and tested with scripted responses. `avd evaluate-real` runs it budget-capped and
+  resumable as soon as a key and a budget are provided (`docs/model-configuration.md`). Without
   credentials, scores come from a keyword/structure *heuristic baseline*: the API reports
-  `evaluation_mode: heuristic_baseline` and the extension header says *Heuristic mode (not AI)*.
-* **Real, licensed content is in the repo; real human labels are not.** `real_pilot_v1` holds 29
-  podcast episodes (Changelog CC BY-SA 4.0, Talk Python GPL-3.0) fetched at pinned commits with
-  checksums. A blind annotation workflow exists, but nobody has annotated yet. **There is no
-  evidence yet about accuracy on real content.**
-* **Synthetic fixtures** (20 videos written for this project) still back the zero-key demo. They are
-  labelled `synthetic_demo` everywhere and do not exist on YouTube. Their labels are the fixture
-  author's design intent, so benchmark numbers on them test the harness only.
-* Phase 2's audit, acceptance criteria and measured results are in
-  [`docs/phase2.md`](docs/phase2.md).
+  `evaluation_mode: heuristic_baseline` and the extension says *Heuristic mode (not AI)*.
+* **Real, licensed content is in the repo; real human labels are not.**
+  * `real_pilot_v1`: 29 podcast episodes, fetched at pinned commits with checksums.
+  * `real_holdout_v2`: a sealed hold-out of 12 more episodes.
+  * The blind annotation workflow is ready, and nobody has rated anything yet. **There is no
+    evidence yet about accuracy on real content.**
+  * Talk Python's licence scope is unconfirmed, so those items are not shown to raters or quoted
+    publicly (`avd dataset rights`).
+* **Release gates:** of 12, 1 passes, 7 are blocked by missing human labels and 4 by the absence
+  of AI inference (`avd gates status`). Not release-ready.
+* **Synthetic fixtures** (20 videos written for this project) back the zero-key demo. They are
+  labelled `synthetic_demo` everywhere and do not exist on YouTube.
+* The Phase 2 and Phase 3 records, with audits, measured results and blockers:
+  [`docs/phase2.md`](docs/phase2.md) and [`docs/phase3.md`](docs/phase3.md).
 
 ## Quick start
 
@@ -103,7 +108,12 @@ cd extension && npm run typecheck && npm test && npm run build
 * [Permissions & content access](docs/permissions.md) — what uses which API, what needs which grant.
 * [Annotation protocol](docs/annotation.md) — blind human rating, QC, adjudication, export.
 * [Security review](docs/security.md) — trust boundaries, controls, audits, known gaps.
-* [Phase 2 record](docs/phase2.md) — audit, acceptance criteria, measured results, blockers.
+* [Phase 2 record](docs/phase2.md) and [Phase 3 report](docs/phase3.md): audits, experiments,
+  measured results, blockers.
+* [Model configuration](docs/model-configuration.md): running live AI evaluation safely
+  (credentials, budget ceilings, resume).
+* [Reproducibility and data provenance](docs/reproducibility.md): the command behind every
+  report.
 * [API reference](docs/api.md)
 * [Roadmap](docs/roadmap.md) — the path to large-scale continuous analysis.
 

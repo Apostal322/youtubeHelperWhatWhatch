@@ -22,6 +22,25 @@ Popularity statistics are never returned by public endpoints.
 * **Security headers.** `X-Frame-Options: DENY`, `X-Content-Type-Options: nosniff`,
   `Referrer-Policy: no-referrer`; `/annotate` has a strict CSP.
 
+### Phase 3 behaviours
+
+* **Blind annotation.** While a dataset's annotation is open, the public detail, evaluation,
+  history and claims endpoints return **403** (`forbidden`) for its items, and search, listings
+  and recommendations skip them.
+* **Rights.** For sources whose publisher has not confirmed public quoting, evaluation and
+  claims responses carry `quotes_withheld: true`. Quote text is replaced, and positions and
+  verification status are kept.
+* **Feedback.** An exact duplicate returns **200** `{"id", "status": "duplicate"}` instead of a
+  new event. At most 500 events per user per day (429).
+* **Rate limits.** Every request draws from its caller's bucket and its client IP's bucket
+  (`AVD_API_RATE_LIMIT_PER_IP_PER_MINUTE`, `AVD_API_RATE_LIMIT_IP_BURST`). The buckets are
+  shared through Redis when configured.
+* **Evaluation object.** `coverage_report.support_audit` lists evidence-support flags, and any
+  flag keeps an evaluation out of `grounded`. Fact-check claims add claim type `hypothesis` and
+  verdict `outdated`. The video card adds `genre_status`.
+* **`/v1/status`** adds `media_processing.ffmpeg_available`,
+  `media_processing.os_resource_limits` and `rate_limit_backend`.
+
 ## Public
 
 | Method | Path | Description |
