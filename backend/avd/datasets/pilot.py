@@ -191,12 +191,18 @@ def build_manifest(
     seed: int = DEFAULT_SEED,
     quotas: dict[tuple[str, str], int] = QUOTAS,
     progress: Callable[[str], None] | None = None,
+    exclude_paths: frozenset[str] = frozenset(),
+    **finalize: Any,
 ) -> dict[str, Any]:
     items: list[dict[str, Any]] = []
     selection: dict[str, Any] = {}
     for (source_key, group), quota in quotas.items():
         source = SOURCES[source_key]
-        candidates = list_candidates(source, clones[source_key], group)
+        candidates = [
+            p
+            for p in list_candidates(source, clones[source_key], group)
+            if f"{source_key}:{p}" not in exclude_paths
+        ]
         random.Random(f"{seed}:{source_key}:{group}").shuffle(candidates)
         log = SelectionLog()
         kept = 0
@@ -220,7 +226,7 @@ def build_manifest(
             "examined": log.examined,
             "rejected": log.rejected,
         }
-    return finalize_manifest(items, selection, seed, quotas)
+    return finalize_manifest(items, selection, seed, quotas, **finalize)
 
 
 def finalize_manifest(
@@ -228,12 +234,17 @@ def finalize_manifest(
     selection: dict[str, Any],
     seed: int,
     quotas: dict[tuple[str, str], int] = QUOTAS,
+    forced_split: str | None = None,
+    name: str = DATASET_NAME,
+    version: str = DATASET_VERSION,
+    description: str | None = None,
 ) -> dict[str, Any]:
-    """Assign group splits and strata, attach rights, and compute the items digest."""
+    """Assign group splits and strata, attach rights, and compute the items digest. A
+    ``forced_split`` puts every item in one split (a sealed hold-out set)."""
     group_sizes: dict[str, int] = {}
     for it in items:
         group_sizes[it["group_key"]] = group_sizes.get(it["group_key"], 0) + 1
-    splits = assign_splits(group_sizes, seed)
+    splits = dict.fromkeys(group_sizes, forced_split) if forced_split else assign_splits(group_sizes, seed)
     for it in items:
         it["split"] = splits[it["group_key"]]
         it["stratum"] = {
@@ -246,9 +257,10 @@ def finalize_manifest(
         }
     items.sort(key=lambda it: it["item_id"])
     manifest: dict[str, Any] = {
-        "name": DATASET_NAME,
-        "version": DATASET_VERSION,
-        "description": (
+        "name": name,
+        "version": version,
+        "description": description
+        or (
             "Pilot of real, licensed long-form spoken content (podcast/interview transcripts published "
             "by their creators) for human-grounded validation of transcript-based quality assessment. "
             "Contains no quality labels; labels come from blind human annotation."
@@ -262,7 +274,7 @@ def finalize_manifest(
             "per_group": selection,
         },
         "split": {
-            "strategy": "group_by_show",
+            "strategy": "sealed_holdout" if forced_split else "group_by_show",
             "unit": "group_key (one show / creator)",
             "fractions": SPLIT_FRACTIONS,
             "seed": seed,
@@ -315,3 +327,39 @@ def load_manifest(path: Path) -> dict[str, Any]:
     if digest != manifest.get("items_sha256"):
         raise ValueError(f"manifest items digest mismatch: {digest} != {manifest.get('items_sha256')}")
     return manifest
+
+
+# Sealed hold-out (Phase 3): new episodes of the shows that form real_pilot_v1's test split, so the
+# show-level separation from dev holds. None of these items was inspected while genre v2, the
+# injection detector or the embedding default were developed (those saw the v1 test split).
+HOLDOUT_QUOTAS: dict[tuple[str, str], int] = {
+    ("changelog", "podcast"): 4,
+    ("changelog", "jsparty"): 4,
+    ("changelog", "brainscience"): 4,
+    ("changelog", "shipit"): 4,
+}
+HOLDOUT_SEED = 20261019
+
+
+def build_holdout(
+    clones: dict[str, Path],
+    fetcher: SourceFetcher,
+    pilot_manifest: dict[str, Any],
+    progress: Callable[[str], None] | None = None,
+) -> dict[str, Any]:
+    exclude = frozenset(f"{it['source']}:{it['path']}" for it in pilot_manifest["items"])
+    return build_manifest(
+        clones,
+        fetcher,
+        seed=HOLDOUT_SEED,
+        quotas=HOLDOUT_QUOTAS,
+        progress=progress,
+        exclude_paths=exclude,
+        forced_split="test",
+        name="real_holdout",
+        version="v2",
+        description=(
+            "Sealed confirmatory hold-out: unseen episodes of the real_pilot_v1 test shows (Changelog, "
+            "CC BY-SA 4.0). Build once; evaluate only with a locked candidate and locked gates."
+        ),
+    )

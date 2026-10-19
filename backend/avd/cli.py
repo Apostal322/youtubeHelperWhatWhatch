@@ -256,6 +256,22 @@ def cmd_dataset_import(args: argparse.Namespace) -> None:
     print(json.dumps({k: v for k, v in result.items() if k != "video_ids"}))
 
 
+def cmd_dataset_build_holdout(args: argparse.Namespace) -> None:
+    from avd.datasets.pilot import build_holdout, load_manifest
+
+    clones = dict(c.split("=", 1) for c in args.clone)
+    if "changelog" not in clones:
+        sys.exit("--clone changelog=<path> is required")
+    pilot = load_manifest(Path(args.pilot))
+    manifest = build_holdout({"changelog": Path(clones["changelog"])}, _fetcher(args), pilot, progress=print)
+    out = Path(args.out)
+    out.mkdir(parents=True, exist_ok=True)
+    (out / "manifest.json").write_text(
+        json.dumps(manifest, indent=2, ensure_ascii=False) + "\n", encoding="utf-8"
+    )
+    print(json.dumps({"items": len(manifest["items"]), "items_sha256": manifest["items_sha256"]}))
+
+
 def cmd_dataset_rights(args: argparse.Namespace) -> None:
     from avd.datasets.rights import report
 
@@ -387,6 +403,17 @@ def main(argv: list[str] | None = None) -> None:
     for sp in (bp, di):
         sp.add_argument("--cache-dir", default=None)
         sp.add_argument("--offline", action="store_true", help="use only the local cache")
+    bh = ds.add_parser(
+        "build-holdout", help="build the sealed hold-out manifest (unseen episodes of test shows)"
+    )
+    bh.add_argument("--clone", action="append", default=[], help="changelog=<local clone>")
+    bh.add_argument(
+        "--pilot", default=str(REPO_ROOT / "benchmarks" / "datasets" / "real_pilot_v1" / "manifest.json")
+    )
+    bh.add_argument("--out", default=str(REPO_ROOT / "benchmarks" / "datasets" / "real_holdout_v2"))
+    bh.add_argument("--cache-dir", default=None)
+    bh.add_argument("--offline", action="store_true")
+    bh.set_defaults(fn=cmd_dataset_build_holdout)
     ds.add_parser("rights", help="use-time rights review: facts, assumptions, pending uses").set_defaults(
         fn=cmd_dataset_rights
     )
