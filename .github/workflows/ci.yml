@@ -134,3 +134,5 @@ jobs:
       - run: docker build -f backend/Dockerfile -t avd-backend .
       - name: Image runs the CLI
         run: docker run --rm avd-backend avd --help
+      - name: Image can process authorized media under resource limits
+        run: docker run --rm avd-backend python -c "from avd.content import media; assert media.available() and media.limits_enforced()"

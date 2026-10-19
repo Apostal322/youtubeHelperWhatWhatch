@@ -299,6 +299,7 @@ def install(app: FastAPI, settings: Settings) -> None:
     def status() -> dict[str, Any]:
         """Operational status without secrets: database reachability, queue counts, evaluator
         mode and versions."""
+        from avd.content import media as _media
         from avd.evaluation.pipeline import EvaluationPipeline
 
         s = get_settings()
@@ -307,6 +308,11 @@ def install(app: FastAPI, settings: Settings) -> None:
             "llm_provider": s.llm_provider.value,
             "llm_credentials_configured": s.anthropic_api_key is not None or s.openai_api_key is not None,
             "embedding_provider": s.embedding_provider.value,
+            "media_processing": {
+                "ffmpeg_available": _media.available(),
+                "os_resource_limits": _media.limits_enforced(),
+            },
+            "rate_limit_backend": "redis" if s.redis_url else "process",
             "versions": EvaluationPipeline.versions(),
         }
         try:
