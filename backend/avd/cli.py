@@ -516,6 +516,7 @@ def main(argv: list[str] | None = None) -> None:
     from avd.bench.retrieval import add_parser as add_retrieval_parser
 
     add_retrieval_parser(sub)
+    from avd.bench.recs_real import add_diagnostic_parser
     from avd.bench.recs_real import add_parser as add_recs_parser
 
     add_recs_parser(sub)
@@ -524,6 +525,7 @@ def main(argv: list[str] | None = None) -> None:
 
     add_throughput_parser(sub)
     add_evaluate_real_parser(sub)
+    add_diagnostic_parser(sub)
     sub.add_parser("prompts", help="list registered evaluation prompts and their metadata").set_defaults(
         fn=cmd_prompts
     )

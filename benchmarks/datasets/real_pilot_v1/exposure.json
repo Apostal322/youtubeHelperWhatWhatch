@@ -2,7 +2,7 @@
   "dataset": "real_pilot@v1",
   "split": "test",
   "audited": "2026-10-19",
-  "summary": "The 17-item test split influenced three Phase 2 decisions. It remains usable for model-vs-human quality agreement (no labels exist, and no prompt, rubric or aggregation was tuned on test outputs). It is NOT a clean hold-out for the components listed below; use real_holdout@v2 for confirmatory claims about them.",
+  "summary": "The 17-item test split influenced four Phase 2 decisions. It remains usable for model-vs-human quality agreement (no labels exist, and no prompt, rubric or aggregation was tuned on test outputs). It is NOT a clean hold-out for the components listed below; use real_holdout@v2 for confirmatory claims about them.",
   "exposures": [
     {
       "component": "genre classifier (keyword_lexicon_v2)",
@@ -35,6 +35,16 @@
       "decision_influenced": "Keeping hashing as the recommendation default (docs cite the test-split result).",
       "affected_claims": [
         "any confirmatory claim that one embedder recommends better"
+      ],
+      "affected_gates": []
+    },
+    {
+      "component": "MiniLM relevance floor/ceiling (0.20 / 0.50)",
+      "commit": "3b319ff (constants), ceb0b77 (experiment)",
+      "what_was_seen": "Similarity distributions in the 100-transcript Talk Python retrieval experiment, which included 5 of the 7 Talk Python test items.",
+      "decision_influenced": "The cosine-to-relevance mapping MiniLM uses inside the recommender.",
+      "affected_claims": [
+        "any test-split recommendation comparison involving MiniLM"
       ],
       "affected_gates": []
     }
