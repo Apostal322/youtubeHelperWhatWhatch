@@ -1,5 +1,25 @@
 # Roadmap
 
+The project is open source and self-hosted: every milestone must keep working without a
+project-operated server, paid infrastructure or a mandatory cloud account
+([`infrastructure-costs.md`](infrastructure-costs.md)). Infrastructure readiness and scientific
+validation are separate milestones: Phase 3.2 delivered the former, not the latter.
+
+## Open-source track (after Phase 3.2)
+
+1. **Owner decisions:** add the `LICENSE` file (Apache-2.0 is declared; see
+   [`licensing.md`](licensing.md)), enable private vulnerability reporting, and create the
+   `good first issue` label.
+2. **First real local-model run** on any machine with Ollama (`avd bench-local`). It is blocked
+   in the development environment only by network policy.
+3. **Packaging:** a published Python package or a container image, so `avd start` works without
+   cloning.
+4. **Signed exports** (minisign or Sigstore), as a prerequisite for any sharing between
+   instances ([`evaluation-export.md`](evaluation-export.md#future-sharing-between-installations)).
+5. **Windows and macOS verification** of `avd start` and the extension. Both are untested.
+6. **Optional community instances:** documentation for operators (privacy notice, moderation,
+   rights duties). No directory service until there is a moderation process.
+
 ## Recommended next milestone: **M1, real-signal validation** (Phase 3 made it runnable)
 
 Phase 3 removed the engineering blockers. What remains needs people and a budget:

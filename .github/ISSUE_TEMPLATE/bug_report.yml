@@ -1,0 +1,34 @@
+name: Bug report
+description: Something does not work as documented
+labels: ["bug"]
+body:
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened, and what did you expect?
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      placeholder: "1. avd start --demo  2. ..."
+    validations:
+      required: true
+  - type: dropdown
+    id: mode
+    attributes:
+      label: Deployment
+      options: ["avd start (local)", "Docker Compose (local)", "Docker Compose (server)", "Other"]
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Commit or version
+  - type: textarea
+    id: diag
+    attributes:
+      label: Diagnostics
+      description: Output of `avd doctor`, or GET /v1/status. Remove anything you consider private. Never paste API keys or tokens.
+      render: json

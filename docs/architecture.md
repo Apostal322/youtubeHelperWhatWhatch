@@ -28,6 +28,40 @@ flowchart LR
 Two processes share one code base: the **API** (FastAPI) and **workers** (inline worker or Celery).
 State lives in PostgreSQL; Redis is the Celery broker and the shared rate-limiter store.
 
+## 1a. Local-first deployment (Phase 3.2)
+
+The same code runs in three shapes. None of them depends on a server run by the project.
+
+```mermaid
+flowchart LR
+  EXT[Chrome extension<br/>user-selected backend<br/>consent for remote] -->|HTTP loopback / HTTPS| API
+  subgraph Instance [One instance, run by its operator]
+    API[FastAPI + DeploymentGuard<br/>local: loopback, Host, Origin<br/>server: hosts, tokens, registration]
+    API --> Q[(Job queue table)]
+    W[Worker<br/>embedded thread · or Celery] --> Q
+    W --> EV[Evaluation pipeline<br/>official + experimental evaluators]
+    EV --> P[Model provider<br/>heuristic · Ollama · hosted API]
+    EV --> DB[(SQLite · or PostgreSQL+pgvector)]
+    API --> DB
+    API --> REC[Search / recommender]
+  end
+  DB -.->|avd evaluations export| X[[avd-evaluation-export v1<br/>no transcript text]]
+  X -.->|import: unverified, stored apart| DB2[(another instance)]
+```
+
+| Concern | Local (`avd start`) | Self-hosted full stack |
+|---|---|---|
+| Storage | SQLite file in the user's data dir | PostgreSQL + pgvector |
+| Jobs | the same durable `pipeline_jobs` queue, drained by one embedded thread | the same queue, dispatched to Celery workers via Redis |
+| Rate limiting | in process | shared through Redis |
+| Access | loopback only, Host/Origin checks | allowed hosts, bearer tokens, registration policy, TLS proxy |
+| Evaluation, aggregation, ranking | **identical code**: a score has the same meaning in both | |
+
+Module boundaries: `avd.api` (HTTP, guard), `avd.workers` (queue, executors), `avd.evaluation`
+(pipeline, evaluators, aggregation), `avd.llm` (providers, local runtime), `avd.recsys`
+(search, ranking), `avd.content` (authorized sources), `avd.portability` (exports), `avd.datactl`
+(operator data controls). Extension points: [`extending.md`](extending.md).
+
 ## 2. Pipeline stages
 
 | Stage | Job type | Work | External cost |

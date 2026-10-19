@@ -1,0 +1,22 @@
+name: Feature or research proposal
+description: A new capability, evaluator, dataset or experiment
+labels: ["enhancement"]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: What problem does it solve?
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposal
+  - type: checkboxes
+    id: integrity
+    attributes:
+      label: Research integrity
+      options:
+        - label: It does not use popularity signals as quality.
+        - label: It does not need unauthorized downloading or scraping.
+        - label: Any new score is versioned and can abstain.

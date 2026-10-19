@@ -105,6 +105,8 @@ services:
         required: false
     environment:
       AVD_DATA_DIR: /data
+      AVD_DATABASE_URL: sqlite:////data/avd.db   # so one-off commands (seed-demo, backup) use the same database
+      AVD_MEDIA_CACHE_DIR: /data/media
       AVD_ALLOWED_HOSTS: ${AVD_ALLOWED_HOSTS:-["localhost", "127.0.0.1"]}
       AVD_LOCAL_PEER_NETWORKS: ${AVD_LOCAL_PEER_NETWORKS:-["172.16.0.0/12", "192.168.0.0/16", "10.0.0.0/8"]}
       AVD_OLLAMA_BASE_URL: ${AVD_OLLAMA_BASE_URL:-http://ollama:11434}
