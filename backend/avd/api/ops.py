@@ -5,8 +5,9 @@
 * **Errors.** All errors share one shape, ``{"detail": ..., "error": {"code", "message",
   "request_id"}}``. Unhandled exceptions return a generic 500 without internals.
 * **Rate limiting.** A token bucket per caller: the hash of the bearer or admin token, else the
-  client IP. In-memory and per process, so with N API workers the effective limit is N times
-  higher; a shared (Redis) limiter is future work. ``/health`` and ``/metrics`` are exempt.
+  client IP, plus a per-IP bucket for every request (rotating tokens cannot multiply the
+  allowance). Shared through Redis when ``AVD_REDIS_URL`` is set (atomic Lua on the Redis
+  clock), per process otherwise or when Redis fails. ``/health`` and ``/metrics`` are exempt.
 * **Metrics.** ``/metrics`` serves Prometheus text: in-process counters plus queue, dead-letter
   and spend gauges read from the database. It requires the admin token unless
   ``AVD_METRICS_PUBLIC=true``.
@@ -122,6 +123,8 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
 
 
 class TokenBucket:
+    """Per-process bucket (single API worker, or the fallback when Redis is unreachable)."""
+
     def __init__(self, rate_per_minute: int, burst: int) -> None:
         self.rate = rate_per_minute / 60.0
         self.burst = float(burst)
@@ -141,24 +144,107 @@ class TokenBucket:
             return (1.0 - tokens) / self.rate if self.rate > 0 else 60.0
 
 
+# Atomic refill-and-take on the Redis server's clock (no dependence on API hosts' clocks).
+_REDIS_TAKE = """
+local t = redis.call('TIME')
+local now = tonumber(t[1]) + tonumber(t[2]) / 1000000
+local rate = tonumber(ARGV[1])
+local burst = tonumber(ARGV[2])
+local s = redis.call('HMGET', KEYS[1], 'tokens', 'ts')
+local tokens = tonumber(s[1]) or burst
+local ts = tonumber(s[2]) or now
+tokens = math.min(burst, tokens + math.max(0, now - ts) * rate)
+local wait = 0
+if tokens >= 1 then tokens = tokens - 1 else wait = (1 - tokens) / rate end
+redis.call('HSET', KEYS[1], 'tokens', tostring(tokens), 'ts', tostring(now))
+redis.call('EXPIRE', KEYS[1], math.ceil(burst / rate) + 60)
+return tostring(wait)
+"""
+
+
+class RedisTokenBucket:
+    """Shared across API processes and hosts. On a Redis error the caller falls back to the
+    per-process bucket (degraded but still limiting) and the fallback is counted in /metrics."""
+
+    def __init__(self, redis_url: str, rate_per_minute: int, burst: int, prefix: str) -> None:
+        import redis
+
+        self._r = redis.Redis.from_url(redis_url, socket_timeout=0.25, socket_connect_timeout=0.25)
+        self._script = self._r.register_script(_REDIS_TAKE)
+        self.rate = rate_per_minute / 60.0
+        self.burst = burst
+        self.prefix = prefix
+
+    def take(self, key: str, now: float | None = None) -> float:
+        return float(self._script(keys=[f"avd:api-rl:{self.prefix}:{key}"], args=[self.rate, self.burst]))
+
+
+class RateLimiterPolicy:
+    """Two buckets per request: the caller's (credential hash, else client IP) and the client IP's.
+    Requests are refused when either is empty. The IP bucket bounds token rotation; the caller
+    bucket keeps one heavy user behind a shared NAT from starving others."""
+
+    def __init__(self, settings: Settings) -> None:
+        self.caller_local = TokenBucket(
+            max(1, settings.api_rate_limit_per_minute), settings.api_rate_limit_burst
+        )
+        self.ip_local = TokenBucket(
+            max(1, settings.api_rate_limit_per_ip_per_minute), settings.api_rate_limit_ip_burst
+        )
+        self.caller_shared: RedisTokenBucket | None = None
+        self.ip_shared: RedisTokenBucket | None = None
+        if settings.redis_url:
+            self.caller_shared = RedisTokenBucket(
+                settings.redis_url,
+                max(1, settings.api_rate_limit_per_minute),
+                settings.api_rate_limit_burst,
+                "caller",
+            )
+            self.ip_shared = RedisTokenBucket(
+                settings.redis_url,
+                max(1, settings.api_rate_limit_per_ip_per_minute),
+                settings.api_rate_limit_ip_burst,
+                "ip",
+            )
+
+    @property
+    def backend(self) -> str:
+        return "redis" if self.caller_shared else "process"
+
+    def _take(self, shared: RedisTokenBucket | None, local: TokenBucket, key: str) -> float:
+        if shared is not None:
+            try:
+                return shared.take(key)
+            except Exception as exc:  # Redis down or slow: keep limiting locally, visibly
+                METRICS.inc("avd_rate_limiter_fallback_total")
+                log.warning(
+                    "shared rate limiter unavailable; using per-process limits",
+                    extra={"error": type(exc).__name__},
+                )
+        return local.take(key)
+
+    def check(self, caller_key: str, ip_key: str) -> float:
+        wait_ip = self._take(self.ip_shared, self.ip_local, ip_key)
+        if wait_ip > 0:
+            return wait_ip
+        return self._take(self.caller_shared, self.caller_local, caller_key)
+
+
 class RateLimitMiddleware(BaseHTTPMiddleware):
     def __init__(self, app: Any, settings: Settings) -> None:
         super().__init__(app)
         self.enabled = settings.api_rate_limit_per_minute > 0
-        self.bucket = TokenBucket(max(1, settings.api_rate_limit_per_minute), settings.api_rate_limit_burst)
+        self.policy = RateLimiterPolicy(settings)
 
     async def dispatch(
         self, request: Request, call_next: Callable[[Request], Awaitable[Response]]
     ) -> Response:
         if not self.enabled or request.url.path.startswith(EXEMPT) or request.method == "OPTIONS":
             return await call_next(request)
+        ip = "ip:" + (request.client.host if request.client else "unknown")
         cred = request.headers.get("authorization") or request.headers.get("x-admin-token")
-        key = (
-            "t:" + hashlib.sha256(cred.encode()).hexdigest()[:16]
-            if cred
-            else "ip:" + (request.client.host if request.client else "unknown")
-        )
-        wait = self.bucket.take(key)
+        caller = "t:" + hashlib.sha256(cred.encode()).hexdigest()[:16] if cred else ip
+        wait = self.policy.check(caller, ip)
         if wait > 0:
             METRICS.inc("avd_http_rate_limited_total")
             resp = JSONResponse(error_body(429, "rate limit exceeded; retry later"), status_code=429)
