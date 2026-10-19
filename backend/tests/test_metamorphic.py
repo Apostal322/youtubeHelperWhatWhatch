@@ -172,3 +172,24 @@ def test_popularity_text_does_not_shape_retrieval_embeddings() -> None:
     )
     emb = HashingEmbedder()
     assert document_inputs(emb, plain, None) == document_inputs(emb, hyped, None)  # type: ignore[arg-type]
+
+
+def test_channel_cap_is_soft_when_only_one_creator_covers_the_topic() -> None:
+    """Phase 3.3 finding: a hard cap of 2 per channel left slots empty when every matching video
+    came from one show. The cap still spreads creators when there is a choice."""
+    from types import SimpleNamespace
+
+    from avd.recsys.recommender import MAX_PER_CHANNEL, _mmr
+
+    def cand(i: int, channel: str, rank: float) -> dict[str, Any]:
+        return {"video": SimpleNamespace(id=f"v{i}", channel_id=channel, embedding=None), "rank": rank}
+
+    one_channel = [cand(i, "show", 1.0 - i / 10) for i in range(5)]
+    picked = _mmr(one_channel, 5, 0.0)
+    assert len(picked) == 5 and sum(bool(c.get("channel_cap_relaxed")) for c in picked) == 5 - MAX_PER_CHANNEL
+    mixed = [cand(i, "show", 1.0 - i / 10) for i in range(4)] + [cand(9, "other", 0.1)]
+    picked = _mmr(mixed, 3, 0.0)
+    assert [c["video"].channel_id for c in picked].count(
+        "show"
+    ) == MAX_PER_CHANNEL  # cap holds when there is a choice
+    assert not any(c.get("channel_cap_relaxed") for c in picked)

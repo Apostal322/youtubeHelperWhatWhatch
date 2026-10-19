@@ -179,7 +179,11 @@ def recommend(
     limit: int = 20,
     ranker: Ranker = DEFAULT_RANKER,
     log_impressions: bool = True,
+    trace: dict[str, str] | None = None,
 ) -> dict[str, Any]:
+    """``trace``, when given, receives the fate of every retrieved candidate (``selected``,
+    ``selected_exploration``, ``ineligible:<reason>``, ``below_relevance_floor``,
+    ``channel_cap``, ``not_selected``). Candidates absent from it were never retrieved."""
     prof = build_profile(session, user_id, embedder)
     filters = SearchFilters(
         languages=prof.languages or None,
@@ -242,24 +246,26 @@ def recommend(
     # Eligibility is explicit: every candidate that is dropped is counted under a reason.
     ineligible: dict[str, int] = {}
 
-    def drop(reason: str) -> None:
+    def drop(reason: str, vid: str) -> None:
         ineligible[reason] = ineligible.get(reason, 0) + 1
+        if trace is not None:
+            trace[vid] = f"ineligible:{reason}"
 
     for vid, (sim, matched_interest) in relevance.items():
         v, ev = videos.get(vid), evals.get(vid)
         if v is None or ev is None:
-            drop("no_current_evaluation")
+            drop("no_current_evaluation", vid)
             continue
         state = assessment_state(ev)[0]
         if state in UNUSABLE_STATES:
-            drop(f"assessment_{state}")
+            drop(f"assessment_{state}", vid)
             continue
         pq = personal_quality(ev, prof.dimension_weights)
         if pq is not None and pq < prof.min_quality:
-            drop("below_min_quality")
+            drop("below_min_quality", vid)
             continue
         if pq is None and prof.min_quality > 0:
-            drop("no_quality_estimate_with_min_quality_set")
+            drop("no_quality_estimate_with_min_quality_set", vid)
             continue
         depth = _dim(ev, "depth")
         target = DEPTH_TARGET.get(prof.depth_preference)
@@ -314,6 +320,21 @@ def recommend(
         selected += _mmr(explore, min(quota, limit - len(selected)), prof.diversity, already=selected)
     else:
         selected = _mmr(scored, limit, prof.diversity)
+    if trace is not None:
+        chosen = {id(c) for c in selected}
+        per_channel: dict[str, int] = {}
+        for c in selected:
+            per_channel[c["video"].channel_id] = per_channel.get(c["video"].channel_id, 0) + 1
+        for c in scored:
+            vid = c["video"].id
+            if id(c) in chosen:
+                trace[vid] = "selected_exploration" if c.get("exploration") else "selected"
+            elif prof.interests and c["features"]["relevance"] <= 0:
+                trace[vid] = "below_relevance_floor"
+            elif per_channel.get(c["video"].channel_id, 0) >= MAX_PER_CHANNEL:
+                trace[vid] = "channel_cap"
+            else:
+                trace[vid] = "not_selected"
     request_id = str(uuid.uuid4())
     items = []
     for pos, c in enumerate(selected):
@@ -375,8 +396,13 @@ def recommend(
 def _mmr(
     cands: list[dict[str, Any]], k: int, diversity: float, already: list[dict[str, Any]] | None = None
 ) -> list[dict[str, Any]]:
-    """Maximal Marginal Relevance over embeddings + a per-channel cap. ``already`` holds items
-    selected in an earlier pass (they count for diversity and the channel cap)."""
+    """Maximal Marginal Relevance over embeddings + a soft per-channel cap. ``already`` holds items
+    selected in an earlier pass (they count for diversity and the channel cap).
+
+    The cap spreads slots across creators while there is a choice. When every remaining candidate
+    comes from a channel already at the cap, the best of them is still taken (and marked
+    ``channel_cap_relaxed``): leaving a slot empty, or filling it with something off-topic, would
+    hide relevant videos only because one creator covers the topic."""
     lam = 1.0 - max(0.0, min(1.0, diversity))
     pool = sorted(cands, key=lambda c: -c["rank"])
     if not pool or k <= 0:
@@ -389,8 +415,9 @@ def _mmr(
         per_channel[c["video"].channel_id] = per_channel.get(c["video"].channel_id, 0) + 1
     while pool and len(selected) < k:
         best, best_val, best_pen = None, -1e9, 0.0
+        capped_only = all(per_channel.get(c["video"].channel_id, 0) >= MAX_PER_CHANNEL for c in pool)
         for c in pool:
-            if per_channel.get(c["video"].channel_id, 0) >= MAX_PER_CHANNEL:
+            if not capped_only and per_channel.get(c["video"].channel_id, 0) >= MAX_PER_CHANNEL:
                 continue
             pen = 0.0
             emb = c["video"].embedding
@@ -406,6 +433,8 @@ def _mmr(
         if best is None:
             break
         best["mmr_penalty"] = round(best_pen * (1 - lam), 4)
+        if capped_only:
+            best["channel_cap_relaxed"] = True
         selected.append(best)
         pool.remove(best)
         per_channel[best["video"].channel_id] = per_channel.get(best["video"].channel_id, 0) + 1
@@ -419,6 +448,8 @@ def _explain(c: dict[str, Any], prof: UserProfile) -> list[str]:
     ev: Evaluation = c["evaluation"]
     if c.get("exploration"):
         out.append("Exploration pick: outside your stated interests, included to broaden results.")
+    if c.get("channel_cap_relaxed"):
+        out.append("More from a channel already shown: no other matching creator is left for this slot.")
     elif c["interest"]:
         out.append(f"Matches your interest “{c['interest']}”.")
     best = sorted(

@@ -805,6 +805,11 @@ def main(argv: list[str] | None = None) -> None:
     add_throughput_parser(sub)
     add_evaluate_real_parser(sub)
     add_diagnostic_parser(sub)
+    from avd.bench.recs_real import add_stages_parser
+    from avd.bench.relevance import add_parser as add_relevance_parser
+
+    add_stages_parser(sub)
+    add_relevance_parser(sub)
     from avd.bench.local import add_parser as add_bench_local_parser
     from avd.llm.local import add_parser as add_local_parser
 

@@ -1,0 +1,10 @@
+{"query_id": "q01", "text": "how to write concurrent programs in Go", "language": "en", "audience": "developers", "depth": "intermediate"}
+{"query_id": "q02", "text": "testing and error handling practices in Go services", "language": "en", "audience": "developers", "depth": "advanced"}
+{"query_id": "q03", "text": "putting machine learning models into production", "language": "en", "audience": "practitioners", "depth": "intermediate"}
+{"query_id": "q04", "text": "an accessible introduction to what AI can and cannot do", "language": "en", "audience": "general", "depth": "intro"}
+{"query_id": "q05", "text": "raising money and hiring for an early-stage startup", "language": "en", "audience": "founders", "depth": "intermediate"}
+{"query_id": "q06", "text": "personal stories of building a company and burnout", "language": "en", "audience": "general", "depth": "any"}
+{"query_id": "q07", "text": "how a podcast is produced and edited behind the scenes", "language": "en", "audience": "general", "depth": "intro"}
+{"query_id": "q08", "text": "open source maintainers and community sustainability", "language": "en", "audience": "developers", "depth": "any"}
+{"query_id": "q09", "text": "data privacy and ethics of AI systems", "language": "en", "audience": "general", "depth": "intermediate"}
+{"query_id": "q10", "text": "career advice for software engineers", "language": "en", "audience": "developers", "depth": "any"}
