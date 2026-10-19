@@ -20,7 +20,7 @@ from tests.conftest import DB, _make_db
 
 # Pinned on purpose. If this fails, the selection behaviour changed: bump ALGORITHM_REVISION when
 # the code changed, describe the change in avd/recsys/policy.py, then update this value.
-EXPECTED_HASHING_DEFAULT = "two_stage_mmr_r2:1628b579786d"
+EXPECTED_HASHING_DEFAULT = "two_stage_mmr_r2:c2ec3317ea49"
 
 
 def _version(**over: Any) -> str:
@@ -42,6 +42,10 @@ def test_version_changes_with_every_selection_parameter(monkeypatch: pytest.Monk
     floor = HashingEmbedder()
     floor.relevance_floor = 0.07  # type: ignore[misc]
     assert _version(emb=floor) != base
+    # the document recipe of the index, with the same model
+    recipe = HashingEmbedder()
+    recipe.preprocessing = "another_recipe_v1"  # type: ignore[misc]
+    assert _version(emb=recipe) != base
     for name, value in (
         ("MAX_PER_CHANNEL", 3),
         ("CHANNEL_CAP", "hard"),

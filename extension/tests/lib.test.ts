@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { ApiClient, ApiError, setApiBase, setInviteCode } from "../src/lib/api";
 import { diagnose, grantRemoteConsent, hasRemoteConsent, isLocalBase, validateBackendUrl } from "../src/lib/backend";
-import { badgeText, band, duration, fmtScore, modelLabel, timestamp } from "../src/lib/format";
+import { badgeText, band, duration, fmtScore, modelLabel, timeLink, timestamp } from "../src/lib/format";
 import { parseVideoId } from "../src/lib/youtube";
 
 describe("parseVideoId", () => {
@@ -35,6 +35,10 @@ describe("format", () => {
     expect(duration(742)).toBe("12:22");
     expect(duration(3725)).toBe("1h 2m");
     expect(timestamp(65.9)).toBe("1:05");
+    expect(timeLink("https://www.youtube.com/watch?v=abc", 65.9)).toBe("https://www.youtube.com/watch?v=abc&t=65s");
+    // A podcast episode page has no time parameter: no broken "page&t=" link.
+    expect(timeLink("https://changelog.com/backstage/21", 65.9)).toBeNull();
+    expect(timeLink(null, 3)).toBeNull();
   });
   it("badge text distinguishes unevaluated and partial", () => {
     expect(badgeText(null, false)).toBe("");

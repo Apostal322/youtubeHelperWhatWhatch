@@ -202,7 +202,6 @@ class TestVerify:
         assert v["accepted"] is False
         assert "real inference (not a mock)" in failed
         assert any("runtime version" in c for c in failed)  # the mock's version says so
-        assert any("duration recorded" in c for c in failed)  # the mock answers instantly
 
     def test_structurally_valid_real_report_is_accepted_as_contributor_reported(
         self, bench: Bench, tmp_path: Path

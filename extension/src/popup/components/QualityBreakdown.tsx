@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { api } from "../../lib/api";
-import { STATUS_LABEL, VERDICT_LABEL, fmtScore, humanize, pct, plainSummary, timestamp } from "../../lib/format";
+import { STATUS_LABEL, VERDICT_LABEL, fmtScore, humanize, pct, plainSummary, timeLink, timestamp } from "../../lib/format";
 import type { Claim, DimensionResult, Evaluation } from "../../lib/types";
 import { AssessmentBadge, ErrorBox, ModeBanner, ScoreBar, SourceLine, Spinner } from "./common";
 
@@ -83,8 +83,8 @@ function DimensionRow({ d, videoUrl }: { d: DimensionResult; videoUrl: string | 
                 <li key={i} className={e.kind === "counter" ? "evidence-counter" : undefined}>
                   {e.kind === "counter" ? <span className="tag">counter-evidence</span> : null}
                   {e.start_seconds !== null ? (
-                    videoUrl ? (
-                      <a href={`${videoUrl}&t=${Math.floor(e.start_seconds)}s`} target="_blank" rel="noreferrer">
+                    timeLink(videoUrl, e.start_seconds) ? (
+                      <a href={timeLink(videoUrl, e.start_seconds) ?? undefined} target="_blank" rel="noreferrer">
                         {timestamp(e.start_seconds)}
                       </a>
                     ) : (
@@ -95,6 +95,12 @@ function DimensionRow({ d, videoUrl }: { d: DimensionResult; videoUrl: string | 
                 </li>
               ))}
             </ul>
+          ) : null}
+          {d.evidence.length > 0 && d.method.startsWith("llm") ? (
+            <div className="muted small">
+              Quotes are checked to exist at the cited place in the transcript. Whether they support the score is not
+              checked automatically.
+            </div>
           ) : null}
           {d.missing_inputs.length > 0 ? (
             <div className="muted small">Missing inputs: {d.missing_inputs.join(", ")}</div>

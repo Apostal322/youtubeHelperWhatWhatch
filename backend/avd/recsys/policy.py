@@ -52,6 +52,9 @@ def policy_config(ranker: Ranker, embedder: Embedder) -> dict[str, Any]:
             "per_interest": RETRIEVAL_PER_INTEREST,
             "quality_candidates": QUALITY_CANDIDATES,
             "embedder": embedder.model_id,
+            # The document recipe decides what each video's vector represents, and so which
+            # candidates are retrieved, even with the same model.
+            "document_recipe": embedder.preprocessing,
         },
         "relevance_threshold": {
             "floor": embedder.relevance_floor,

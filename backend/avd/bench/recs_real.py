@@ -498,6 +498,18 @@ def stage_analysis(
                     explore = {it["video"]["id"] for it in res["items"] if it["ranking"]["exploration"]}
                     topical = [v for v in ranked if v not in explore]
                     fates = Counter(trace.get(v, "not_retrieved") for v in relevant)
+                    # Every candidate in the split, with the reason it was or was not shown.
+                    candidates = [
+                        {
+                            "video_id": v,
+                            "proxy_relevant": v in relevant,
+                            "similarity": round(sims.get(v, float("nan")), 4),
+                            "calibrated_relevance": round(calibrated_relevance(emb, sims.get(v, -1.0)), 4),
+                            "fate": trace.get(v, "not_retrieved"),
+                            "position": ranked.index(v) if v in ranked else None,
+                        }
+                        for v in sorted(items, key=lambda v: -sims.get(v, -1.0))
+                    ]
                     row["full"][str(div)] = {
                         **_rank_metrics(ranked, relevant, k),
                         "returned": len(ranked),
@@ -509,6 +521,8 @@ def stage_analysis(
                         else None,
                         "relevant_fates": dict(fates),
                         "latency_ms": round(latency, 1),
+                        "selection_policy_version": res["selection_policy_version"],
+                        "candidates": candidates,
                     }
                 per_persona.append(row)
             s.rollback()
@@ -541,6 +555,7 @@ def stage_analysis(
                     "exploration_slots": mean(["full", str(d), "exploration_slots"]),
                     "relevant_fates": dict(fates_total[str(d)]),
                     "latency_ms_mean": mean(["full", str(d), "latency_ms"]),
+                    "selection_policy_version": per_persona[0]["full"][str(d)]["selection_policy_version"],
                 }
                 for d in diversities
             },
@@ -611,6 +626,27 @@ def render_stages(r: dict[str, Any]) -> str:
             fates = ", ".join(f"{a} {b}" for a, b in sorted(f["relevant_fates"].items()))
             lines.append(
                 f"| {name} | {f[f'recall@{k}']} | {f[f'precision@{k}']} | {f['mrr']} | {f[f'ndcg@{k}']} | {f['returned']} | {f['exploration_slots']} | {fates} |"
+            )
+        policies = sorted({x["full"][d].get("selection_policy_version", "?") for x in r["results"].values()})
+        lines += ["", f"Selection policies: {', '.join(f'`{p}`' for p in policies)}."]
+    # Per-candidate trace for one embedder at the default diversity (all of them are in the JSON).
+    name = "minilm_chunks" if "minilm_chunks" in r["results"] else next(iter(r["results"]))
+    d = "0.3" if "0.3" in r["results"][name]["full"] else next(iter(r["results"][name]["full"]))
+    lines += [
+        "",
+        f"## Why each candidate was shown or not ({name}, diversity {d})",
+        "",
+        "Ordered by similarity. `proxy` = from the persona's show (the proxy label, not a human judgement).",
+        "",
+        "| persona | item | proxy | similarity | calibrated | fate | position |",
+        "|---|---|:-:|---:|---:|---|---:|",
+    ]
+    for persona in r["results"][name]["personas"]:
+        for c in persona["full"][d].get("candidates", []):
+            pos = "" if c["position"] is None else c["position"] + 1
+            lines.append(
+                f"| {persona['persona']} | {c['video_id']} | {'yes' if c['proxy_relevant'] else ''} | "
+                f"{c['similarity']} | {c['calibrated_relevance']} | {c['fate']} | {pos} |"
             )
     lines.append("")
     return "\n".join(lines)
