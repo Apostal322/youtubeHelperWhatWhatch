@@ -12,7 +12,7 @@ from enum import StrEnum
 from functools import lru_cache
 from pathlib import Path
 
-from pydantic import Field, SecretStr
+from pydantic import Field, SecretStr, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -37,6 +37,8 @@ class LLMProviderName(StrEnum):
     HEURISTIC = "heuristic"
     ANTHROPIC = "anthropic"
     OPENAI_COMPATIBLE = "openai_compatible"
+    # Local open-weight models served by Ollama on this machine (native API, $0, no cloud).
+    OLLAMA = "ollama"
 
 
 class TaskBackend(StrEnum):
@@ -48,6 +50,12 @@ class EmbeddingProviderName(StrEnum):
     HASHING = "hashing"
     SENTENCE_TRANSFORMERS = "sentence_transformers"
     ONNX_MINILM = "onnx_minilm"  # all-MiniLM-L6-v2 on ONNX Runtime; 'avd embeddings fetch-model'
+
+
+# Tokens (at 3 chars/token) reserved in a local context window for everything except the
+# transcript: system prompt, metadata, genre guidance and rubric text (measured at ~7.4k chars
+# plus up to 2k chars of description: ~3.1k tokens, plus chat-template tokens).
+LOCAL_PROMPT_OVERHEAD_TOKENS = 3_500
 
 
 class Settings(BaseSettings):
@@ -90,6 +98,23 @@ class Settings(BaseSettings):
     anthropic_refusal_fallback: bool = True
     openai_api_key: SecretStr | None = None
     openai_base_url: str = "https://api.openai.com/v1"
+    # --- Local inference (Ollama) -----------------------------------------------------------
+    # Native API root (a trailing /v1 is accepted and stripped). Must be loopback/private unless
+    # ollama_allow_remote: transcripts never leave hosts you control.
+    ollama_base_url: str = "http://localhost:11434"
+    ollama_model: str = "qwen3.5:4b"  # pick with `avd local doctor`; tag is recorded with its digest
+    ollama_num_ctx: int = 16_384  # context window requested per call (KV cache grows with it)
+    ollama_keep_alive: str = "10m"  # how long the model stays resident after the last request
+    ollama_think: bool = False  # reasoning traces off by default: slower, and not needed for JSON
+    ollama_allow_remote: bool = False
+    ollama_seed: int = 0  # sampling seed (+ sample index); benchmarks vary it across repeats
+    # One model instance serves requests serially unless OLLAMA_NUM_PARALLEL is raised; more
+    # in-flight requests only queue (and multiply KV-cache memory when parallel slots exist).
+    ollama_max_concurrency: int = 1
+    # Output tokens reserved inside num_ctx for each answer; prompts are sized to fit the rest.
+    # Default: a quarter of the window, between 1536 and 4096 (a 10-dimension rubric answer is
+    # ~1.5-2k tokens; a longer one fails as "cut off", never as a result).
+    ollama_output_reserve_tokens: int | None = None
     # Optional per-model price overrides "model=in_per_mtok:out_per_mtok,..." for cost tracking.
     llm_price_overrides: str = ""
 
@@ -138,6 +163,36 @@ class Settings(BaseSettings):
     dataset_cache_dir: Path = REPO_ROOT / "backend" / ".dataset_cache"
     # Directory of licensed reference documents enabling Stage-C retrieval fact checking.
     reference_corpus_dir: Path | None = None
+
+    @model_validator(mode="after")
+    def _local_model_defaults(self) -> Settings:
+        """With ``llm_provider=ollama``: use ``ollama_model`` for any stage model left at its cloud
+        default, and size prompts and outputs to fit the local context window, so long
+        transcripts are chunked rather than truncated. Explicit settings are kept, but are
+        clamped to what the window can hold."""
+        if self.llm_provider != LLMProviderName.OLLAMA:
+            return self
+        explicit = self.model_fields_set
+        for f in ("llm_model_stage_b", "llm_model_stage_c"):
+            if f not in explicit:
+                setattr(self, f, self.ollama_model)
+        if "llm_max_concurrency" not in explicit:
+            self.llm_max_concurrency = self.ollama_max_concurrency
+        if self.ollama_output_reserve_tokens is None:
+            self.ollama_output_reserve_tokens = min(4096, max(1536, self.ollama_num_ctx // 4))
+        self.llm_max_output_tokens = min(self.llm_max_output_tokens, self.ollama_output_reserve_tokens)
+        # Pipeline estimates use 4 chars/token, the provider's pre-flight check 3: convert, and keep
+        # room for the system prompt, metadata and rubric.
+        room = self.ollama_num_ctx - self.ollama_output_reserve_tokens - LOCAL_PROMPT_OVERHEAD_TOKENS
+        if room < 1024:
+            raise ValueError(
+                f"ollama_num_ctx={self.ollama_num_ctx} leaves {room} tokens for transcript text; "
+                "raise the context window or lower ollama_output_reserve_tokens"
+            )
+        fit = room * 3 // 4
+        self.llm_single_pass_max_tokens = min(self.llm_single_pass_max_tokens, fit)
+        self.llm_chunk_target_tokens = min(self.llm_chunk_target_tokens, fit)
+        return self
 
     @property
     def demo_mode(self) -> bool:

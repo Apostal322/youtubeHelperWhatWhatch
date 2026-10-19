@@ -71,12 +71,16 @@ STRICT_ABSTAIN = (
     'on knowledge of visuals, audio or the speaker\'s reputation, set "assessable": false.\n'
 )
 
+LOCAL_MODELS_WILDCARD = "ollama:*"
 STRUCTURED_OUTPUT_MODELS = (
     "claude-opus-5-5",
     "claude-sonnet-5-5",
     "claude-haiku-5-5",
     "claude-fable-5-1",
     "claude-opus-5",
+    # Any local Ollama model: the native API constrains decoding to the JSON schema. Compatible
+    # means "the output contract is enforced", not "quality verified"; see docs/local-ai.md.
+    LOCAL_MODELS_WILDCARD,
 )
 
 
@@ -99,6 +103,11 @@ class PromptSpec:
     status: str = "experimental"  # default | experimental | retired
     change_from_base: str = ""
     live_runs: tuple[str, ...] = field(default=())  # run ids of live experiments that used it
+
+    def compatible_with(self, model: str, *, local: bool = False) -> bool:
+        return model in self.model_compatibility or (
+            local and LOCAL_MODELS_WILDCARD in self.model_compatibility
+        )
 
     @property
     def key(self) -> str:

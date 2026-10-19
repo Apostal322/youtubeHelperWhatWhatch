@@ -54,6 +54,8 @@ class LLMResponse:
     request_id: str | None = None
     attempts: int = 1
     latency_ms: int | None = None
+    # Local runtime measurements (load time, tokens/s, context size); None for hosted APIs.
+    runtime: dict[str, Any] | None = None
 
 
 class LLMError(RuntimeError):

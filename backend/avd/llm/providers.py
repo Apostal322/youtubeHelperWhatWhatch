@@ -512,6 +512,21 @@ def build_llm_provider(
     elif settings.llm_provider == LLMProviderName.OPENAI_COMPATIBLE:
         key = settings.openai_api_key.get_secret_value() if settings.openai_api_key else None
         inner = OpenAICompatibleProvider(settings.openai_base_url, key, timeout=settings.llm_timeout_seconds)
+    elif settings.llm_provider == LLMProviderName.OLLAMA:
+        from avd.llm.ollama import OllamaProvider
+        from avd.llm.pricing import register_local_model
+
+        for m in (settings.llm_model_stage_b, settings.llm_model_stage_c):
+            register_local_model(m)
+        inner = OllamaProvider(
+            settings.ollama_base_url,
+            num_ctx=settings.ollama_num_ctx,
+            keep_alive=settings.ollama_keep_alive,
+            think=settings.ollama_think,
+            allow_remote=settings.ollama_allow_remote,
+            timeout=settings.llm_timeout_seconds,
+            seed=settings.ollama_seed,
+        )
     else:  # pragma: no cover
         raise LLMConfigurationError(f"unknown provider {settings.llm_provider}")
     if run_budget is not None:  # innermost: every attempt, including retries, is checked

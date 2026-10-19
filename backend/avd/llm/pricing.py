@@ -38,7 +38,24 @@ def _overrides() -> dict[str, tuple[float, float]]:
     return out
 
 
+# Models served on this machine (Ollama). Their marginal cost is $0: tokens are still recorded,
+# and electricity/hardware are reported as durations, not dollars. Registered by the provider
+# factory and the local runners; served models carry an ``ollama:`` prefix.
+LOCAL_PREFIX = "ollama:"
+_LOCAL_MODELS: set[str] = set()
+
+
+def register_local_model(model: str) -> None:
+    _LOCAL_MODELS.add(model)
+
+
+def is_local_model(model: str) -> bool:
+    return model.startswith(LOCAL_PREFIX) or model in _LOCAL_MODELS
+
+
 def price_for(model: str) -> tuple[float, float]:
+    if is_local_model(model):
+        return (0.0, 0.0)
     return _overrides().get(model) or DEFAULT_PRICES.get(model) or UNKNOWN_MODEL_PRICE
 
 
