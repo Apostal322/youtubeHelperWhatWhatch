@@ -116,6 +116,24 @@ describe("ApiClient", () => {
     expect(registrations).toBe(1);
   });
 
+  it("re-registers once and retries when the server no longer knows the token", async () => {
+    window.localStorage.setItem("avd.token", JSON.stringify("stale"));
+    const seen: string[] = [];
+    const fetchMock = vi.fn(async (url: string | URL | Request, init?: RequestInit) => {
+      const auth = (init?.headers as Record<string, string>)?.Authorization ?? "";
+      seen.push(`${String(url).replace("http://backend.test", "")} ${auth}`);
+      if (String(url).endsWith("/v1/users")) return jsonResponse(201, { user_id: "u2", token: "fresh" });
+      return auth === "Bearer fresh" ? jsonResponse(200, { interests: ["x"] }) : jsonResponse(401, { detail: "invalid token" });
+    });
+    const prefs = await new ApiClient(fetchMock as unknown as typeof fetch).preferences();
+    expect(prefs).toEqual({ interests: ["x"] });
+    expect(seen).toEqual([
+      "/v1/users/me/preferences Bearer stale",
+      "/v1/users ",
+      "/v1/users/me/preferences Bearer fresh",
+    ]);
+  });
+
   it("surfaces API errors and drops a rejected token", async () => {
     window.localStorage.setItem("avd.token", JSON.stringify("stale"));
     const fetchMock = vi.fn(async () => jsonResponse(401, { detail: "invalid token" }));

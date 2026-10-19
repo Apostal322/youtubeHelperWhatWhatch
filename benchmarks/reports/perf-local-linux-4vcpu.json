@@ -1,0 +1,46 @@
+{
+  "host": {
+    "os": "Linux-6.18.44-fc-v139-x86_64-with-glibc2.39",
+    "cpus": 4,
+    "python": "3.13.16"
+  },
+  "evaluator": "heuristic baseline (no model)",
+  "note": "rate-limit buckets raised to 10000 for the latency loop; limiter still active",
+  "cold_start_s": 1.86,
+  "demo_queue_drain_s_20_items": 0.66,
+  "pilot_import_s_29_items": 1.41,
+  "pilot_queue_drain_s_29_items": 5.23,
+  "idle": {
+    "rss_mb": 118.0,
+    "cpu_percent_10s": 0.2
+  },
+  "search_ms": {
+    "p50": 23.7,
+    "p95": 30.1,
+    "n": 50
+  },
+  "recommendations_ms": {
+    "p50": 53.5,
+    "p95": 129.0,
+    "n": 50
+  },
+  "video_evaluation_ms": {
+    "p50": 6.7,
+    "p95": 10.0,
+    "n": 50
+  },
+  "rss_after_requests_mb": 123.0,
+  "export": {
+    "s": 1.13,
+    "out": "/tmp/avd-perf-kowvg5k2/export.json",
+    "evaluations": 20,
+    "with_quotes": 0,
+    "file_sha256": "ad3eb6fd05b9849ab186584d6880817f24d5c7a706b904c35cc515968d474860",
+    "kib": 197.7
+  },
+  "import_s": 0.92,
+  "shutdown_s": 0.52,
+  "database_mb": 3.68,
+  "warm_start_s": 1.24,
+  "warm_shutdown_s": 0.47
+}
