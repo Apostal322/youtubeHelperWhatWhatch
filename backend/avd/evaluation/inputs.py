@@ -57,6 +57,9 @@ class EvaluationInput(BaseModel):
     sanitized_spans: int = 0
     # False when the title is a placeholder (e.g. "Show #12" derived from a file path).
     title_is_original: bool = True
+    # Publication date (ISO), used to judge claims as of their time. Immutable per video, so it is
+    # not part of the fingerprint.
+    published_at: str | None = None
 
     def fingerprint(self) -> str:
         payload = {
@@ -105,4 +108,5 @@ def build_evaluation_input(video: Video, bundle: ContentBundle, genre: GenreAsse
         modalities=frozenset(bundle.modalities),
         content_source_ids=tuple(s.id for s in bundle.sources),
         title_is_original=video.title_source in (None, "platform", "creator_file_slug"),
+        published_at=video.published_at.date().isoformat() if video.published_at else None,
     )

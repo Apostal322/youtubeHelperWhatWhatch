@@ -141,6 +141,7 @@ export type ClaimVerdict =
   | "supported"
   | "contradicted"
   | "mixed"
+  | "outdated"
   | "unverifiable"
   | "insufficient_evidence"
   | "not_applicable"

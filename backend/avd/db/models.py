@@ -555,7 +555,7 @@ class FactualClaim(Base):
     segment_index: Mapped[int | None] = mapped_column(Integer, nullable=True)
     quote: Mapped[str | None] = mapped_column(Text, nullable=True)
     claim: Mapped[str] = mapped_column(Text)
-    # factual_assertion | opinion | prediction | satire | fiction | personal_experience
+    # factual_assertion | opinion | prediction | hypothesis | satire | fiction | personal_experience
     claim_type: Mapped[str] = mapped_column(String(32))
     # supported | contradicted | mixed | unverifiable | insufficient_evidence | not_applicable | unchecked
     verdict: Mapped[str] = mapped_column(String(24), default="unchecked")

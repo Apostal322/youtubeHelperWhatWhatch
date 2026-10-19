@@ -154,7 +154,8 @@ def evaluation_history(video_id: str, session: Session = Depends(db)) -> dict[st
 @router.get("/videos/{video_id}/claims")
 def claims(video_id: str, session: Session = Depends(db)) -> dict[str, Any]:
     """Claims from the video's current evaluation(s). ``verdict`` is one of supported,
-    contradicted, mixed, unverifiable, insufficient_evidence, not_applicable, or ``unchecked``
+    contradicted, mixed, outdated (accurate when published, since changed), unverifiable,
+    insufficient_evidence, not_applicable, or ``unchecked``
     (extracted but not verified against references). Verdicts come only from licensed reference
     passages, never from model knowledge."""
     _refuse_if_blinded(session, video_id)

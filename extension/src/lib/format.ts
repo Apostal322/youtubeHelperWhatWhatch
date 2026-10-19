@@ -87,6 +87,7 @@ export const VERDICT_LABEL: Record<ClaimVerdict, string> = {
   supported: "Supported",
   contradicted: "Contradicted",
   mixed: "Partly contradicted",
+  outdated: "Accurate when published, since changed",
   unverifiable: "Not in reference sources",
   insufficient_evidence: "Undecided",
   not_applicable: "Not a factual claim",
