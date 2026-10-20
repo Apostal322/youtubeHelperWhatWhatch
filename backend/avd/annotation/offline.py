@@ -53,12 +53,21 @@ RETURN_FORMAT = "avd-annotation-return"
 FORMAT_VERSION = "1.0"
 FLAGS = ("ambiguous_rubric", "insufficient_material", "transcript_problem", "sensitive_content")
 RELEVANCE_GRADES = (0, 1, 2)
+# docs/templates/rating-consent.txt carries this line until the project owner approves the text.
+CONSENT_DRAFT_MARKER = "DRAFT FOR PROJECT-OWNER APPROVAL"
 
 
 def _relevance_queries() -> list[dict[str, str]]:
     from avd.bench.relevance import load_queries
 
     return [{"query_id": q.query_id, "text": q.text} for q in load_queries()]
+
+
+def _words(session: Session, video_id: str) -> int:
+    from avd.content.store import load_bundle
+
+    transcript = load_bundle(session, video_id).transcript
+    return transcript.word_count if transcript is not None else 0
 
 
 def _open_counts(session: Session, dataset_id: str) -> dict[str, int]:
@@ -90,6 +99,11 @@ def issue_packet(
     project owner) is shown in the packet; ratings are accepted only with agreement to it."""
     if not consent_text.strip():
         raise AnnotationError("a consent text is required (approved by the project owner)")
+    if CONSENT_DRAFT_MARKER in consent_text:
+        raise AnnotationError(
+            "the consent text is still marked as a draft; once the project owner approves it, delete the "
+            f"line containing {CONSENT_DRAFT_MARKER!r} and issue the packets again"
+        )
     if session.get(Dataset, dataset_id) is None:
         raise AnnotationError(f"unknown dataset {dataset_id}")
     if rater.status == "suspended":
@@ -109,8 +123,10 @@ def issue_packet(
             for i in _items(session, dataset_id, ("calibration",))
             if i.video_id not in touched and _available(session, i.video_id)
         ]
-        pending.sort(key=lambda i: _order_key(rater.id, i.video_id))
-        anns = [_start(session, rater, dataset_id, i.video_id, is_repeat=False) for i in pending]
+        # Shortest first, and at most ``max_items``: a one-episode packet is the lightest honest
+        # start for a volunteer (still a full-episode judgement). The rest follow in later packets.
+        pending.sort(key=lambda i: (_words(session, i.video_id), i.video_id))
+        anns = [_start(session, rater, dataset_id, i.video_id, is_repeat=False) for i in pending[:max_items]]
         if not anns and any(a.status == "in_progress" for a in mine):
             raise AnnotationError("return the calibration packet first")
     if not anns:
@@ -195,6 +211,8 @@ def render_packet(
 def import_return(session: Session, data: dict[str, Any]) -> dict[str, Any]:
     """Validate and record a returned ratings file. Each item is accepted or rejected on its
     own; rejected items stay assigned, so the rater can correct them and send the file again."""
+    if not isinstance(data, dict) or not isinstance(data.get("results", []), list):
+        raise AnnotationError("malformed ratings file (expected an object with a list of results)")
     if data.get("format") != RETURN_FORMAT or not str(data.get("format_version", "")).startswith("1."):
         raise AnnotationError("not an annotation return file")
     packet = session.get(AnnotationPacket, str(data.get("packet_id")))
@@ -204,7 +222,8 @@ def import_return(session: Session, data: dict[str, Any]) -> dict[str, Any]:
         raise AnnotationError("the packet secret does not match")
     if packet.status == "released":
         raise AnnotationError("this packet was released; its items were reassigned")
-    consent = data.get("consent") or {}
+    raw_consent = data.get("consent")
+    consent: dict[str, Any] = raw_consent if isinstance(raw_consent, dict) else {}
     if consent.get("agreed") is not True or consent.get("text_sha256") != packet.consent_sha256:
         raise AnnotationError("the rater has not agreed to this packet's consent text; nothing was recorded")
     rater = session.get(Rater, packet.rater_id)
@@ -213,6 +232,9 @@ def import_return(session: Session, data: dict[str, Any]) -> dict[str, Any]:
     accepted, rejected, already = [], [], []
     relevance_added = 0
     for res in data.get("results") or []:
+        if not isinstance(res, dict):
+            rejected.append({"annotation_id": None, "reason": "malformed result (not an object)"})
+            continue
         ann_id = str(res.get("annotation_id"))
         if ann_id not in packet.annotation_ids:
             rejected.append({"annotation_id": ann_id, "reason": "not part of this packet"})
@@ -224,6 +246,12 @@ def import_return(session: Session, data: dict[str, Any]) -> dict[str, Any]:
         if ann.status != "in_progress":
             already.append(ann_id)
             continue
+        raw_scores = res.get("scores")
+        if not isinstance(raw_scores, list) or not all(isinstance(x, dict) for x in raw_scores):
+            rejected.append(
+                {"annotation_id": ann_id, "reason": "malformed scores (expected a list of objects)"}
+            )
+            continue
         try:
             with session.begin_nested():
                 scores = [
@@ -232,7 +260,7 @@ def import_return(session: Session, data: dict[str, Any]) -> dict[str, Any]:
                         status=str(s.get("status")),
                         score=s.get("score"),
                         confidence=s.get("confidence"),
-                        evidence=list(s.get("evidence") or []),
+                        evidence=_evidence_list(s.get("evidence")),
                         note=s.get("note"),
                     )
                     for s in res.get("scores") or []
@@ -287,6 +315,14 @@ def import_return(session: Session, data: dict[str, Any]) -> dict[str, Any]:
     }
 
 
+def _evidence_list(value: Any) -> list[dict[str, Any]]:
+    if value is None:
+        return []
+    if not isinstance(value, list) or not all(isinstance(e, dict) for e in value):
+        raise AnnotationError("malformed evidence (expected a list of objects)")
+    return value
+
+
 def _record_relevance(session: Session, rater: Rater, ann: Annotation, rows: list[dict[str, Any]]) -> int:
     """Store graded relevance for a development item. Unknown queries or grades reject the item;
     a judgment that already exists (e.g. from a blind repeat) is kept, not overwritten."""
@@ -294,6 +330,8 @@ def _record_relevance(session: Session, rater: Rater, ann: Annotation, rows: lis
         return 0
     if _split(session, ann.dataset_id, ann.video_id) != "dev":
         raise AnnotationError("relevance judgments are collected for development items only")
+    if not isinstance(rows, list) or not all(isinstance(r, dict) for r in rows):
+        raise AnnotationError("malformed relevance judgments (expected a list of objects)")
     known = {q["query_id"] for q in _relevance_queries()}
     added = 0
     for row in rows:

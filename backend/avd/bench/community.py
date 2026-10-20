@@ -53,7 +53,12 @@ MAX_ENTRIES = 500
 SHINGLE = 8  # words; a shared 8-word run is treated as copied transcript text
 # Files that may leave a contributor's machine. Everything else (run.db, items/, media/, caches)
 # stays.
-ALLOWED = re.compile(r"^(report\.json|report\.md|runs/[\w.\-]+/(summary\.json|plan\.json|report\.md))$")
+ALLOWED = re.compile(
+    r"^(report\.json|report\.md|runs/[\w.\-]+/(summary\.json|plan\.json|report\.md|review\.json))$"
+)
+# A review file may quote transcripts whose publisher permits public quotation, as evidence for
+# specific scores; never wholesale. 1,000 matching 8-word runs is about a tenth of a pilot episode.
+MAX_REVIEW_QUOTED_RUNS = 1000
 DIGEST = re.compile(r"@[0-9a-f]{12}:")
 TEXT_KEYS = {
     "quote",
@@ -161,10 +166,40 @@ def _has_text(value: Any) -> bool:
     return isinstance(value, list) and any(_has_text(v) or isinstance(v, dict) for v in value)
 
 
+def _scan_review(name: str, doc: dict[str, Any], text: str, shingles: set[int] | None) -> list[str]:
+    """``review.json`` (avd.bench.run_review): quotes and justifications only where quotation is
+    permitted, and transcript text only in quote-sized amounts."""
+    findings = []
+    all_quotable = True
+    for item in doc.get("items", []) if isinstance(doc, dict) else []:
+        ev = item.get("evaluation") or {}
+        if (ev.get("rights") or {}).get("quotes_included") is True:
+            continue
+        all_quotable = False
+        quotes = [e.get("quote") for d in ev.get("dimensions", []) for e in d.get("evidence", [])]
+        if any(quotes) or any((item.get("justifications") or {}).values()):
+            findings.append(
+                f"{name}: quotes or justifications for {item.get('video_id')}, whose source does not permit quotation"
+            )
+    if shingles:
+        w = _words(text)
+        hits = sum(
+            1 for i in range(max(0, len(w) - SHINGLE + 1)) if hash(" ".join(w[i : i + SHINGLE])) in shingles
+        )
+        if hits and not all_quotable:
+            findings.append(f"{name}: contains transcript text ({hits} matching {SHINGLE}-word runs)")
+        elif hits > MAX_REVIEW_QUOTED_RUNS:
+            findings.append(
+                f"{name}: quotes too much transcript text ({hits} matching runs > {MAX_REVIEW_QUOTED_RUNS})"
+            )
+    return findings
+
+
 def scan(name: str, data: bytes, shingles: set[int] | None) -> list[str]:
     """Reasons this file must not be shared (empty when it is fine)."""
     text = data.decode("utf-8", errors="replace")
     findings: list[str] = []
+    is_review = name.endswith("/review.json")
     for label, rx in SECRETS:
         if rx.search(text):
             findings.append(f"{name}: contains a {label}")
@@ -178,9 +213,11 @@ def scan(name: str, data: bytes, shingles: set[int] | None) -> list[str]:
             doc = json.loads(text)
         except ValueError:
             return [*findings, f"{name}: not valid JSON"]
+        if is_review:
+            findings += _scan_review(name, doc, text, shingles)
         for jpath, key, value in _fields(doc):
             k = key.lower()
-            if k in TEXT_KEYS and _has_text(value):
+            if k in TEXT_KEYS and _has_text(value) and not is_review:
                 findings.append(f"{name}: has a transcript/quote field {jpath}")
             elif k in HUMAN_KEYS and value not in (None, "", [], 0, False):
                 findings.append(f"{name}: claims human labels at {jpath}; contributed runs carry none")
@@ -190,7 +227,7 @@ def scan(name: str, data: bytes, shingles: set[int] | None) -> list[str]:
                 and k in ("status", "trust", "verification")
             ):
                 findings.append(f"{name}: claims trust status {value!r} at {jpath}")
-    if shingles:
+    if shingles and not is_review:
         w = _words(text)
         hits = sum(
             1 for i in range(max(0, len(w) - SHINGLE + 1)) if hash(" ".join(w[i : i + SHINGLE])) in shingles
@@ -638,6 +675,10 @@ def smoke(
     if not window.get("calls"):
         warnings.append("no model call completed")
     plan = inspect(out, cfg.cache_dir, manifest_path)
+    from avd.bench.run_review import REVIEW_NAME, quality_control
+
+    reviews = sorted((out / "runs").glob(f"*/{REVIEW_NAME}"))
+    qc = quality_control(json.loads(reviews[0].read_text(encoding="utf-8"))) if reviews else None
     return {
         "item": {"id": item["item_id"], "words": item.get("words"), "title": item.get("title")},
         "transport": report["meta"]["transport_kind"],
@@ -666,6 +707,8 @@ def smoke(
         "output_tokens_per_second": window.get("output_tokens_per_wall_second"),
         "server_rss_peak_gb": window.get("server_rss_peak_gb"),
         "vram_peak_gb": window.get("vram_peak_gb"),
+        "quality_control": qc,
+        "review": f"avd community review {out}  (per-dimension output: statuses, justifications, cited segments)",
         "pack_dry_run_ok": plan["ok"],
         "pack_blocking_findings": plan["blocking_findings"],
         "warnings": warnings,
@@ -694,6 +737,9 @@ def add_parser(sub: Any) -> None:
     sm.add_argument("--cache-dir", default=None)
     sm.add_argument("--timeout", type=float, default=1800.0, help="seconds per model call (slow CPU: 3600)")
     sm.set_defaults(fn=_smoke_main)
+    rv = p.add_parser("review", help="what the model actually said: per-dimension output of a run or pack")
+    rv.add_argument("source", help="a bench-local/smoke directory, a pack (.zip) or a review.json")
+    rv.set_defaults(fn=_review_main)
     vf = p.add_parser("verify", help="check a contributed report or pack")
     vf.add_argument("file")
     vf.add_argument("--cache-dir")
@@ -733,6 +779,31 @@ def _smoke_main(args: Any) -> None:
     except (CommunityError, PreflightError) as exc:
         raise SystemExit(str(exc)) from exc
     print(json.dumps(out, indent=2))
+
+
+def load_reviews(source: Path) -> list[dict[str, Any]]:
+    """review.json documents from a run directory, a pack or a single file."""
+    from avd.bench.run_review import REVIEW_NAME
+
+    if source.is_dir():
+        return [json.loads(p.read_text(encoding="utf-8")) for p in sorted(source.rglob(REVIEW_NAME))]
+    if source.suffix == ".zip":
+        _, contents = _read(source)
+        return [json.loads(d) for n, d in sorted(contents.items()) if n.endswith("/" + REVIEW_NAME)]
+    return [json.loads(source.read_text(encoding="utf-8"))]
+
+
+def _review_main(args: Any) -> None:
+    from avd.bench.run_review import render_markdown
+
+    try:
+        docs = load_reviews(Path(args.source))
+    except (CommunityError, OSError, ValueError) as exc:
+        raise SystemExit(str(exc)) from exc
+    if not docs:
+        raise SystemExit("no review.json found (runs made before this version have none)")
+    for doc in docs:
+        print(render_markdown(doc))
 
 
 def _pack_main(args: Any) -> None:

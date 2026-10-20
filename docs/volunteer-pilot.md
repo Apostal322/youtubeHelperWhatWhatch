@@ -154,7 +154,8 @@ package dry run. It prints:
 * whether the result could be packed safely.
 
 Check that `transport` says `real` and `model_calls` is at least 1. A mock is labelled
-`injected` and can never be submitted. If the wall time is acceptable, continue.
+`injected` and can never be submitted. `avd community review smoke-run` shows what the model
+said for each dimension. If the wall time is acceptable, continue.
 
 ## 9. The benchmark
 

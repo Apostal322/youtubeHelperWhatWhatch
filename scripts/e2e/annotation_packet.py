@@ -72,6 +72,13 @@ def main() -> None:
         json.dumps(imported)[:120],
     )
     avd("annotate", "create-rater", "volunteer-a")
+    # The repository template is a draft awaiting owner approval; test with the approval line removed.
+    template = (ROOT / "docs" / "templates" / "rating-consent.txt").read_text(encoding="utf-8")
+    consent = tmp / "consent-approved-for-test.txt"
+    consent.write_text(
+        "\n".join(line for line in template.splitlines() if "DRAFT FOR PROJECT-OWNER APPROVAL" not in line),
+        encoding="utf-8",
+    )
     issued = json.loads(
         avd(
             "annotate",
@@ -81,7 +88,7 @@ def main() -> None:
             "--out",
             str(tmp / "packet.html"),
             "--consent-file",
-            str(ROOT / "docs" / "templates" / "rating-consent.txt"),
+            str(consent),
         )
     )
     step(
@@ -149,7 +156,7 @@ def main() -> None:
             any("consent" in m for m in alerts),
             alerts[0][:60] if alerts else "",
         )
-        step("consent text is shown", "Your choices" in page.inner_text("body"))
+        step("consent text is shown", "Pseudonymous, not anonymous" in page.inner_text("body"))
         page.locator("#consent-box").check()
         with page.expect_download() as dl:
             page.get_by_role("button", name="Download ratings file").click()

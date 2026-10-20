@@ -10,6 +10,7 @@ import json
 import re
 from collections import Counter
 from collections.abc import Iterator
+from pathlib import Path
 from typing import Any
 
 import pytest
@@ -20,7 +21,7 @@ from avd.annotation import offline
 from avd.annotation import service as svc
 from avd.datasets.importer import revoke_video_sources
 from avd.db.models import Annotation, AnnotationPacket, Rater
-from tests.conftest import DB
+from tests.conftest import DB, _make_db
 from tests.test_annotation import DS, SPLITS, full_scores, rater, seed
 
 CONSENT = "Test consent text: ratings are pseudonymous and can be withdrawn."
@@ -271,3 +272,116 @@ def test_consent_is_required_shown_and_checked(sess: Session) -> None:
     offline.import_return(sess, _return(packet, secret, res))
     ann = sess.get(Annotation, packet.annotation_ids[0])
     assert ann is not None and f"consent:{packet.consent_sha256[:12]}" in ann.flags
+
+
+class TestRobustness:
+    @pytest.mark.parametrize(
+        "mutate,expect",
+        [
+            (lambda d: d.update(results="x"), "malformed ratings file"),
+            (lambda d: d.update(results=["x"]), "malformed result"),
+            (lambda d: d["results"][0].update(scores="x"), "malformed scores"),
+            (lambda d: d["results"][0].update(scores=["x"]), "malformed scores"),
+            (lambda d: d["results"][0]["scores"][0].update(evidence="x"), "malformed evidence"),
+            (lambda d: d["results"][0].update(relevance="x"), "malformed relevance"),
+            (lambda d: d.update(consent="yes"), "has not agreed"),
+        ],
+    )
+    def test_malformed_returns_are_refused_not_crashing(
+        self, sess: Session, mutate: Any, expect: str
+    ) -> None:
+        r = rater(sess, "r1")
+        packet, secret, _ = _issue(sess, r, DS, max_items=1)
+        data = _return(packet, secret, [_result(packet.annotation_ids[0])])
+        mutate(data)
+        try:
+            out = offline.import_return(sess, data)
+        except svc.AnnotationError as exc:
+            assert expect in str(exc)
+        else:
+            assert not out["accepted"] and expect in out["rejected"][0]["reason"]
+        assert sess.get(Annotation, packet.annotation_ids[0]).status == "in_progress"  # type: ignore[union-attr]
+        with pytest.raises(svc.AnnotationError, match="malformed"):
+            offline.import_return(sess, [])  # type: ignore[arg-type]
+
+    def test_a_return_sent_to_another_coordinator_database_is_refused(
+        self, sess: Session, tmp_path: Path
+    ) -> None:
+        packet, secret, _ = _issue(sess, rater(sess, "r1"), DS, max_items=1)
+        data = _return(packet, secret, [_result(packet.annotation_ids[0])])
+        (tmp_path / "other").mkdir()
+        other = _make_db(tmp_path / "other", None)
+        with other.sf() as s2:
+            seed(s2)
+            with pytest.raises(svc.AnnotationError, match="unknown packet"):
+                offline.import_return(s2, data)
+
+    def test_missing_evidence_is_flagged_and_disagreement_reaches_adjudication(self, sess: Session) -> None:
+        returned = []
+        for name, depth in (("r1", 1), ("r2", 5), ("r3", 3)):
+            packet, secret, _ = _issue(sess, rater(sess, name), DS, max_items=3)
+            ann = next(a for a in packet.annotation_ids if sess.get(Annotation, a).video_id == "dev_1")  # type: ignore[union-attr]
+            scores = full_scores(depth=depth)
+            if name == "r3":  # scored without citing anything
+                scores = [
+                    x if x.dimension != "depth" else svc.ScoreInput("depth", "scored", 3, 0.5, [], None)
+                    for x in scores
+                ]
+            offline.import_return(sess, _return(packet, secret, [_result(ann, scores=scores)]))
+            returned.append(ann)
+        assert "missing_evidence:depth" in sess.get(Annotation, returned[2]).flags  # type: ignore[union-attr]
+        disputed = svc.disagreements(sess, DS)
+        assert any(d["video_id"] == "dev_1" and d["dimension"] == "depth" for d in disputed), disputed
+
+
+def test_calibration_can_start_with_one_episode_shortest_first(sess: Session) -> None:
+    from avd.content.models import SourceType
+    from avd.content.store import add_transcript_source
+    from avd.db.models import DatasetItem, Video
+    from tests.conftest import LECTURE, make_transcript
+
+    sess.add(
+        Video(
+            id="cal_long",
+            channel_id="lic:show",
+            title="Long practice",
+            platform="example",
+            is_synthetic=False,
+        )
+    )
+    sess.flush()
+    add_transcript_source(
+        sess,
+        video_id="cal_long",
+        transcript=make_transcript(LECTURE * 3),
+        source_type=SourceType.LICENSED_DATASET,
+        authorization_basis="test licence",
+        license="CC-BY-4.0",
+    )
+    sess.add(
+        DatasetItem(
+            dataset_id=DS,
+            video_id="cal_long",
+            split="calibration",
+            group_key="g_cal",
+            is_calibration_example=True,
+        )
+    )
+    sess.flush()
+    r = rater(sess, "r1", active=False)
+    first, secret, payloads = _issue(sess, r, DS, max_items=1)
+    assert [p["video_id"] for p in payloads] == ["cal_1"]  # the shorter practice episode
+    offline.import_return(sess, _return(first, secret, [_result(first.annotation_ids[0])]))
+    assert r.status == "onboarding"  # one practice episode is not the whole calibration
+    _, _, second = _issue(sess, r, DS, max_items=1)
+    assert [p["video_id"] for p in second] == ["cal_long"]
+
+
+def test_a_consent_text_still_marked_draft_cannot_be_issued(sess: Session) -> None:
+    template = (Path(__file__).resolve().parents[2] / "docs" / "templates" / "rating-consent.txt").read_text()
+    assert offline.CONSENT_DRAFT_MARKER in template  # the repository template awaits approval
+    with pytest.raises(svc.AnnotationError, match="still marked as a draft"):
+        offline.issue_packet(sess, rater(sess, "r1"), DS, max_items=1, consent_text=template)
+    approved = "\n".join(line for line in template.splitlines() if offline.CONSENT_DRAFT_MARKER not in line)
+    packet, _, _ = offline.issue_packet(sess, rater(sess, "r2"), DS, max_items=1, consent_text=approved)
+    assert packet.consent_sha256 == offline.consent_digest(approved)

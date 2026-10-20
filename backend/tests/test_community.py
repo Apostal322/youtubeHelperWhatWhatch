@@ -384,6 +384,9 @@ def test_smoke_runs_one_item_and_reports_the_transport(
     assert out["evidence_verified"] <= out["evidence_claimed"] and "latency_ms_p50" in out
     assert out["prompt"] and out["rubric_version"]
     assert any("mock" in w for w in out["warnings"])  # the protocol mock says it is one
+    assert (
+        out["quality_control"]["items"] == 1 and out["quality_control"]["evidence_existence"]["claimed"] > 0
+    )
     assert out["pack_dry_run_ok"], out["pack_blocking_findings"]
     plan = json.loads(next((tmp_path / "smoke" / "runs").iterdir()).joinpath("plan.json").read_text())
     assert plan["meta"]["items"] == [out["item"]["id"]]
@@ -401,3 +404,48 @@ def test_windows_and_macos_user_paths_are_redacted(bench: Bench, tmp_path: Path)
     cm.pack(bench.dir, tmp_path / "p.zip")
     report = zipfile.ZipFile(tmp_path / "p.zip").read("report.json").decode()
     assert "alice" not in report and cm.REDACTED_PATH in report
+
+
+class TestReview:
+    """review.json: what the model said, shareable only within the source's quotation rights."""
+
+    def test_run_writes_a_review_and_pack_shares_it(self, bench: Bench, tmp_path: Path) -> None:
+        from avd.bench.run_review import quality_control, render_markdown
+
+        review_path = bench.dir / _run_dir(bench) / "review.json"
+        doc = json.loads(review_path.read_text())
+        assert doc["format"] == "avd-run-review" and len(doc["items"]) == 2
+        item = doc["items"][0]
+        dims = item["evaluation"]["dimensions"]
+        assert item["evaluation"]["evaluator_source"] == "local_ai"
+        assert (
+            item["evaluation"]["rights"]["quotes_included"] is True
+        )  # Changelog: CC BY-SA, quotation confirmed
+        assert any(d["status"] == "scored" and d["evidence"] for d in dims)
+        assert any(item["justifications"].values())
+        qc = quality_control(doc)
+        assert qc["evidence_existence"]["claimed"] >= qc["evidence_existence"]["verified"] > 0
+        assert "accurate" in " ".join(qc["not_established_here"])
+        assert "| dimension | status |" in render_markdown(doc)
+        cm.pack(bench.dir, tmp_path / "p.zip")
+        assert any(n.endswith("/review.json") for n in zipfile.ZipFile(tmp_path / "p.zip").namelist())
+        assert len(cm.load_reviews(tmp_path / "p.zip")) == 1
+
+    def test_quotes_for_items_without_quotation_rights_are_refused(
+        self, bench: Bench, tmp_path: Path
+    ) -> None:
+        def strip_rights(d: dict[str, Any]) -> None:
+            d["items"][0]["evaluation"]["rights"]["quotes_included"] = False
+
+        _edit(bench, f"{_run_dir(bench)}/review.json", strip_rights)
+        with pytest.raises(cm.CommunityError, match="does not permit quotation"):
+            cm.pack(bench.dir, tmp_path / "p.zip")
+
+    def test_wholesale_transcript_text_is_refused(self, bench: Bench, tmp_path: Path) -> None:
+        def paste(d: dict[str, Any]) -> None:
+            first = next(iter(d["items"][0]["justifications"]))
+            d["items"][0]["justifications"][first] = (CACHING_EPISODE + " ") * 40
+
+        _edit(bench, f"{_run_dir(bench)}/review.json", paste)
+        with pytest.raises(cm.CommunityError, match="quotes too much transcript text"):
+            cm.pack(bench.dir, tmp_path / "p.zip")

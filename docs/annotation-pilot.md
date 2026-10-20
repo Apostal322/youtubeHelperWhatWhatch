@@ -78,15 +78,18 @@ avd annotate export --out benchmarks/labels/…
 
 ## Coordinator checklist
 
-1. **Before recruiting:** approve the consent text in `docs/templates/rating-consent.txt` (a
-   template; adapt it and keep your copy). Decide where returned files are kept and for how
-   long.
+1. **Before recruiting:** approve the consent text in `docs/templates/rating-consent.txt`. It
+   is a draft: its first line, `DRAFT FOR PROJECT-OWNER APPROVAL…`, makes `avd annotate packet`
+   refuse it. Adapt it, delete that line, and keep your copy. Decide where returned files are kept
+   and for how long. A packet records the hash of its consent text, so changing the text later
+   means reissuing unreturned packets (`release-packet`, then `packet`).
 2. `avd dataset import benchmarks/datasets/real_pilot_v1/manifest.json` on the coordinator's
    machine. Blinding of model assessments is on by default.
 3. For each volunteer: `avd annotate create-rater <pseudonym> --expertise <self-declared tags>`.
    Ignore the printed token; packets do not need it.
 4. `avd annotate packet --rater <pseudonym> --consent-file rating-consent.txt`. The first packet
-   holds the 2 calibration items.
+   holds the 2 calibration items, shortest first. For a lighter start, `--items 1` holds only the
+   shorter one (10,769 words, about 50–65 minutes). Items are always whole episodes.
    Send the file with the instructions below.
 5. When a ratings file comes back: `avd annotate import-packet <file>`. Send the next packet with
    `avd annotate packet --rater <pseudonym> --items 2 --consent-file rating-consent.txt`.
@@ -160,11 +163,13 @@ reference.
 >
 > * my ratings, notes and citations are stored under the pseudonym I chose, and my e-mail or name
 >   is not stored with them;
-> * the ratings may be published in aggregate (for example, agreement between raters), and in
->   pseudonymous form in the project's benchmark files;
+> * the ratings may be published in aggregate (for example, agreement between raters), and
+>   individually under my pseudonym in the project's public repository;
+> * the coordinator knows who uses which pseudonym and keeps that private;
 > * the reported time I spent on each item is recorded;
-> * I can withdraw at any time, and ask for my ratings to be excluded (they are then excluded
->   from all exports, with the reason recorded);
+> * I can withdraw at any time, and ask for my ratings to be excluded from later analyses and
+>   exports; aggregates already published are not recalculated, and ratings already published
+>   remain in the repository's history;
 > * this is unpaid, voluntary work.
 
 ## What this does not provide

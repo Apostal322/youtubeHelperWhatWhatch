@@ -376,6 +376,10 @@ def bench_local(
                 t0 = time.monotonic()
                 with ResourceSampler(sampler_provider) as rs:
                     report = er.run(rcfg, st, raw)
+                from avd.bench.run_review import write_review
+
+                if rcfg.out_dir is not None:
+                    write_review(rcfg.out_dir)  # per-dimension output, for reviewers
                 wall.append(time.monotonic() - t0)
                 resources.append(rs.summary())
                 runs.append(report)
