@@ -518,7 +518,7 @@ def _explain(c: dict[str, Any], prof: UserProfile) -> list[str]:
         out.append("Exploration pick: outside your stated interests, included to broaden results.")
     if c.get("channel_cap_relaxed"):
         out.append("More from a channel already shown: no other matching creator is left for this slot.")
-    elif c["interest"]:
+    elif c["interest"] and not c.get("exploration"):  # "nearest interest" is not a match here
         out.append(f"Matches your interest “{c['interest']}”.")
     best = sorted(
         (d for d in ev.dimensions if d.status == "scored" and d.score is not None and d.group != "technical"),

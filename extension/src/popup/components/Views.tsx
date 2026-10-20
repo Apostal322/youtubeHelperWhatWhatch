@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { ApiError, api } from "../../lib/api";
 import { BackendSettings } from "./Backend";
-import { duration, fmtScore, humanize } from "../../lib/format";
+import { displayTitle, duration, fmtScore, humanize } from "../../lib/format";
 import type { Evaluation, FeedbackKind, Preferences, RecommendationItem, SearchItem, VideoCard } from "../../lib/types";
 import { QualityBreakdown } from "./QualityBreakdown";
 import { AssessmentBadge, Empty, ErrorBox, QualityPill, Spinner } from "./common";
@@ -40,7 +40,7 @@ function RecCard({ item, onSelect }: { item: RecommendationItem; onSelect: Selec
     <li className="card">
       <div className="card-head">
         <button type="button" className="title" onClick={() => onSelect(item.video.id)}>
-          {item.video.title}
+          {displayTitle(item.video)}
         </button>
         <QualityPill q={item.intrinsic_quality} />
       </div>
@@ -256,7 +256,7 @@ export function VideoView({ videoId }: { videoId: string | null }) {
     <div>
       {card ? (
         <div className="video-head">
-          <strong>{card.title}</strong>
+          <strong>{displayTitle(card)}</strong>
           <VideoMeta v={card} />
         </div>
       ) : null}
@@ -321,7 +321,7 @@ export function SearchView({ onSelect }: { onSelect: Select }) {
             <li key={it.video.id} className="card">
               <div className="card-head">
                 <button type="button" className="title" onClick={() => onSelect(it.video.id)}>
-                  {it.video.title}
+                  {displayTitle(it.video)}
                 </button>
                 <QualityPill q={it.intrinsic_quality} />
               </div>

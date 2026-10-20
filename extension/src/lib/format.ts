@@ -20,6 +20,11 @@ export function humanize(key: string): string {
   return key.replace(/_/g, " ").replace(/^\w/, (c) => c.toUpperCase());
 }
 
+/** Transcripts submitted without metadata have an empty title; a blank button is unclickable to read. */
+export function displayTitle(v: { id: string; title?: string | null }): string {
+  return v.title?.trim() || `Untitled video (${v.id})`;
+}
+
 export function duration(seconds: number | null | undefined): string {
   if (!seconds) return "";
   const m = Math.floor(seconds / 60);

@@ -99,6 +99,13 @@ def test_search(client: TestClient) -> None:
     assert {"semantic_similarity", "title_match", "score"} <= set(items[0]["match"])
 
 
+def test_search_without_a_match_is_empty_not_the_whole_catalog(client: TestClient) -> None:
+    # Before the relevance floor, every query (even this one) returned all 20 catalog videos.
+    assert client.get("/v1/search", params={"q": "quantum chromodynamics"}).json()["items"] == []
+    items = client.get("/v1/search", params={"q": "hash table resizing"}).json()["items"]
+    assert len(items) < 5 and items[0]["video"]["id"] == "syn_tech_001"
+
+
 def test_preferences_validation(client: TestClient) -> None:
     h = _user(client)
     assert (
@@ -220,6 +227,8 @@ def test_off_topic_items_only_fill_a_labelled_exploration_quota(client: TestClie
     assert len(topical) < 5  # a nonsense interest matches (almost) nothing
     for it in explore:
         assert it["explanations"][0].startswith("Exploration pick")
+        # an exploration pick is outside the interests: it must not also claim to match one
+        assert not any(e.startswith("Matches your interest") for e in it["explanations"])
     for it in topical:
         assert it["ranking"]["features"]["relevance"] > 0
 

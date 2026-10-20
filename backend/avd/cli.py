@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import logging
 import sys
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
@@ -674,6 +675,9 @@ def cmd_bench(args: argparse.Namespace) -> None:
 def main(argv: list[str] | None = None) -> None:
     settings = get_settings()
     configure_logging(settings.log_level, settings.log_json)
+    # One INFO line per HTTP request buries the commands' own output; failures still log as warnings.
+    for noisy in ("httpx", "httpcore"):
+        logging.getLogger(noisy).setLevel(max(logging.WARNING, logging.getLogger().level))
     p = argparse.ArgumentParser(prog="avd", description="AI Video Discovery")
     sub = p.add_subparsers(dest="cmd", required=True)
     sub.add_parser("migrate").set_defaults(fn=cmd_migrate)
