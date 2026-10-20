@@ -49,6 +49,7 @@ from avd.content.processing import chunk_transcript, estimate_tokens
 from avd.embeddings.base import Embedder
 from avd.evaluation.evaluators.base import EvaluatorOutput
 from avd.evaluation.evaluators.llm_rubric import render_segments
+from avd.evaluation.evaluators.revision import with_model_revision
 from avd.evaluation.injection import neutralize, nonce_for
 from avd.evaluation.inputs import EvaluationInput
 from avd.evaluation.profiles import GenreProfile
@@ -272,7 +273,7 @@ class FactualVerificationEvaluator:
         self.single_pass_max_tokens = single_pass_max_tokens
 
     def descriptor(self) -> dict[str, Any]:
-        return {
+        d: dict[str, Any] = {
             "evaluator": self.name,
             "version": METHOD,
             "model": self.model,
@@ -280,6 +281,7 @@ class FactualVerificationEvaluator:
             "min_checked": self.min_checked,
             "min_similarity": self.min_similarity,
         }
+        return with_model_revision(d, self.provider, self.model)
 
     def _ask(
         self, system: str, user: str, schema: dict[str, Any], name: str, usage: list[UsageRecord]

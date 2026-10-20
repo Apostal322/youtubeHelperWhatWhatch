@@ -17,6 +17,9 @@ export type AssessmentState =
   | "heuristic_baseline"
   | "synthetic_demo";
 
+/** Who produced the scores (backend ``evaluator_source``); orthogonal to the assessment state. */
+export type EvaluatorSource = "local_ai" | "hosted_ai" | "heuristic" | "synthetic";
+
 export interface QualitySummary {
   evaluation_id: string;
   overall: number | null;
@@ -29,6 +32,7 @@ export interface QualitySummary {
   genre: string;
   stage: string;
   assessment_state?: AssessmentState;
+  evaluator_source?: EvaluatorSource;
   needs_review?: boolean;
 }
 
@@ -133,6 +137,9 @@ export interface Evaluation {
   created_at: string | null;
   assessment_state?: AssessmentState;
   assessment_state_reasons?: string[];
+  evaluator_source?: EvaluatorSource;
+  /** Submitted independent human ratings of this video (separate from the AI scores). */
+  human_reviews?: number;
   needs_review?: boolean;
   review_reasons?: string[];
 }

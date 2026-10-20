@@ -33,6 +33,7 @@ from pydantic import BaseModel, ConfigDict, Field, ValidationError, field_valida
 from avd.content.models import Transcript
 from avd.content.processing import chunk_transcript, estimate_tokens
 from avd.evaluation.evaluators.base import EvaluatorOutput
+from avd.evaluation.evaluators.revision import with_model_revision
 from avd.evaluation.injection import neutralize, nonce_for
 from avd.evaluation.inputs import EvaluationInput
 from avd.evaluation.profiles import GenreProfile
@@ -346,7 +347,7 @@ class LLMRubricEvaluator:
         self.method = f"llm_rubric:{self.prompt.key}" + (f":sc{samples}" if samples > 1 else "")
 
     def descriptor(self) -> dict[str, Any]:
-        return {
+        d: dict[str, Any] = {
             "evaluator": self.name,
             "prompt_version": self.prompt.key,
             "provider": self.provider.name,
@@ -358,6 +359,7 @@ class LLMRubricEvaluator:
             "single_pass_max_tokens": self.single_pass_max_tokens,
             "chunk_target_tokens": self.chunk_target_tokens,
         }
+        return with_model_revision(d, self.provider, self.model)
 
     # ------------------------------------------------------------------------------ model calls
 

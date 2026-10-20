@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 import { ApiError, friendlyMessage } from "../../lib/api";
-import { ASSESSMENT, band, fmtScore } from "../../lib/format";
-import type { AssessmentState, QualitySummary } from "../../lib/types";
+import { ASSESSMENT, SOURCE, band, fmtScore, modelLabel } from "../../lib/format";
+import type { AssessmentState, EvaluatorSource, QualitySummary } from "../../lib/types";
 
 /** The kind of assessment, always spelled out in text (colour is only a secondary cue). */
 // Reasons are listed only where they add information; for the other states the label says it all.
@@ -18,6 +18,25 @@ export function AssessmentBadge({ state, reasons }: { state: AssessmentState | "
             <li key={r}>{r}</li>
           ))}
         </ul>
+      ) : null}
+    </div>
+  );
+}
+
+/** Who produced the scores (local model, hosted model, heuristic, synthetic), with the model and
+ * the number of independent human ratings when there are any. */
+export function SourceLine({ source, models, humanReviews }: { source?: EvaluatorSource; models?: string[]; humanReviews?: number }) {
+  if (!source) return null;
+  const info = SOURCE[source];
+  const shown = source === "local_ai" || source === "hosted_ai" ? (models ?? []).filter((m) => m !== "heuristic-baseline").map(modelLabel) : [];
+  return (
+    <div className={`source source-${source}`} role="note" aria-label={`Evaluated by: ${info.label}`}>
+      <strong>{info.label}</strong>
+      {shown.length ? <span className="small"> · {shown.join(", ")}</span> : null} <span className="small muted">{info.explain}</span>
+      {humanReviews ? (
+        <div className="small">
+          <strong>Human-reviewed:</strong> {humanReviews} independent rating{humanReviews === 1 ? "" : "s"} (kept separate from the AI scores).
+        </div>
       ) : null}
     </div>
   );
@@ -43,6 +62,7 @@ export function QualityPill({ q }: { q: QualitySummary | null }) {
   if (!q) return <span className="pill pill-none">not evaluated</span>;
   const state = q.assessment_state;
   const caveat = state && state !== "grounded" ? ASSESSMENT[state]?.label : null;
+  const source = q.evaluator_source ? SOURCE[q.evaluator_source].label : null;
   if (q.overall === null) {
     return (
       <span className="pill pill-none" title="Not enough evidence for a genre-weighted overall score; see the breakdown">
@@ -53,10 +73,11 @@ export function QualityPill({ q }: { q: QualitySummary | null }) {
   return (
     <span
       className={`pill pill-${band(q.overall)}`}
-      title={`Overall (genre-weighted), confidence ${Math.round((q.overall_confidence ?? 0) * 100)}%${caveat ? ` · ${caveat}` : ""}`}
+      title={`Overall (genre-weighted), confidence ${Math.round((q.overall_confidence ?? 0) * 100)}%${caveat ? ` · ${caveat}` : ""}${source ? ` · ${source}` : ""}`}
     >
       {q.overall.toFixed(1)}
       {caveat ? <span className="pill-caveat"> · {caveat.toLowerCase()}</span> : null}
+      {q.evaluator_source === "local_ai" ? <span className="pill-caveat"> · local AI</span> : null}
     </span>
   );
 }

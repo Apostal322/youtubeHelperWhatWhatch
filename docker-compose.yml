@@ -2,6 +2,9 @@
 #   docker compose up --build
 #   docker compose run --rm init          # migrate + seed synthetic demo fixtures
 # Real LLM / YouTube integrations are enabled through .env (see .env.example).
+# Local AI (no cloud inference):  docker compose --profile local-ai up --build
+#   with AVD_LLM_PROVIDER=ollama in .env; then pull a model once (see docs/local-ai.md):
+#   docker compose exec ollama ollama pull qwen3.5:4b
 
 x-backend: &backend
   build:
@@ -15,6 +18,7 @@ x-backend: &backend
     AVD_REDIS_URL: redis://redis:6379/0
     AVD_TASK_BACKEND: celery
     AVD_ADMIN_TOKEN: ${AVD_ADMIN_TOKEN:-change-me-local-admin}
+    AVD_OLLAMA_BASE_URL: ${AVD_OLLAMA_BASE_URL:-http://ollama:11434}
   volumes:
     - media:/app/backend/.media_cache
   depends_on:
@@ -70,6 +74,23 @@ services:
     <<: *backend
     command: ["celery", "-A", "avd.workers.celery_app", "beat", "--loglevel=INFO", "-s", "/tmp/celerybeat-schedule"]
 
+  # Optional local model server. Bound to 127.0.0.1 only: never expose it publicly (it has no
+  # authentication). For NVIDIA GPUs add `gpus: all`; for AMD use the ollama/ollama:rocm image
+  # with /dev/kfd and /dev/dri. Without a GPU it runs on the CPU.
+  ollama:
+    # Pin OLLAMA_IMAGE_TAG to the release you validated; every run records the server version.
+    image: ollama/ollama:${OLLAMA_IMAGE_TAG:-latest}
+    profiles: ["local-ai"]
+    ports:
+      - "127.0.0.1:11434:11434"
+    environment:
+      OLLAMA_NUM_PARALLEL: "1"
+      OLLAMA_MAX_LOADED_MODELS: "1"
+      OLLAMA_KEEP_ALIVE: "10m"
+    volumes:
+      - ollama:/root/.ollama
+
 volumes:
   pgdata:
   media:
+  ollama:

@@ -50,8 +50,8 @@ from avd.datasets.rights import pending_uses
 from avd.db.models import Base, CostLedger, Evaluation
 from avd.db.session import make_engine
 from avd.evaluation.prompts import get_prompt
-from avd.llm.base import LLMProvider
-from avd.llm.pricing import DEFAULT_PRICES, cost_usd
+from avd.llm.base import LLMError, LLMProvider
+from avd.llm.pricing import DEFAULT_PRICES, cost_usd, register_local_model
 from avd.llm.providers import RunBudget, build_llm_provider
 from avd.services import enqueue_stage_a
 from avd.workers.context import build_context
@@ -84,14 +84,34 @@ class RunConfig:
     confirm_test: bool = False
     offline: bool = False
     cache_dir: Path | None = None
+    provider: str | None = None  # overrides AVD_LLM_PROVIDER for this run (e.g. "ollama")
     output_token_assumption: dict[str, int] = field(default_factory=lambda: dict(OUTPUT_TOKENS))
 
     def resolved_out(self) -> Path:
         return self.out_dir or RUNS_DIR / self.run_id
 
 
+def _is_local(settings: Settings, raw: LLMProvider | None) -> bool:
+    return (raw.name if raw is not None else settings.llm_provider) == LLMProviderName.OLLAMA
+
+
 def _settings(cfg: RunConfig, base: Settings, out: Path) -> Settings:
     prompt = get_prompt(cfg.prompt)
+    if cfg.provider and cfg.provider != base.llm_provider:
+        # Re-validate (not model_copy) so provider-dependent defaults, e.g. local context sizing,
+        # are applied; only explicitly set fields are carried over.
+        base = Settings(
+            **{k: getattr(base, k) for k in base.model_fields_set if k != "llm_provider"},
+            llm_provider=LLMProviderName(cfg.provider),
+        )
+    local = base.llm_provider == LLMProviderName.OLLAMA
+    if local:
+        for m in (cfg.model or base.llm_model_stage_b, cfg.model or base.llm_model_stage_c):
+            register_local_model(m)
+    # The run ceiling governs; the daily/job budgets are set to it so they never bind first. Local
+    # calls cost $0, so the daily budget only needs to be positive for Stage C's remaining-fraction
+    # check; the run ceiling (0 unless given) still refuses any call that would cost money.
+    daily = max(cfg.budget_usd or 0.0, 1.0) if local else (cfg.budget_usd or 0.0)
     return base.model_copy(
         update={
             "database_url": f"sqlite:///{out / 'run.db'}",
@@ -103,9 +123,8 @@ def _settings(cfg: RunConfig, base: Settings, out: Path) -> Settings:
             "llm_timeout_seconds": cfg.timeout_seconds,
             "llm_max_retries": cfg.max_retries,
             "llm_max_concurrency": max(1, cfg.concurrency),
-            # The run ceiling governs; the daily/job budgets are set to it so they never bind first.
-            "daily_llm_budget_usd": cfg.budget_usd or 0.0,
-            "max_job_cost_usd": cfg.budget_usd or 0.0,
+            "daily_llm_budget_usd": daily,
+            "max_job_cost_usd": daily,
             # frac <= 1 always, so 1.01 disables escalation unless Stage C was asked for.
             "stage_c_min_remaining_budget_fraction": 0.3 if cfg.stage_c else 1.01,
         }
@@ -207,17 +226,21 @@ def plan_calls(
 
 def _check_live_config(cfg: RunConfig, settings: Settings, raw: LLMProvider | None) -> None:
     model = settings.llm_model_stage_b
-    if model not in DEFAULT_PRICES and model not in settings.llm_price_overrides:
+    local = _is_local(settings, raw)
+    if not local and model not in DEFAULT_PRICES and model not in settings.llm_price_overrides:
         raise PreflightError(
             f"model {model!r} has no known price; set AVD_LLM_PRICE_OVERRIDES so the budget can be enforced"
         )
     prompt = get_prompt(settings.llm_prompt)
-    if model not in prompt.model_compatibility:
+    if not prompt.compatible_with(model, local=local):
         raise PreflightError(f"prompt {prompt.key} is not registered as compatible with {model}")
     if cfg.rubric_version and cfg.rubric_version != prompt.rubric_version:
         raise PreflightError(f"prompt {prompt.key} uses {prompt.rubric_version}, not {cfg.rubric_version}")
     if raw is not None:
         return
+    if local:
+        return  # $0 per call: no budget needed; reachability is checked by _local_runtime
+
     if settings.llm_provider == LLMProviderName.HEURISTIC:
         raise PreflightError("AVD_LLM_PROVIDER is heuristic: configure anthropic or openai_compatible")
     if settings.llm_provider == LLMProviderName.ANTHROPIC and settings.anthropic_api_key is None:
@@ -270,6 +293,7 @@ def _item_record(s: Any, vid: str, hashes: set[str]) -> dict[str, Any]:
             "config_hash": ev.config_hash,
             "matches_run_config": ev.config_hash in hashes,
             "overall": ev.overall_score,
+            "scores": {d.dimension: d.score for d in dims if d.status == "scored" and d.score is not None},
             "scored": sum(1 for d in dims if d.status == "scored"),
             "abstained": dict(Counter(f"{d.status}:{d.reason_code}" for d in dims if d.status != "scored")),
             "evidence_claimed": v.get("evidence_claimed", 0),
@@ -383,6 +407,17 @@ def run(
         return {"meta": meta, "plan": plan, "dry_run": True}
 
     _check_live_config(cfg, settings, raw_provider)
+    local = _is_local(settings, raw_provider)
+    if local:
+        from avd.llm.local import runtime_snapshot
+
+        try:
+            meta["local_runtime"] = runtime_snapshot(settings, raw_provider)
+        except LLMError as exc:
+            raise PreflightError(f"local model not usable: {exc}") from exc
+        (out / "plan.json").write_text(json.dumps({"meta": meta, "plan": plan}, indent=2))
+        if cfg.budget_usd is None:
+            cfg.budget_usd = 0.0  # a $0 ceiling: any call that would cost money is refused
     assert cfg.budget_usd is not None
     if expected > cfg.budget_usd:
         raise PreflightError(
@@ -530,6 +565,12 @@ def add_parser(sub: Any) -> None:
     p.add_argument("--confirm-test", action="store_true")
     p.add_argument("--offline", action="store_true")
     p.add_argument("--cache-dir", default=None)
+    p.add_argument(
+        "--provider",
+        default=None,
+        choices=[v.value for v in LLMProviderName if v != LLMProviderName.HEURISTIC],
+        help="override AVD_LLM_PROVIDER (ollama: local, $0, no budget needed)",
+    )
     p.set_defaults(fn=main)
 
 
@@ -552,6 +593,7 @@ def main(args: argparse.Namespace) -> None:
         confirm_test=args.confirm_test,
         offline=args.offline,
         cache_dir=Path(args.cache_dir) if args.cache_dir else None,
+        provider=args.provider,
     )
     try:
         r = run(cfg)

@@ -303,6 +303,18 @@ class SpendGuardProvider:
         return resp
 
 
+def model_revision(provider: Any, model: str) -> str | None:
+    """The innermost provider's runtime revision for ``model`` (local models only; hosted APIs
+    return ``None``). Raises an ``LLMError`` when a local server cannot be asked."""
+    p = provider
+    while p is not None:
+        rev = getattr(p, "revision", None)
+        if callable(rev):
+            return str(rev(model))
+        p = getattr(p, "_inner", None)
+    return None
+
+
 class CachedProvider:
     """Content-addressed response cache. Identical requests (same prompt, schema, model, sampling
     settings, sample index) are served from the database: re-running the pipeline is free and
@@ -314,7 +326,13 @@ class CachedProvider:
         self.name = inner.name
 
     def complete_json(self, request: LLMRequest) -> LLMResponse:
-        key = request.cache_key(self.name)
+        try:
+            rev = model_revision(self._inner, request.model)
+        except LLMError:
+            # A local model whose revision cannot be read: never serve or store a cached answer
+            # that might belong to other weights. The call itself will report the problem.
+            return self._inner.complete_json(request)
+        key = request.cache_key(self.name if rev is None else f"{self.name}|{rev}")
         with self._session_factory() as s:
             hit = s.get(LLMCache, key)
             if hit is not None:
@@ -512,6 +530,21 @@ def build_llm_provider(
     elif settings.llm_provider == LLMProviderName.OPENAI_COMPATIBLE:
         key = settings.openai_api_key.get_secret_value() if settings.openai_api_key else None
         inner = OpenAICompatibleProvider(settings.openai_base_url, key, timeout=settings.llm_timeout_seconds)
+    elif settings.llm_provider == LLMProviderName.OLLAMA:
+        from avd.llm.ollama import OllamaProvider
+        from avd.llm.pricing import register_local_model
+
+        for m in (settings.llm_model_stage_b, settings.llm_model_stage_c):
+            register_local_model(m)
+        inner = OllamaProvider(
+            settings.ollama_base_url,
+            num_ctx=settings.ollama_num_ctx,
+            keep_alive=settings.ollama_keep_alive,
+            think=settings.ollama_think,
+            allow_remote=settings.ollama_allow_remote,
+            timeout=settings.llm_timeout_seconds,
+            seed=settings.ollama_seed,
+        )
     else:  # pragma: no cover
         raise LLMConfigurationError(f"unknown provider {settings.llm_provider}")
     if run_budget is not None:  # innermost: every attempt, including retries, is checked

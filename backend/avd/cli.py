@@ -526,6 +526,11 @@ def main(argv: list[str] | None = None) -> None:
     add_throughput_parser(sub)
     add_evaluate_real_parser(sub)
     add_diagnostic_parser(sub)
+    from avd.bench.local import add_parser as add_bench_local_parser
+    from avd.llm.local import add_parser as add_local_parser
+
+    add_local_parser(sub)
+    add_bench_local_parser(sub)
     sub.add_parser("prompts", help="list registered evaluation prompts and their metadata").set_defaults(
         fn=cmd_prompts
     )

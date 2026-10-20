@@ -1,4 +1,4 @@
-import type { AssessmentState, ClaimVerdict, DimensionStatus, Evaluation } from "./types";
+import type { AssessmentState, ClaimVerdict, DimensionStatus, Evaluation, EvaluatorSource } from "./types";
 
 export const STATUS_LABEL: Record<DimensionStatus, string> = {
   scored: "Scored",
@@ -82,6 +82,24 @@ export const ASSESSMENT: Record<AssessmentState | "not_evaluated", { label: stri
     explain: "No authorized content has been evaluated for this video yet.",
   },
 };
+
+/** Who produced the scores. Shown next to the assessment state, always as text. */
+export const SOURCE: Record<EvaluatorSource, { label: string; explain: string }> = {
+  local_ai: {
+    label: "Local AI evaluation",
+    explain: "Judged by an open-weight model running on this service's own hardware; transcripts are not sent to a cloud API.",
+  },
+  hosted_ai: { label: "Hosted AI evaluation", explain: "Judged by a model provider's API." },
+  heuristic: { label: "Heuristic", explain: "Keyword and structure rules, not a model." },
+  synthetic: { label: "Synthetic", explain: "Demo content and a heuristic run; not a real assessment." },
+};
+
+/** The model as shown to people: ``ollama:qwen3.5:4b@ab12…:Q4_K_M`` → ``qwen3.5:4b (Q4_K_M)``. */
+export function modelLabel(served: string): string {
+  const local = served.startsWith("ollama:") ? served.slice("ollama:".length) : served;
+  const m = /^(.+?)@[^:]*:(.+)$/.exec(local);
+  return m ? `${m[1]} (${m[2]})` : local;
+}
 
 export const VERDICT_LABEL: Record<ClaimVerdict, string> = {
   supported: "Supported",

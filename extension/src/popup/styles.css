@@ -108,6 +108,8 @@ legend { color: var(--text); font-weight: 600; padding: 0 4px; }
   .error { background: var(--bad-bg); color: var(--bad-text); }
 }
 .assessment { padding: 6px 10px; border-radius: 8px; margin-bottom: 8px; border: 1px solid var(--border); }
+.source { padding: 4px 10px; margin-bottom: 8px; border-left: 3px solid var(--border); }
+.source-local_ai { border-left-color: var(--ok-text); }
 .assessment-ok { background: var(--ok-bg); color: var(--ok-text); }
 .assessment-warn { background: var(--warn-bg); color: var(--warn-text); }
 .assessment-bad { background: var(--bad-bg); color: var(--bad-text); }
