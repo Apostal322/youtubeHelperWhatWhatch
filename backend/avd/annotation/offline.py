@@ -203,6 +203,10 @@ def render_packet(
         "status_guide": STATUS_GUIDE,
         "items": payloads,
     }
+    return fill_template(data)
+
+
+def fill_template(data: dict[str, Any]) -> str:
     blob = json.dumps(data, ensure_ascii=False).replace("</", "<\\/").replace("<!--", "<\\!--")
     template = resources.files("avd.annotation").joinpath("static/packet.html").read_text(encoding="utf-8")
     return template.replace("__PACKET_JSON__", blob)
@@ -215,6 +219,10 @@ def import_return(session: Session, data: dict[str, Any]) -> dict[str, Any]:
         raise AnnotationError("malformed ratings file (expected an object with a list of results)")
     if data.get("format") != RETURN_FORMAT or not str(data.get("format_version", "")).startswith("1."):
         raise AnnotationError("not an annotation return file")
+    if data.get("scope") == "usability_excerpt" or str(data.get("packet_id", "")).startswith("usability-"):
+        raise AnnotationError(
+            "a usability-pilot return is never a rating (read it with `avd annotate usability-report`)"
+        )
     packet = session.get(AnnotationPacket, str(data.get("packet_id")))
     if packet is None:
         raise AnnotationError("unknown packet")

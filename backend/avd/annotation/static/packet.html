@@ -41,7 +41,11 @@ details { margin:6px 0; }
   under the dimension. You will not see any automated assessment of these items; please do not look for one.</p>
   <p class="small muted">Your work is saved in this browser as you go (if the browser allows it). When you are done,
   press <strong>Download ratings file</strong> and send that file back to the coordinator. You can stop and come back.
-  Expect about an hour per item: the transcripts are long.</p>
+  <span id="expect">Expect about an hour per item: the transcripts are long.</span></p>
+  <p class="warn" id="pilot" hidden><strong>Usability pilot.</strong> This packet holds an <em>excerpt</em> (the opening part of
+  one episode), to test whether these instructions and choices are clear and how long rating takes. Rate only what the
+  excerpt shows. Your answers are <strong>never used as a rating of the episode</strong>. Please write down anything that was
+  unclear: that is what this pilot is for.</p>
   <section class="consent" aria-label="Consent">
     <h2>Before you start: consent</h2>
     <div class="small" id="consent-text" style="white-space: pre-wrap"></div>
@@ -83,7 +87,7 @@ function renderNav() {
   const nav = document.getElementById("nav");
   nav.replaceChildren(...P.items.map((it, i) => el("button", {
     "aria-current": String(i === current),
-    text: `${i + 1}. ${it.is_calibration ? "[practice] " : ""}${it.title}${itemState(it).complete ? " ✓" : ""}`,
+    text: `${i + 1}. ${it.scope === "usability_excerpt" ? "[usability excerpt] " : it.is_calibration ? "[practice] " : ""}${it.title}${itemState(it).complete ? " ✓" : ""}`,
     onclick: () => { current = i; render(); },
   })));
 }
@@ -156,7 +160,7 @@ function render() {
   const overall = el("select", { onchange: (e) => { st.confidence = e.target.value === "" ? null : Number(e.target.value); save(); } },
     el("option", { value: "", text: "overall confidence…" }), ...["0.2", "0.4", "0.6", "0.8", "1.0"].map((v) => el("option", { value: v, text: v })));
   overall.value = st.confidence == null ? "" : st.confidence.toFixed(1);
-  const notes = el("textarea", { placeholder: "Notes on this item (optional)", oninput: (e) => { st.notes = e.target.value; save(); } });
+  const notes = el("textarea", { placeholder: it.scope === "usability_excerpt" ? "What was unclear or slow: instructions, statuses, scores, citing? (this is what the pilot is for)" : "Notes on this item (optional)", oninput: (e) => { st.notes = e.target.value; save(); } });
   notes.value = st.notes;
   const enjoy = el("select", { "aria-label": "enjoyment", onchange: (e) => { st.enjoyment = e.target.value === "" ? null : Number(e.target.value); save(); } },
     el("option", { value: "", text: "no answer" }), ...[1, 2, 3, 4, 5].map((v) => el("option", { value: String(v), text: String(v) })));
@@ -179,7 +183,9 @@ function render() {
   }, text: st.complete ? "Completed ✓ (edit freely, then download again)" : "Mark this item complete" });
   document.getElementById("main").replaceChildren(
     el("h2", { text: it.title }),
-    it.is_calibration ? el("p", { class: "small warn", text: "Practice item: used for calibration and discussion, never as a label." }) : null,
+    it.scope === "usability_excerpt"
+      ? el("p", { class: "small warn", text: `Usability excerpt: the first ${it.excerpt_words} of ${it.episode_words} words. Rate only what this excerpt shows; this is never a rating of the episode.` })
+      : it.is_calibration ? el("p", { class: "small warn", text: "Practice item: used for calibration and discussion, never as a label." }) : null,
     it.timing_note ? el("p", { class: "small muted", text: it.timing_note }) : null,
     el("p", { class: "small muted", text: `${it.words} words · time on this item ${fmt(st.seconds)}` }),
     el("details", {}, el("summary", { class: "small", text: "Source and licence (rate the content, not the show)" }),
@@ -210,7 +216,7 @@ document.getElementById("download").addEventListener("click", () => {
   });
   if (!state.__consent) return alert("Please read the consent text at the top and tick the box first.");
   if (!results.length) return alert("Mark at least one item complete first.");
-  const out = { format: "avd-annotation-return", format_version: "1.0", packet_id: P.packet_id, secret: P.secret, rater: P.rater,
+  const out = { format: "avd-annotation-return", format_version: "1.0", scope: P.scope || "full_episode", packet_id: P.packet_id, secret: P.secret, rater: P.rater,
     consent: { agreed: true, text_sha256: P.consent_sha256 }, results };
   const a = el("a", { href: URL.createObjectURL(new Blob([JSON.stringify(out, null, 1)], { type: "application/json" })), download: `ratings-${P.rater}-${P.packet_id.slice(0, 8)}.json` });
   document.body.append(a); a.click(); a.remove();
@@ -222,6 +228,11 @@ consentBox.checked = state.__consent === true;
 consentBox.addEventListener("change", (e) => { state.__consent = e.target.checked; save(); });
 document.getElementById("pid").textContent = P.packet_id.slice(0, 8);
 document.getElementById("who").textContent = P.rater;
+if (P.scope === "usability_excerpt") {
+  document.getElementById("pilot").hidden = false;
+  document.getElementById("expect").textContent = "Expect about 15–20 minutes for the excerpt (an estimate; the file records the real time).";
+  document.querySelector("h1").firstChild.textContent = "Usability pilot (excerpt, not a rating) ";
+}
 render();
 </script>
 </body>
