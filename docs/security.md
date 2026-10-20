@@ -1,4 +1,4 @@
-# Security review (Phases 2–3)
+# Security review (Phases 2–3.2)
 
 Scope: backend API and workers, the annotation UI, dataset and media ingestion, LLM integration,
 and the browser extension. Method: targeted code review of trust boundaries, dependency audits,
@@ -26,6 +26,56 @@ and tests for each control. This is a self-review by the implementer, not an ind
 | User data | Retention | `DELETE /v1/users/me` removes preferences, feedback and impressions; revokes and erases submitted transcripts; withdraws derived evaluations | `test_ops.py::test_account_deletion_removes_user_data` |
 | Licensed content | Takedown | `avd dataset revoke`: sources revoked, evaluations withdrawn, annotation assignment stops | `test_datasets.py` |
 
+## Phase 3.2: local-first and self-hosted deployment
+
+### Deployment boundaries
+
+| Mode | Who may connect | Authentication | Safe for |
+|---|---|---|---|
+| Local (`avd start`, default) | loopback peers only (plus a Docker bridge you declare in `AVD_LOCAL_PEER_NETWORKS`); `Host` must be a loopback name | none needed; anonymous token for preferences | one person on their own computer |
+| Server (`AVD_DEPLOYMENT_MODE=server`) | anyone who reaches the reverse proxy; `Host` must be in `AVD_ALLOWED_HOSTS` | bearer tokens; registration `invite` (default) or `closed`/`open`; optional private reads; admin token ≥ 24 chars | a shared instance behind TLS |
+
+**Unsupported:**
+
+* a local instance port-forwarded or tunnelled to the internet: the guard refuses non-loopback
+  peers, but a tunnel that terminates on loopback defeats that;
+* any instance without TLS in front of it on a network;
+* Ollama, PostgreSQL or Redis exposed beyond the host.
+
+### Threat model and findings
+
+| Threat | Before | Now | Test |
+|---|---|---|---|
+| **DNS rebinding**: a web page re-resolves its domain to 127.0.0.1 and reads the local API as same-origin | **Open**: no `Host` check | `Host` must be in `AVD_ALLOWED_HOSTS` (loopback names by default) → 400 | `test_local_first.py::test_dns_rebinding_host_is_rejected`; CI smoke step |
+| **Cross-site requests to localhost**: a page submits work or creates accounts on your machine | **Open** for simple requests | Local mode refuses state-changing requests with a web `Origin` other than an extension or local dev page (403); no cookies are used anywhere | `test_cross_site_writes_are_refused`; CI smoke step |
+| **Local instance accidentally exposed** (bound to 0.0.0.0, LAN) | served everyone | non-loopback peers get 403 in local mode; `avd serve`/`avd start` refuse a non-loopback bind unless a container bridge is declared | `test_other_machines_are_refused`, `test_local_instance_refuses_a_public_bind` |
+| **Database and Redis published** by Docker Compose on all interfaces with default credentials | **Open**: `5432:5432`, `6379:6379` | not published; API and Ollama on `127.0.0.1` only; server mode refuses the default database password | `docker compose config`; `test_unsafe_configuration_refuses_to_start` |
+| **Empty admin token**: `AVD_ADMIN_TOKEN=` made the empty string a valid credential | **Latent**: an empty header matched | empty secrets count as unset (admin API disabled) | `test_empty_admin_token_disables_admin` |
+| **Unsafe shared server**: weak or placeholder admin token, no allowed hosts, open registration by accident, public metrics | possible | server mode **fails closed at startup** with the list of problems | `test_unsafe_configuration_refuses_to_start` (5 cases) |
+| **Open account creation on a public server** | anyone could create accounts | default `invite` (codes compared in constant time) or `closed`; admin token can always create | `test_invite_registration`, `test_closed_registration_and_private_reads` |
+| **Extension disclosed browsing**: the badge looked up every opened YouTube video on the configured backend | **Open** for remote backends | lookups only for local backends, or remote ones with consent *and* a separate opt-in | extension `lib.test.ts`, `background.ts` |
+| **Silent connection to a remote server** | URL field + permission prompt | URL validation (origin only, HTTPS for non-loopback, no credentials in the URL), diagnostics shown first, explicit consent per origin; requests to an unconsented remote origin are refused client-side | `backend.test.tsx`, `lib.test.ts` |
+| **Any extension could read the API via CORS** (`chrome-extension://.*`) | allowed | no wildcard; this extension uses host permissions, not CORS | `test_no_cors_wildcard_for_extensions` |
+| **Malicious evaluation packages** (imports) | n/a (new) | strict schema (unknown fields refused, value ranges, size caps), integrity and per-quote hash checks; stored apart, never authoritative, never ranked | `test_portability.py` |
+| **Copyrighted text in exports** | n/a (new) | no transcript text ever; quotes as hashes unless every source permits quotation | `test_no_transcript_and_no_quotes_by_default`, `test_quotes_only_where_every_source_permits` |
+| **Third-party evaluators overriding the protocol** | n/a (new) | only explicitly configured; lowest precedence (cannot replace official scores); recorded in versions and config hash | `TestExperimentalEvaluators` |
+| **Unbounded local load** (CPU-only machines) | queue unbounded | submissions refused (503) above `AVD_MAX_QUEUED_JOBS`; one embedded worker; Ollama concurrency 1; cancellation and pause | `test_backlog_limit_refuses_new_submissions`, `test_cancel_queued_jobs` |
+| **SSRF through model endpoints** | (Phase 3.1) | Ollama URL must be local/private unless `AVD_OLLAMA_ALLOW_REMOTE`; no proxy for local traffic; the backend never fetches URLs supplied by API callers | `test_local_ollama.py::TestLocalOnly` |
+| **Malicious model output / prompt injection** | (Phases 2–3) | unchanged: strict schemas, grounding verification, injection detector | as above |
+
+### Remaining gaps (Phase 3.2)
+
+* **Local mode trusts every local user and process.** On a shared multi-user computer, other
+  accounts can reach `127.0.0.1:8000`. Use server mode (with tokens) there.
+* **Experimental evaluators run in-process.** They receive no credentials, but Python code can
+  read the environment. Configure only code you trust.
+* **Export integrity is not authenticity.** No signatures yet.
+* **TLS is not built in.** Server mode expects a reverse proxy (`docs/self-hosting.md`). Client
+  IPs come from `--forwarded-allow-ips`, which the operator must set to the proxy's address.
+* **Bearer tokens do not expire.** Revoking means deleting the account.
+* **Container images are not scanned for CVEs in CI.** The Ollama image tag is unpinned by
+  default.
+
 ## Dependency audits (2026-10-16)
 
 * `pip-audit` (PyPI/OSV advisories) over the 76 installed backend packages: **no known
@@ -49,8 +99,8 @@ and tests for each control. This is a self-review by the implementer, not an ind
   is pruned. Retention of these derived records has no time limit yet.
 * **CSP allows inline script/style on `/annotate`** (a single self-contained page). Moving the
   script to a static file would allow `script-src 'self'` only.
-* **No authentication for the public read API** (`/v1/videos`, `/v1/search`). This is
-  intended, but those endpoints are rate-limited only.
+* **The public read API is unauthenticated by default** (`/v1/videos`, `/v1/search`). This is
+  intended for public instances; a private server sets `AVD_REQUIRE_AUTH_FOR_READ=true`.
 * **User tokens are bearer tokens without expiry or rotation.**
 * **Media is stored unencrypted on disk.** There is no malware scanning beyond ffprobe
   validation, and no per-user storage quota.

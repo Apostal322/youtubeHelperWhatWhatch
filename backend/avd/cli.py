@@ -6,7 +6,7 @@ import argparse
 import json
 import sys
 from pathlib import Path
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from avd.config import REPO_ROOT, get_settings
 from avd.logging import configure_logging
@@ -23,6 +23,132 @@ def _migrate() -> None:
     cfg = Config()
     cfg.set_main_option("script_location", str(Path(__file__).resolve().parent / "migrations"))
     command.upgrade(cfg, "head")
+
+
+def cmd_eval_export(args: argparse.Namespace) -> None:
+    from avd.db.session import session_scope
+    from avd.portability import export_evaluations, write_export
+
+    with session_scope() as s:
+        doc = export_evaluations(
+            s,
+            video_ids=args.video or None,
+            include_quotes=args.include_quotes,
+            include_synthetic=not args.no_synthetic,
+        )
+    digest = write_export(doc, Path(args.out))
+    quoted = sum(1 for e in doc["evaluations"] if e["rights"]["quotes_included"])
+    print(
+        json.dumps(
+            {
+                "out": args.out,
+                "evaluations": len(doc["evaluations"]),
+                "with_quotes": quoted,
+                "file_sha256": digest,
+            }
+        )
+    )
+
+
+def cmd_eval_import(args: argparse.Namespace) -> None:
+    from avd.db.session import session_scope
+    from avd.portability import ImportRefused, import_evaluations
+
+    raw = Path(args.file).read_bytes()
+    try:
+        with session_scope() as s:
+            out = import_evaluations(s, raw, origin=args.origin)
+    except ImportRefused as exc:
+        raise SystemExit(f"refused: {exc} (nothing imported)") from exc
+    print(json.dumps(out))
+
+
+def cmd_data(args: argparse.Namespace) -> None:
+    from avd import datactl
+
+    settings = get_settings()
+    try:
+        if args.data_cmd == "backup":
+            print(json.dumps(datactl.backup_sqlite(settings.database_url, Path(args.out))))
+        elif args.data_cmd == "restore":
+            print(json.dumps(datactl.restore_sqlite(Path(args.file), settings.database_url)))
+        else:
+            from avd.db.session import session_scope
+
+            flags = {
+                k: getattr(args, k)
+                for k in ("evaluations", "model_cache", "preferences", "feedback", "imported")
+            }
+            if not any(flags.values()):
+                raise SystemExit(
+                    "choose what to clear: --evaluations --model-cache --preferences --feedback --imported"
+                )
+            if not args.yes:
+                raise SystemExit(
+                    f"this permanently deletes {[k for k, v in flags.items() if v]}; re-run with --yes"
+                )
+            with session_scope() as s:
+                print(json.dumps(datactl.clear(s, **flags)))
+    except datactl.DataError as exc:
+        raise SystemExit(f"refused: {exc}") from exc
+
+
+def cmd_doctor(args: argparse.Namespace) -> None:
+    """One report for setup problems: configuration, database, worker queue, AI provider and
+    hardware. Contains no secrets, so it can be pasted into an issue."""
+    from sqlalchemy import func, select, text
+
+    from avd.api.ops import _inference_status
+    from avd.db.models import PipelineJob
+    from avd.db.session import get_sessionmaker
+    from avd.llm.local import detect_hardware
+
+    s = get_settings()
+    report: dict[str, Any] = {
+        "deployment_mode": s.deployment_mode.value,
+        "server_mode_problems": s.server_mode_problems(),
+        "database": s.database_url.split("://", 1)[0] + "://…",
+        "task_backend": s.task_backend.value,
+        "redis": "configured" if s.redis_url else "not used",
+        "registration": s.registration.value,
+        "inference": _inference_status(s, check=True),
+        "telemetry": "none",
+    }
+    try:
+        with get_sessionmaker()() as session:
+            session.execute(text("SELECT 1"))
+            report["queue"] = dict(
+                session.execute(select(PipelineJob.status, func.count()).group_by(PipelineJob.status)).all()
+            )
+        report["database_status"] = "ok"
+    except Exception as exc:
+        report["database_status"] = f"unavailable ({type(exc).__name__}); run `avd migrate` or `avd start`"
+    hw = detect_hardware()
+    report["hardware"] = {
+        "os": hw.os,
+        "cpu": f"{hw.cpu_model} x{hw.cpu_logical}",
+        "ram_gb": hw.ram_total_gb,
+        "accelerator": hw.accelerator,
+        "disk_free_gb": hw.disk_free_gb,
+        "ollama_binary": bool(hw.ollama_binary),
+    }
+    print(json.dumps(report, indent=2, default=str))
+
+
+def cmd_jobs_cancel(args: argparse.Namespace) -> None:
+    from avd.db.session import session_scope
+    from avd.workers import queue
+
+    with session_scope() as s:
+        print(json.dumps({"cancelled": queue.cancel(s, job_ids=args.ids, job_types=args.types)}))
+
+
+def cmd_jobs_stats(args: argparse.Namespace) -> None:
+    from avd.db.session import session_scope
+    from avd.workers import queue
+
+    with session_scope() as s:
+        print(json.dumps(queue.stats(s), indent=2))
 
 
 def cmd_migrate(args: argparse.Namespace) -> None:
@@ -138,10 +264,113 @@ def cmd_stats(args: argparse.Namespace) -> None:
         )
 
 
+def _check_bind(host: str) -> None:
+    from avd.api.guard import is_loopback
+    from avd.config import DeploymentMode
+
+    settings = get_settings()
+    # Inside a container the API must bind 0.0.0.0; that is allowed only when the operator declared
+    # the container bridge as trusted (the guard still refuses every other peer per request).
+    container = bool(settings.local_peer_networks)
+    if settings.deployment_mode == DeploymentMode.LOCAL and not (
+        is_loopback(host) or host == "localhost" or container
+    ):
+        raise SystemExit(
+            f"refused: a local instance binds to loopback only (asked for {host}). For a shared server set "
+            "AVD_DEPLOYMENT_MODE=server with AVD_ADMIN_TOKEN, AVD_ALLOWED_HOSTS and a registration policy."
+        )
+    if problems := settings.server_mode_problems():
+        raise SystemExit("refused: unsafe server configuration:\n  - " + "\n  - ".join(problems))
+
+
 def cmd_serve(args: argparse.Namespace) -> None:
     import uvicorn
 
+    _check_bind(args.host)
     uvicorn.run("avd.api.app:app", host=args.host, port=args.port, reload=args.reload)
+
+
+def default_data_dir() -> Path:
+    """Per-user data directory for `avd start` (the operator's data stays on their machine)."""
+    import os
+    import sys
+
+    if env := os.environ.get("AVD_DATA_DIR"):
+        return Path(env)
+    if sys.platform == "win32":
+        return Path(os.environ.get("LOCALAPPDATA", Path.home() / "AppData" / "Local")) / "ai-video-discovery"
+    if sys.platform == "darwin":
+        return Path.home() / "Library" / "Application Support" / "ai-video-discovery"
+    return Path(os.environ.get("XDG_DATA_HOME", Path.home() / ".local" / "share")) / "ai-video-discovery"
+
+
+def prepare_local(data_dir: Path, provider: str | None, worker: bool) -> dict[str, Any]:
+    """Configure this process for local mode (SQLite in ``data_dir``, embedded worker, no Redis or
+    Celery). Explicit AVD_* environment variables still win."""
+    import os
+
+    data_dir.mkdir(parents=True, exist_ok=True)
+    env = {
+        "AVD_DEPLOYMENT_MODE": "local",
+        "AVD_DATABASE_URL": f"sqlite:///{data_dir / 'avd.db'}",
+        "AVD_MEDIA_CACHE_DIR": str(data_dir / "media"),
+        "AVD_DATASET_CACHE_DIR": str(data_dir / "datasets"),
+        "AVD_TASK_BACKEND": "inline",
+        "AVD_EMBEDDED_WORKER": "true" if worker else "false",
+        "AVD_LOG_LEVEL": "WARNING",
+    }
+    if provider:
+        env["AVD_LLM_PROVIDER"] = provider
+    applied = {}
+    for k, v in env.items():
+        if k == "AVD_LLM_PROVIDER" or k not in os.environ:
+            os.environ[k] = v
+            applied[k] = v
+    if os.environ.get("AVD_DEPLOYMENT_MODE") != "local":
+        raise SystemExit("refused: `avd start` runs a local instance; use `avd serve` for server mode")
+    from avd.db.session import get_engine, get_sessionmaker
+
+    for f in (get_settings, get_engine, get_sessionmaker):
+        f.cache_clear()
+    return applied
+
+
+def cmd_start(args: argparse.Namespace) -> None:
+    """One command for a personal installation: SQLite, embedded worker, loopback only."""
+    import time
+
+    import uvicorn
+
+    t0 = time.monotonic()
+    data_dir = Path(args.data_dir) if args.data_dir else default_data_dir()
+    prepare_local(data_dir, args.provider, worker=not args.no_worker)
+    _check_bind(args.host)
+    _migrate()
+    settings = get_settings()
+    if args.demo:
+        from avd.db.session import session_scope
+        from avd.services import seed_demo
+
+        with session_scope() as s:
+            n = seed_demo(s, settings)
+        print(f"queued {n} SYNTHETIC demo videos (heuristic baseline; not real videos, not AI)")
+    from avd.api.ops import _inference_status
+
+    inf = _inference_status(settings, check=True)
+    print(f"AI Video Discovery — local instance\n  data:      {data_dir}")
+    print(f"  API:       http://{args.host}:{args.port}  (loopback only)")
+    print(f"  worker:    {'embedded' if settings.embedded_worker else 'off'}")
+    if inf["provider"] == "heuristic":
+        print("  evaluator: heuristic baseline (no AI). Use --provider ollama for local AI.")
+    else:
+        state = (
+            "ready"
+            if inf.get("model_installed")
+            else f"NOT READY ({inf.get('error') or 'model not installed: avd local pull ' + inf['model']})"
+        )
+        print(f"  evaluator: {inf['location']} {inf['provider']} {inf['model']}: {state}")
+    print(f"  started in {time.monotonic() - t0:.1f}s (before the server); Ctrl+C stops safely")
+    uvicorn.run("avd.api.app:create_app", factory=True, host=args.host, port=args.port, log_level="warning")
 
 
 def cmd_train_ranker(args: argparse.Namespace) -> None:
@@ -406,6 +635,56 @@ def main(argv: list[str] | None = None) -> None:
     i.set_defaults(fn=cmd_import_dataset)
     sub.add_parser("reevaluate-stale").set_defaults(fn=cmd_reevaluate_stale)
     sub.add_parser("stats").set_defaults(fn=cmd_stats)
+    st = sub.add_parser("start", help="run a personal local instance (SQLite, embedded worker, no Redis)")
+    st.add_argument("--data-dir", default=None, help="default: the per-user data directory")
+    st.add_argument("--host", default="127.0.0.1")
+    st.add_argument("--port", type=int, default=8000)
+    st.add_argument(
+        "--provider", choices=["heuristic", "ollama", "anthropic", "openai_compatible"], default=None
+    )
+    st.add_argument("--demo", action="store_true", help="queue the synthetic demo catalog (clearly labelled)")
+    st.add_argument("--no-worker", action="store_true", help="API only; run `avd worker` separately")
+    st.set_defaults(fn=cmd_start)
+    sub.add_parser(
+        "doctor", help="diagnose configuration, database, queue, AI provider and hardware"
+    ).set_defaults(fn=cmd_doctor)
+    ev = sub.add_parser("evaluations", help="portable evaluation export/import").add_subparsers(
+        dest="eval_cmd", required=True
+    )
+    ex = ev.add_parser("export", help="write current evaluations to an avd-evaluation-export file")
+    ex.add_argument("--out", required=True)
+    ex.add_argument("--video", action="append", help="limit to these video ids")
+    ex.add_argument(
+        "--include-quotes", action="store_true", help="quote text only where every source permits"
+    )
+    ex.add_argument("--no-synthetic", action="store_true")
+    ex.set_defaults(fn=cmd_eval_export)
+    im = ev.add_parser("import", help="validate and store another instance's export as unverified")
+    im.add_argument("file")
+    im.add_argument(
+        "--origin", required=True, help="where the file came from (shown with every imported record)"
+    )
+    im.set_defaults(fn=cmd_eval_import)
+    da = sub.add_parser("data", help="backup, restore and clear local data").add_subparsers(
+        dest="data_cmd", required=True
+    )
+    bk = da.add_parser("backup", help="consistent SQLite backup (PostgreSQL: pg_dump)")
+    bk.add_argument("--out", required=True)
+    bk.set_defaults(fn=cmd_data)
+    rs = da.add_parser("restore", help="restore a SQLite backup into a new database file")
+    rs.add_argument("file")
+    rs.set_defaults(fn=cmd_data)
+    cl = da.add_parser("clear", help="delete selected local data")
+    for flag in ("--evaluations", "--model-cache", "--preferences", "--feedback", "--imported"):
+        cl.add_argument(flag, action="store_true")
+    cl.add_argument("--yes", action="store_true")
+    cl.set_defaults(fn=cmd_data)
+    jb = sub.add_parser("jobs", help="queue control").add_subparsers(dest="jobs_cmd", required=True)
+    jc = jb.add_parser("cancel", help="cancel queued jobs (running jobs finish their attempt)")
+    jc.add_argument("--type", action="append", dest="types")
+    jc.add_argument("--id", action="append", dest="ids")
+    jc.set_defaults(fn=cmd_jobs_cancel)
+    jb.add_parser("stats").set_defaults(fn=cmd_jobs_stats)
     sv = sub.add_parser("serve")
     sv.add_argument("--host", default="127.0.0.1")
     sv.add_argument("--port", type=int, default=8000)

@@ -17,7 +17,8 @@ COPY backend/alembic.ini /app/backend/alembic.ini
 COPY data /app/data
 COPY benchmarks /app/benchmarks
 
-RUN useradd --create-home --uid 10001 avd && mkdir -p /app/backend/.media_cache && chown -R avd /app/backend/.media_cache
+RUN useradd --create-home --uid 10001 avd && mkdir -p /app/backend/.media_cache /data \
+    && chown -R avd /app/backend/.media_cache /data
 USER avd
 WORKDIR /app/backend
 ENV AVD_FIXTURES_DIR=/app/data/fixtures AVD_MEDIA_CACHE_DIR=/app/backend/.media_cache

@@ -27,7 +27,7 @@ from avd.db.models import PipelineJob
 from avd.observability import correlation_id
 from avd.workers.budget import BudgetManager
 
-TERMINAL = ("succeeded", "skipped", "dead")
+TERMINAL = ("succeeded", "skipped", "dead", "cancelled")
 
 
 def _now() -> datetime:
@@ -159,6 +159,23 @@ def defer(session: Session, job: PipelineJob, until: datetime, reason: str) -> N
     job.next_attempt_at = until
     job.lease_expires_at = None
     job.last_error = f"deferred: {reason}"
+
+
+def cancel(session: Session, *, job_ids: list[str] | None = None, job_types: list[str] | None = None) -> int:
+    """Cancel queued jobs (all, by id or by type). A job that is already running finishes its
+    current attempt; stop or pause the worker to halt it. Cancelled jobs can be requeued."""
+    q = select(PipelineJob).where(PipelineJob.status == "queued")
+    if job_ids:
+        q = q.where(PipelineJob.id.in_(job_ids))
+    if job_types:
+        q = q.where(PipelineJob.job_type.in_(job_types))
+    n = 0
+    for job in session.scalars(q):
+        job.status = "cancelled"
+        job.last_error = "cancelled by operator"
+        n += 1
+    session.flush()
+    return n
 
 
 def stats(session: Session) -> dict[str, Any]:

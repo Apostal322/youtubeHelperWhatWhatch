@@ -1,3 +1,4 @@
+import { hasRemoteConsent, isLocalBase } from "./backend";
 import { getItem, removeItem, setItem } from "./storage";
 import type {
   Claim,
@@ -14,6 +15,13 @@ import type {
 export const DEFAULT_API_BASE = "http://localhost:8000";
 const BASE_KEY = "avd.apiBase";
 const TOKEN_KEY = "avd.token";
+const INVITE_KEY = "avd.inviteCode";
+
+/** Invite code for servers that require one to create an account (used once, at registration). */
+export async function setInviteCode(code: string): Promise<void> {
+  if (code.trim()) await setItem(INVITE_KEY, code.trim());
+  else await removeItem(INVITE_KEY);
+}
 
 export const REQUEST_TIMEOUT_MS = 15_000;
 
@@ -43,6 +51,12 @@ export function friendlyMessage(e: unknown): string {
       return "The backend took too long to respond. Try again.";
     case "unavailable":
       return `The backend is temporarily unavailable: ${e.message}`;
+    case "consent_required":
+      return "This backend is on another computer. Open Preferences → Backend and confirm you want to connect to it.";
+    case "local_only":
+      return "That backend only accepts connections from its own computer.";
+    case "invalid_host":
+      return "The server rejected this address. Its operator must allow this host name.";
     case "unauthenticated":
       return "Your session expired, so a new anonymous session will be used. Try again.";
     case "forbidden":
@@ -72,8 +86,16 @@ export class ApiClient {
 
   private async request<T>(path: string, init: RequestInit = {}, auth = false): Promise<T> {
     const base = await getApiBase();
+    // Nothing is sent to a backend on another computer until the user has agreed to it.
+    if (!isLocalBase(base) && !(await hasRemoteConsent(base)))
+      throw new ApiError(0, "connection to this backend not confirmed", "consent_required");
     const headers: Record<string, string> = { "Content-Type": "application/json" };
     if (auth) headers.Authorization = `Bearer ${await this.token()}`;
+    else {
+      // Private servers require a token for reads too; send one if we already have it.
+      const existing = await getItem<string>(TOKEN_KEY);
+      if (existing) headers.Authorization = `Bearer ${existing}`;
+    }
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
     let res: Response;
@@ -104,7 +126,7 @@ export class ApiClient {
       } catch {
         /* non-JSON error */
       }
-      if (res.status === 401 && auth) await removeItem(TOKEN_KEY);
+      if (res.status === 401) await removeItem(TOKEN_KEY);
       const retry = Number(res.headers.get("Retry-After"));
       throw new ApiError(res.status, detail, code, requestId, Number.isFinite(retry) && retry > 0 ? retry : null);
     }
@@ -116,7 +138,11 @@ export class ApiClient {
   async token(): Promise<string> {
     const existing = await getItem<string>(TOKEN_KEY);
     if (existing) return existing;
-    this.pendingToken ??= this.request<{ user_id: string; token: string }>("/v1/users", { method: "POST" })
+    const invite = await getItem<string>(INVITE_KEY);
+    this.pendingToken ??= this.request<{ user_id: string; token: string }>("/v1/users", {
+      method: "POST",
+      headers: invite ? { "X-Invite-Code": invite } : {},
+    })
       .then(async (created) => {
         await setItem(TOKEN_KEY, created.token);
         return created.token;

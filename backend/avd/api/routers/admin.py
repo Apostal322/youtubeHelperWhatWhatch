@@ -5,7 +5,7 @@ from __future__ import annotations
 from datetime import UTC, datetime
 from typing import Any
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 from pydantic import BaseModel, Field
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
@@ -54,6 +54,32 @@ def run_worker(max_jobs: int = Query(200, le=5000)) -> dict[str, Any]:
     from avd.workers.runner import run_until_idle
 
     return {"outcomes": run_until_idle(build_context(), max_jobs=max_jobs)}
+
+
+class CancelIn(BaseModel):
+    job_ids: list[str] | None = Field(default=None, max_length=1000)
+    job_types: list[str] | None = Field(default=None, max_length=20)
+
+
+@router.post("/jobs/cancel")
+def cancel_jobs(body: CancelIn, session: Session = Depends(db)) -> dict[str, Any]:
+    """Cancel queued jobs (all when no filter is given). Running jobs finish their attempt."""
+    return {"cancelled": queue.cancel(session, job_ids=body.job_ids, job_types=body.job_types)}
+
+
+@router.post("/worker/{action}")
+def control_worker(action: str, request: Request) -> dict[str, Any]:
+    """Pause or resume the embedded worker (local mode, ``avd start``)."""
+    worker = getattr(request.app.state, "worker", None)
+    if worker is None:
+        raise HTTPException(409, "no embedded worker in this process (use your Celery/worker controls)")
+    if action == "pause":
+        worker.pause()
+    elif action == "resume":
+        worker.resume()
+    else:
+        raise HTTPException(404, "unknown action; use pause or resume")
+    return worker.status()
 
 
 @router.get("/jobs")

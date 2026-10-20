@@ -53,12 +53,26 @@ log = get_logger(__name__)
 
 
 class EvaluationPipeline:
-    def __init__(self, evaluators: Sequence[Evaluator], stage: str, mode: EvaluationMode) -> None:
+    def __init__(
+        self,
+        evaluators: Sequence[Evaluator],
+        stage: str,
+        mode: EvaluationMode,
+        experimental: Sequence[Evaluator] = (),
+    ) -> None:
         # Later evaluators take precedence for dimensions they *score* (e.g. retrieval-based fact
-        # checking overrides the rubric's knowledge-based factual judgement).
-        self.evaluators = list(evaluators)
+        # checking overrides the rubric's knowledge-based factual judgement). Experimental
+        # (operator-configured) evaluators go first, so they can only fill official abstentions.
+        self.experimental = [f"{ev.name}@{ev.version}" for ev in experimental]
+        self.evaluators = [*experimental, *evaluators]
         self.stage = stage
         self.mode = mode
+
+    def _versions(self) -> dict[str, str]:
+        v = dict(self.versions())
+        if self.experimental:
+            v["experimental_evaluators"] = ",".join(self.experimental)
+        return v
 
     @staticmethod
     def versions() -> dict[str, str]:
@@ -79,7 +93,7 @@ class EvaluationPipeline:
         return {
             "stage": self.stage,
             "mode": self.mode.value,
-            "versions": self.versions(),
+            "versions": self._versions(),
             "evaluators": descriptors,
         }
 
@@ -271,7 +285,7 @@ class EvaluationPipeline:
             usage=usage,
             status=status,
             config_hash=self.config_hash(),
-            versions=self.versions(),
+            versions=self._versions(),
             coverage_report={
                 "transcript": transcript_report,
                 "evaluators": evaluator_reports,
@@ -298,11 +312,15 @@ def build_pipeline(
     provider: LLMProvider | None,
     retriever: ReferenceRetriever | None = None,
 ) -> EvaluationPipeline:
+    from avd.plugins import load_evaluators
+
+    experimental = load_evaluators(settings.experimental_evaluators)
     if provider is None:
         return EvaluationPipeline(
             [HeuristicTextEvaluator(), AudioSignalEvaluator(), VisualSignalEvaluator()],
             stage,
             EvaluationMode.SYNTHETIC_DEMO,
+            experimental,
         )
     if stage == "C":
         evaluators: list[Evaluator] = [
@@ -330,7 +348,7 @@ def build_pipeline(
                     single_pass_max_tokens=settings.llm_single_pass_max_tokens,
                 )
             )
-        return EvaluationPipeline(evaluators, stage, EvaluationMode.LLM)
+        return EvaluationPipeline(evaluators, stage, EvaluationMode.LLM, experimental)
     return EvaluationPipeline(
         [
             LLMRubricEvaluator(
@@ -348,6 +366,7 @@ def build_pipeline(
         ],
         stage,
         EvaluationMode.LLM,
+        experimental,
     )
 
 

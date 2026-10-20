@@ -5,11 +5,11 @@ import hmac
 from collections.abc import Iterator
 
 from fastapi import Depends, Header, HTTPException, status
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
-from avd.config import Settings, get_settings
-from avd.db.models import User
+from avd.config import DeploymentMode, Settings, get_settings
+from avd.db.models import PipelineJob, User
 from avd.db.session import get_sessionmaker
 from avd.embeddings.base import Embedder, get_embedder
 
@@ -37,6 +37,30 @@ def current_user(authorization: str | None = Header(default=None), session: Sess
     if user is None:
         raise HTTPException(status.HTTP_401_UNAUTHORIZED, "invalid token")
     return user
+
+
+def optional_reader(
+    authorization: str | None = Header(default=None),
+    session: Session = Depends(db),
+    settings: Settings = Depends(get_settings),
+) -> None:
+    """Catalog and evaluation reads: open on local instances and on public servers; a private
+    server (``AVD_REQUIRE_AUTH_FOR_READ=true``) requires a valid user token."""
+    if settings.deployment_mode == DeploymentMode.SERVER and settings.require_auth_for_read:
+        current_user(authorization, session)
+
+
+def backlog_guard(session: Session = Depends(db), settings: Settings = Depends(get_settings)) -> None:
+    """Bounded queue: new work is refused while too many jobs wait, so a slow (CPU-only) machine is
+    never buried under an unbounded backlog."""
+    queued = session.scalar(
+        select(func.count()).select_from(PipelineJob).where(PipelineJob.status == "queued")
+    )
+    if (queued or 0) >= settings.max_queued_jobs:
+        raise HTTPException(
+            status.HTTP_503_SERVICE_UNAVAILABLE,
+            f"evaluation queue is full ({queued} jobs waiting); try again later",
+        )
 
 
 def require_admin(

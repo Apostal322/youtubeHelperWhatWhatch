@@ -68,6 +68,18 @@ jobs:
           alembic downgrade base
       - name: Tests (SQLite + PostgreSQL/pgvector + Redis)
         run: pytest -q --cov=avd --cov-report=term
+      - name: Local mode smoke test (avd start, SQLite, embedded worker, request guard)
+        env:
+          AVD_TEST_DATABASE_URL: ""
+          AVD_TEST_REDIS_URL: ""
+        run: |
+          avd start --data-dir "$RUNNER_TEMP/avd-local" --demo --port 8799 > "$RUNNER_TEMP/start.log" 2>&1 &
+          PID=$!
+          for i in $(seq 1 60); do curl -sf -o /dev/null http://127.0.0.1:8799/health && break; sleep 1; done
+          curl -sf http://127.0.0.1:8799/v1/status | python -c "import sys,json; s=json.load(sys.stdin); assert s['deployment_mode']=='local' and s['worker']['running'], s"
+          test "$(curl -s -o /dev/null -w '%{http_code}' -H 'Host: evil.example' http://127.0.0.1:8799/v1/meta)" = 400
+          test "$(curl -s -o /dev/null -w '%{http_code}' -X POST -H 'Origin: https://evil.example' http://127.0.0.1:8799/v1/users)" = 403
+          kill -INT "$PID"; wait "$PID" || true
       - name: Benchmark (deterministic heuristic baseline on synthetic fixtures)
         run: avd bench --tag ci --out ../benchmarks/reports
       - uses: actions/upload-artifact@v4

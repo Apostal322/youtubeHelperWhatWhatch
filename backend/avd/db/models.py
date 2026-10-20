@@ -581,3 +581,24 @@ class BenchmarkRun(Base):
     cost_usd: Mapped[float] = mapped_column(Float, default=0.0)
     runtime_seconds: Mapped[float] = mapped_column(Float, default=0.0)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+
+
+class ImportedEvaluation(Base):
+    """An evaluation from another installation's export (``avd evaluations import``).
+
+    Never authoritative: kept apart from ``evaluations``, never ranked, recommended or benchmarked,
+    and always shown with its declared origin as "imported, unverified"."""
+
+    __tablename__ = "imported_evaluations"
+    __table_args__ = (UniqueConstraint("origin", "evaluation_id"),)
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    origin: Mapped[str] = mapped_column(String(200))
+    evaluation_id: Mapped[str] = mapped_column(String(64))
+    video_id: Mapped[str] = mapped_column(String(64), index=True)
+    format_version: Mapped[str] = mapped_column(String(16))
+    file_sha256: Mapped[str] = mapped_column(String(64))
+    evaluator_source: Mapped[str] = mapped_column(String(16))
+    models: Mapped[list[Any]] = mapped_column(JSON, default=list)
+    payload: Mapped[dict[str, Any]] = mapped_column(JSON, default=dict)
+    imported_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)

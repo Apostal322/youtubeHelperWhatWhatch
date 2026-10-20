@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { ApiClient, ApiError, setApiBase } from "../src/lib/api";
+import { ApiClient, ApiError, setApiBase, setInviteCode } from "../src/lib/api";
+import { diagnose, grantRemoteConsent, hasRemoteConsent, isLocalBase, validateBackendUrl } from "../src/lib/backend";
 import { badgeText, band, duration, fmtScore, modelLabel, timestamp } from "../src/lib/format";
 import { parseVideoId } from "../src/lib/youtube";
 
@@ -50,6 +51,39 @@ describe("ApiClient", () => {
   beforeEach(async () => {
     window.localStorage.clear();
     await setApiBase("http://backend.test/");
+    await grantRemoteConsent("http://backend.test");
+  });
+
+  it("sends nothing to a remote backend before the user agrees", async () => {
+    window.localStorage.clear();
+    await setApiBase("https://avd.example.org");
+    const fetchMock = vi.fn();
+    const client = new ApiClient(fetchMock as unknown as typeof fetch);
+    await expect(client.meta()).rejects.toMatchObject({ code: "consent_required" });
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it("talks to a local backend without a consent step", async () => {
+    window.localStorage.clear();
+    await setApiBase("http://localhost:8000");
+    const fetchMock = vi.fn(async () => jsonResponse(200, { framework_version: "x" }));
+    await new ApiClient(fetchMock as unknown as typeof fetch).meta();
+    expect(fetchMock).toHaveBeenCalledOnce();
+  });
+
+  it("sends the invite code only when registering", async () => {
+    await setInviteCode("join-us");
+    const calls: [string, RequestInit | undefined][] = [];
+    const fetchMock = vi.fn(async (url: string | URL | Request, init?: RequestInit) => {
+      calls.push([String(url), init]);
+      if (String(url).endsWith("/v1/users")) return jsonResponse(201, { user_id: "u1", token: "tok" });
+      return jsonResponse(200, { interests: [] });
+    });
+    await new ApiClient(fetchMock as unknown as typeof fetch).preferences();
+    const reg = calls.find(([u]) => u.endsWith("/v1/users"))!;
+    expect((reg[1]!.headers as Record<string, string>)["X-Invite-Code"]).toBe("join-us");
+    const prefs = calls.find(([u]) => u.endsWith("/preferences"))!;
+    expect((prefs[1]!.headers as Record<string, string>)["X-Invite-Code"]).toBeUndefined();
   });
 
   it("creates an anonymous user once and sends the bearer token", async () => {
@@ -95,5 +129,56 @@ describe("modelLabel", () => {
   it("shows tag and quantization for local models and leaves hosted ids alone", () => {
     expect(modelLabel("ollama:qwen3.5:9b@0123456789ab:Q4_K_M")).toBe("qwen3.5:9b (Q4_K_M)");
     expect(modelLabel("claude-opus-5-5")).toBe("claude-opus-5-5");
+  });
+});
+
+describe("backend selection", () => {
+  it("accepts local HTTP and remote HTTPS origins only", () => {
+    expect(validateBackendUrl("http://localhost:8000/")).toEqual({ ok: true, base: "http://localhost:8000", kind: "local" });
+    expect(validateBackendUrl("http://127.0.0.1:9000").kind).toBe("local");
+    expect(validateBackendUrl("http://[::1]:8000").kind).toBe("local");
+    expect(validateBackendUrl("https://avd.example.org").kind).toBe("remote");
+    for (const bad of [
+      "http://avd.example.org",
+      "http://192.168.1.10:8000",
+      "ftp://x.org",
+      "https://user:pw@avd.example.org",
+      "https://avd.example.org/api",
+      "https://avd.example.org/?x=1",
+      "javascript:alert(1)",
+      "not a url",
+    ]) {
+      expect(validateBackendUrl(bad).ok, bad).toBe(false);
+    }
+  });
+
+  it("remembers consent per origin", async () => {
+    window.localStorage.clear();
+    expect(await hasRemoteConsent("https://a.example")).toBe(false);
+    await grantRemoteConsent("https://a.example");
+    expect(await hasRemoteConsent("https://a.example")).toBe(true);
+    expect(await hasRemoteConsent("https://b.example")).toBe(false);
+    expect(isLocalBase("http://localhost:8000") && !isLocalBase("https://a.example")).toBe(true);
+  });
+
+  it("diagnoses a healthy backend, a rejected host and an unreachable one", async () => {
+    const ok = await diagnose("http://localhost:8000", (async () =>
+      jsonResponse(200, {
+        deployment_mode: "local",
+        registration: "open",
+        inference: { location: "local", provider: "ollama", model: "qwen3.5:4b", reachable: true, model_installed: false },
+        database: "ok",
+        queue: { queued: 2 },
+        versions: { framework: "2026.10.1" },
+      })) as unknown as typeof fetch);
+    expect(ok).toMatchObject({ reachable: true, deploymentMode: "local", framework: "2026.10.1" });
+    expect(ok.inference?.model_installed).toBe(false);
+    const host = await diagnose("https://a.example", (async () =>
+      jsonResponse(400, { error: { code: "invalid_host" } })) as unknown as typeof fetch);
+    expect(host.problem).toMatch(/AVD_ALLOWED_HOSTS/);
+    const down = await diagnose("http://localhost:1", (async () => {
+      throw new TypeError("Failed to fetch");
+    }) as unknown as typeof fetch);
+    expect(down.reachable).toBe(false);
   });
 });

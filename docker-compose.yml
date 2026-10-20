@@ -1,10 +1,16 @@
-# Local stack: PostgreSQL + pgvector, Redis, API, Celery worker + beat.
-#   docker compose up --build
-#   docker compose run --rm init          # migrate + seed synthetic demo fixtures
-# Real LLM / YouTube integrations are enabled through .env (see .env.example).
-# Local AI (no cloud inference):  docker compose --profile local-ai up --build
-#   with AVD_LLM_PROVIDER=ollama in .env; then pull a model once (see docs/local-ai.md):
-#   docker compose exec ollama ollama pull qwen3.5:4b
+# AI Video Discovery: self-hosted deployment. Everything runs on machines you control; nothing
+# connects to a project-operated server (there is none). See docs/self-hosting.md.
+#
+#   Lite (one container, SQLite, embedded worker):    docker compose --profile lite up --build lite
+#   Full stack (PostgreSQL+pgvector, Redis, Celery):  docker compose up --build
+#   + local AI model server (Ollama):                 add --profile local-ai
+#   One-off migrate + synthetic demo data (full):     docker compose run --rm init
+#
+# Ports are published on 127.0.0.1 only. For a shared server, put a TLS reverse proxy in front
+# of the API and set AVD_DEPLOYMENT_MODE=server, AVD_ALLOWED_HOSTS, AVD_ADMIN_TOKEN and a
+# registration policy in .env: the API refuses to start in server mode without them.
+# Upstream images are pinned to a version tag. The Ollama tag is not pinned by default
+# (OLLAMA_IMAGE_TAG), because no release could be verified when this file was written.
 
 x-backend: &backend
   build:
@@ -13,14 +19,20 @@ x-backend: &backend
   env_file:
     - path: .env
       required: false
-  environment:
-    AVD_DATABASE_URL: postgresql+psycopg://avd:avd@postgres:5432/avd
+  environment: &backend-env
+    AVD_DATABASE_URL: postgresql+psycopg://avd:${POSTGRES_PASSWORD:-avd}@postgres:5432/avd
     AVD_REDIS_URL: redis://redis:6379/0
     AVD_TASK_BACKEND: celery
-    AVD_ADMIN_TOKEN: ${AVD_ADMIN_TOKEN:-change-me-local-admin}
+    AVD_DEPLOYMENT_MODE: ${AVD_DEPLOYMENT_MODE:-local}
+    AVD_ALLOWED_HOSTS: ${AVD_ALLOWED_HOSTS:-["localhost", "127.0.0.1"]}
+    # Requests reach the container from the Docker bridge, not loopback. The port is published on
+    # 127.0.0.1 only, so in local mode these private bridge ranges still mean "this computer".
+    AVD_LOCAL_PEER_NETWORKS: ${AVD_LOCAL_PEER_NETWORKS:-["172.16.0.0/12", "192.168.0.0/16", "10.0.0.0/8"]}
+    AVD_ADMIN_TOKEN: ${AVD_ADMIN_TOKEN:-}
     AVD_OLLAMA_BASE_URL: ${AVD_OLLAMA_BASE_URL:-http://ollama:11434}
   volumes:
     - media:/app/backend/.media_cache
+  restart: unless-stopped
   depends_on:
     postgres:
       condition: service_healthy
@@ -32,12 +44,12 @@ services:
     image: pgvector/pgvector:0.8.0-pg16
     environment:
       POSTGRES_USER: avd
-      POSTGRES_PASSWORD: avd
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-avd}
       POSTGRES_DB: avd
     volumes:
       - pgdata:/var/lib/postgresql/data
-    ports:
-      - "5432:5432"
+    # No published port: only the API and workers reach the database.
+    restart: unless-stopped
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U avd -d avd"]
       interval: 5s
@@ -46,8 +58,10 @@ services:
 
   redis:
     image: redis:7.4-alpine
-    ports:
-      - "6379:6379"
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes:
+      - redisdata:/data
+    restart: unless-stopped
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 5s
@@ -62,23 +76,56 @@ services:
 
   api:
     <<: *backend
-    command: ["sh", "-c", "avd migrate && uvicorn avd.api.app:app --host 0.0.0.0 --port 8000"]
+    command: ["sh", "-c", "avd migrate && uvicorn avd.api.app:app --host 0.0.0.0 --port 8000 --proxy-headers --forwarded-allow-ips=${AVD_FORWARDED_ALLOW_IPS:-127.0.0.1}"]
     ports:
-      - "8000:8000"
+      - "127.0.0.1:${AVD_API_PORT:-8000}:8000"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health', timeout=3)"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
 
   worker:
     <<: *backend
-    command: ["celery", "-A", "avd.workers.celery_app", "worker", "-Q", "light,deep", "-c", "4", "--loglevel=INFO"]
+    # Concurrency 2: model calls are further bounded by AVD_LLM_MAX_CONCURRENCY (1 for Ollama).
+    command: ["celery", "-A", "avd.workers.celery_app", "worker", "-Q", "light,deep", "-c", "${AVD_WORKER_CONCURRENCY:-2}", "--loglevel=INFO"]
 
   beat:
     <<: *backend
     command: ["celery", "-A", "avd.workers.celery_app", "beat", "--loglevel=INFO", "-s", "/tmp/celerybeat-schedule"]
 
-  # Optional local model server. Bound to 127.0.0.1 only: never expose it publicly (it has no
-  # authentication). For NVIDIA GPUs add `gpus: all`; for AMD use the ollama/ollama:rocm image
-  # with /dev/kfd and /dev/dri. Without a GPU it runs on the CPU.
+  # Lite: one container, SQLite in a volume, embedded worker; no PostgreSQL, Redis or Celery.
+  lite:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    profiles: ["lite"]
+    env_file:
+      - path: .env
+        required: false
+    environment:
+      AVD_DATA_DIR: /data
+      AVD_DATABASE_URL: sqlite:////data/avd.db   # so one-off commands (seed-demo, backup) use the same database
+      AVD_MEDIA_CACHE_DIR: /data/media
+      AVD_ALLOWED_HOSTS: ${AVD_ALLOWED_HOSTS:-["localhost", "127.0.0.1"]}
+      AVD_LOCAL_PEER_NETWORKS: ${AVD_LOCAL_PEER_NETWORKS:-["172.16.0.0/12", "192.168.0.0/16", "10.0.0.0/8"]}
+      AVD_OLLAMA_BASE_URL: ${AVD_OLLAMA_BASE_URL:-http://ollama:11434}
+    command: ["avd", "start", "--host", "0.0.0.0", "--data-dir", "/data"]
+    ports:
+      - "127.0.0.1:${AVD_API_PORT:-8000}:8000"
+    volumes:
+      - litedata:/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health', timeout=3)"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  # Optional local model server. No authentication of its own: published on 127.0.0.1 only.
+  # NVIDIA: add `gpus: all`. AMD: use the ollama/ollama:rocm image with /dev/kfd and /dev/dri.
+  # Without a GPU it runs on the CPU. Models are pulled explicitly (docs/local-ai.md).
   ollama:
-    # Pin OLLAMA_IMAGE_TAG to the release you validated; every run records the server version.
     image: ollama/ollama:${OLLAMA_IMAGE_TAG:-latest}
     profiles: ["local-ai"]
     ports:
@@ -89,8 +136,11 @@ services:
       OLLAMA_KEEP_ALIVE: "10m"
     volumes:
       - ollama:/root/.ollama
+    restart: unless-stopped
 
 volumes:
   pgdata:
+  redisdata:
   media:
+  litedata:
   ollama:

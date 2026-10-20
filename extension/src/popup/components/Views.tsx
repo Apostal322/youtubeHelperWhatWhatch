@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
-import { ApiError, DEFAULT_API_BASE, api, getApiBase, setApiBase } from "../../lib/api";
+import { ApiError, api } from "../../lib/api";
+import { BackendSettings } from "./Backend";
 import { duration, fmtScore, humanize } from "../../lib/format";
 import type { Evaluation, FeedbackKind, Preferences, RecommendationItem, SearchItem, VideoCard } from "../../lib/types";
 import { QualityBreakdown } from "./QualityBreakdown";
@@ -156,6 +157,7 @@ export function DiscoverView({ onSelect }: { onSelect: Select }) {
           {items.length > 0 && onlyReliable
             ? "None of the current recommendations has an evidence-checked assessment yet."
             : notes[0] ?? "No recommendations yet. Add interests in Preferences."}
+          {items.length === 0 ? <FirstRunHint /> : null}
         </Empty>
       ) : (
         <ul className="list">
@@ -305,7 +307,10 @@ export function SearchView({ onSelect }: { onSelect: Select }) {
       {items === null ? (
         <Empty>Search the analyzed catalog by topic.</Empty>
       ) : items.length === 0 ? (
-        <Empty>No analyzed videos match.</Empty>
+        <Empty>
+          No analyzed videos match.
+          <FirstRunHint />
+        </Empty>
       ) : (
         <ul className="list">
           {items.map((it) => (
@@ -347,13 +352,22 @@ const INTENTS: { value: NonNullable<Preferences["intent"]>; label: string }[] = 
   { value: "deep_dive", label: "Deep dive" },
 ];
 
+/** Shown when the catalog is empty: a new installation has no central catalog to draw on. */
+export function FirstRunHint() {
+  return (
+    <div className="small muted first-run">
+      A new installation starts empty: there is no shared catalog. To get started, on the backend's computer run{" "}
+      <code>avd start --demo</code> for clearly labelled synthetic examples, <code>avd dataset import</code> for the
+      licensed pilot transcripts, or submit a transcript you have the right to share from a video's page.
+    </div>
+  );
+}
+
 export function PreferencesView({ onSaved }: { onSaved: () => void }) {
   const [p, setP] = useState<Preferences | null>(null);
   const [interests, setInterests] = useState("");
-  const [apiBase, setBase] = useState(DEFAULT_API_BASE);
   const [state, setState] = useState<"idle" | "saved" | Error>("idle");
   useEffect(() => {
-    void getApiBase().then(setBase);
     api
       .preferences()
       .then((prefs) => {
@@ -363,15 +377,6 @@ export function PreferencesView({ onSaved }: { onSaved: () => void }) {
       .catch((e: Error) => setState(e));
   }, []);
   const set = <K extends keyof Preferences>(k: K, v: Preferences[K]) => p && setP({ ...p, [k]: v });
-  const saveBase = async () => {
-    const url = apiBase.replace(/\/+$/, "");
-    if (typeof chrome !== "undefined" && chrome.permissions && url !== DEFAULT_API_BASE) {
-      const granted = await chrome.permissions.request({ origins: [`${new URL(url).origin}/*`] });
-      if (!granted) return setState(new Error("Permission to contact that backend was not granted"));
-    }
-    await setApiBase(url);
-    window.location.reload();
-  };
   return (
     <div className="prefs">
       {state instanceof Error ? <ErrorBox error={state} /> : null}
@@ -486,16 +491,7 @@ export function PreferencesView({ onSaved }: { onSaved: () => void }) {
       ) : state === "idle" ? (
         <Spinner />
       ) : null}
-      <fieldset>
-        <legend>Backend</legend>
-        <label>
-          API base URL
-          <input value={apiBase} onChange={(e) => setBase(e.target.value)} />
-        </label>
-        <button type="button" onClick={() => void saveBase()}>
-          Use this backend
-        </button>
-      </fieldset>
+      <BackendSettings />
     </div>
   );
 }

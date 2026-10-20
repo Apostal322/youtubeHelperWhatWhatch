@@ -130,3 +130,4 @@ legend { color: var(--text); font-weight: 600; padding: 0 4px; }
 .row label { flex: 1; }
 :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
+.consent { border: 1px solid var(--border); border-radius: 8px; padding: 8px; margin: 8px 0; }

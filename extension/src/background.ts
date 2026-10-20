@@ -3,6 +3,7 @@
 // it never runs model inference.
 
 import { getApiBase } from "./lib/api";
+import { hasRemoteConsent, isLocalBase, remoteBadgeLookups } from "./lib/backend";
 import { badgeText } from "./lib/format";
 import { parseVideoId } from "./lib/youtube";
 
@@ -14,8 +15,14 @@ async function lookup(videoId: string): Promise<{ text: string; title: string }>
   if (hit && Date.now() - hit.at < TTL_MS) return hit;
   let text = "";
   let title = "AI Video Discovery — not analyzed yet";
+  const base = await getApiBase();
+  // Looking up every video you open tells the backend what you watch. That is fine on your own
+  // computer; for a remote backend it needs both the connection consent and a separate opt-in.
+  if (!isLocalBase(base) && !((await hasRemoteConsent(base)) && (await remoteBadgeLookups()))) {
+    return { text: "", title: "AI Video Discovery — badge lookups off for remote backends (see Preferences)" };
+  }
   try {
-    const res = await fetch(`${await getApiBase()}/v1/videos/${encodeURIComponent(videoId)}`);
+    const res = await fetch(`${base}/v1/videos/${encodeURIComponent(videoId)}`);
     if (res.ok) {
       const body = (await res.json()) as { intrinsic_quality: { overall: number | null; synthetic: boolean } | null };
       const q = body.intrinsic_quality;

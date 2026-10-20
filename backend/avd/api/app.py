@@ -1,11 +1,14 @@
 from __future__ import annotations
 
+from collections.abc import AsyncIterator
+from contextlib import asynccontextmanager
 from typing import Any
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from avd.api import ops
+from avd.api.guard import DeploymentGuard
 from avd.api.routers import admin, annotation, public, users
 from avd.config import get_settings
 from avd.logging import configure_logging
@@ -14,12 +17,33 @@ from avd.logging import configure_logging
 def create_app() -> FastAPI:
     settings = get_settings()
     configure_logging(settings.log_level, settings.log_json)
+    if problems := settings.server_mode_problems():
+        # Fail closed: a shared server never starts with an unsafe configuration.
+        raise RuntimeError("unsafe server configuration: " + "; ".join(problems))
+
+    @asynccontextmanager
+    async def lifespan(app: FastAPI) -> AsyncIterator[None]:
+        worker = None
+        if settings.embedded_worker:
+            from avd.workers.context import build_context
+            from avd.workers.embedded import EmbeddedWorker
+
+            worker = EmbeddedWorker(build_context(), settings.embedded_worker_poll_seconds)
+            worker.start()
+        app.state.worker = worker
+        yield
+        if worker is not None:
+            worker.stop()
+
     app = FastAPI(
         title="AI Video Discovery",
         version="0.1.0",
         description="Popularity-blind, multidimensional video quality assessment and recommendations.",
+        lifespan=lifespan,
     )
+    app.state.worker = None
     ops.install(app, settings)
+    app.add_middleware(DeploymentGuard, settings=settings)
     # Added last = outermost, so error and 429 responses also carry CORS headers.
     app.add_middleware(
         CORSMiddleware,

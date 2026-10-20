@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import os
+import sys
 from collections.abc import Callable, Iterator
 from dataclasses import dataclass
 from pathlib import Path
@@ -20,8 +21,56 @@ from avd.evaluation.schema import Genre, GenreAssessment, Modality
 from avd.llm.base import LLMRequest, LLMResponse
 
 FIXTURES = REPO_ROOT / "data" / "fixtures"
+
+# --- No hidden network traffic -----------------------------------------------------------------
+# Every DNS lookup and socket connection made by the code under test is recorded. Anything that
+# is not loopback or a private address (telemetry, a hosted model, an update check) fails the
+# session. Proxy variables are cleared so that traffic cannot hide behind a local proxy.
+_OUTBOUND: list[str] = []
+_LOCAL_NAMES = {"localhost", "testserver", "testclient", ""}
+
+
+def _is_local_address(host: str) -> bool:
+    import ipaddress
+
+    if host in _LOCAL_NAMES or host.endswith(".svc.cluster.local"):
+        return True
+    try:
+        ip = ipaddress.ip_address(host.split("%", 1)[0])
+    except ValueError:
+        return False
+    return ip.is_loopback or ip.is_private or ip.is_link_local or ip.is_unspecified
+
+
+def _audit(event: str, args: tuple[Any, ...]) -> None:
+    if event == "socket.getaddrinfo":
+        host = args[0].decode() if isinstance(args[0], bytes) else str(args[0] or "")
+        if not _is_local_address(host):
+            _OUTBOUND.append(f"DNS lookup {host}")
+    elif event == "socket.connect":
+        addr = args[1]
+        if isinstance(addr, tuple) and addr and not _is_local_address(str(addr[0])):
+            _OUTBOUND.append(f"connect {addr[0]}:{addr[1] if len(addr) > 1 else ''}")
+
+
+for _var in ("HTTP_PROXY", "HTTPS_PROXY", "ALL_PROXY", "http_proxy", "https_proxy", "all_proxy"):
+    os.environ.pop(_var, None)
+sys.addaudithook(_audit)
+
+
+def pytest_sessionfinish(session: pytest.Session, exitstatus: int) -> None:
+    if _OUTBOUND:
+        print("\nUNEXPECTED OUTBOUND NETWORK ACTIVITY during tests:")
+        for item in sorted(set(_OUTBOUND)):
+            print("  -", item)
+        session.exitstatus = 1
+
+
 PG_URL = os.environ.get("AVD_TEST_DATABASE_URL")
 REDIS_URL = os.environ.get("AVD_TEST_REDIS_URL")
+# Starlette's TestClient sends ``Host: testserver``; production keeps the loopback-only default.
+TEST_HOSTS = ["testserver", "localhost", "127.0.0.1"]
+os.environ.setdefault("AVD_ALLOWED_HOSTS", json.dumps(TEST_HOSTS))
 
 
 @dataclass
@@ -40,6 +89,7 @@ def make_settings(tmp_path: Path, url: str | None = None, **kw: Any) -> Settings
         "redis_url": None,
         "admin_token": "test-admin",
         "log_json": False,
+        "allowed_hosts": TEST_HOSTS,
     }
     base.update(kw)
     return Settings(**base)
