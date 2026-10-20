@@ -201,7 +201,10 @@ request.** The steps are:
    ```
 
    `--items 1` gives the shortest calibration episode only (Changelog & Friends #37, 10,769
-   words). Leave it out for both practice episodes. A packet is always whole episodes: the project
+   words). Leave it out for both practice episodes. To test the packet with one volunteer first,
+   in 15–20 minutes, use a usability pilot (`avd annotate usability-packet`, see
+   [`annotation-pilot.md`](annotation-pilot.md)): an excerpt that is labelled as one and is
+   never stored as a rating. A packet is always whole episodes: the project
    has no segment-level rating, and a rating of part of an episode must never be treated as a
    rating of the whole.
 2. **Recruit three volunteers.** Use the invitation template in

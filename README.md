@@ -45,7 +45,8 @@ or model endpoint run by the project, and none is needed
 Synthetic demo videos (written for this project) are labelled `synthetic_demo` everywhere and
 do not exist on YouTube. Phase records with audits and measured results:
 [Phase 2](docs/phase2.md), [Phase 3](docs/phase3.md), [Phase 3.1](docs/phase3_1-report.md),
-[Phase 3.2](docs/phase3_2-report.md), [Phase 3.3](docs/phase3_3-report.md), [Phase 3.4](docs/phase3_4-report.md).
+[Phase 3.2](docs/phase3_2-report.md), [Phase 3.3](docs/phase3_3-report.md), [Phase 3.4](docs/phase3_4-report.md),
+[Phase 3.5](docs/phase3_5-report.md).
 
 ![Quality breakdown in the extension](docs/screenshots/extension-video-quality.png)
 
@@ -59,6 +60,9 @@ cd youtubeHelperWhatWhatch/backend
 python3 -m venv .venv && source .venv/bin/activate && pip install -e .
 avd start --demo        # http://127.0.0.1:8000 (this computer only); synthetic examples queued
 ```
+
+A ten-minute walkthrough of what it does (submit, progress, breakdown, evidence, search,
+recommendations), with what each output really is: [`docs/demo.md`](docs/demo.md).
 
 Then build the extension (`cd extension && npm ci && npm run build`) and load `extension/dist`
 in `chrome://extensions` (*Developer mode* → *Load unpacked*). It connects to your local backend
@@ -77,6 +81,8 @@ automatically.
 
   Being publicly viewable on YouTube is not permission to download
   ([`docs/permissions.md`](docs/permissions.md)).
+* **Search quality:** the default `hashing` embedder is a keyword-hash fallback and can surface
+  unrelated videos. For real use, `avd embeddings fetch-model` and `AVD_EMBEDDING_PROVIDER=onnx_minilm`.
 * **Diagnostics:** `avd doctor`; in the extension, *Preferences → Backend*.
 
 ## Run it for a group (self-hosted)
