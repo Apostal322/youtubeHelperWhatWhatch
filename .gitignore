@@ -34,3 +34,8 @@ benchmarks/reports/*
 !benchmarks/reports/throughput-*
 !benchmarks/reports/perf-*
 benchmarks/runs/
+benchmarks/local/
+
+# Volunteer runs: run databases hold transcript text; share only `avd community pack` output
+backend/smoke-run*/
+backend/*.zip

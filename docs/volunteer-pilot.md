@@ -57,14 +57,15 @@ Download it from the official site, <https://ollama.com/download>, and install i
 
 ## 4. Check out the repository
 
-Use the commit or branch named in the issue that asks for runs. Results are compared per commit.
+Use `main`, or the commit or tag named in the issue that asks for runs. Results are compared per
+commit, and the run records which one it used.
 
 **Windows (PowerShell)**
 
 ```powershell
 git clone https://github.com/Apostal322/youtubeHelperWhatWhatch
 cd youtubeHelperWhatWhatch
-git checkout <commit-or-branch-from-the-issue>
+git checkout main                     # or the commit/tag named in the issue
 ```
 
 **Linux / macOS**
@@ -72,7 +73,7 @@ git checkout <commit-or-branch-from-the-issue>
 ```bash
 git clone https://github.com/Apostal322/youtubeHelperWhatWhatch
 cd youtubeHelperWhatWhatch
-git checkout <commit-or-branch-from-the-issue>
+git checkout main                     # or the commit/tag named in the issue
 ```
 
 ## 5. Install the dependencies

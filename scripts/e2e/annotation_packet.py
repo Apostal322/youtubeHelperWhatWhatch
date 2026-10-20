@@ -39,6 +39,8 @@ def main() -> None:
     ap.add_argument("--avd", default="avd")
     ap.add_argument("--chromium", required=True)
     args = ap.parse_args()
+    if os.sep in args.avd:  # a relative path must survive the working-directory change below
+        args.avd = str(Path(args.avd).resolve())
     tmp = Path(tempfile.mkdtemp(prefix="avd-packet-"))
     env = {
         **os.environ,

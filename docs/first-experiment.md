@@ -24,8 +24,10 @@ What was tested where (2026-10-20):
 **You need** 16 GB of RAM (8 GB minimum), 10 GB of free disk, internet for the downloads, and a
 free GitHub account to submit.
 
-The commands use branch `claude/phase3-4-evidence`, which contains everything until PRs
-#2–#7 are merged. Use `main` after that.
+The commands use `main`. Results are compared per commit: the smoke summary records the exact
+commit (`git_commit`) and refuses a checkout with uncommitted changes, so you do not need to
+pin one yourself. If an issue asks for runs on a specific commit or tag, check that out instead
+(`git checkout <sha-or-tag>`).
 
 ### Windows (PowerShell), untested: please report anything that differs
 
@@ -47,7 +49,7 @@ In the **new** PowerShell window:
 cd $HOME
 git clone https://github.com/Apostal322/youtubeHelperWhatWhatch
 cd youtubeHelperWhatWhatch
-git checkout claude/phase3-4-evidence
+git checkout main
 cd backend
 py -3.12 -m venv .venv
 Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
@@ -72,7 +74,7 @@ is running (`ollama serve`, or the system service). Then:
 cd ~
 git clone https://github.com/Apostal322/youtubeHelperWhatWhatch
 cd youtubeHelperWhatWhatch
-git checkout claude/phase3-4-evidence
+git checkout main
 cd backend
 python3 -m venv .venv && source .venv/bin/activate
 pip install -e ".[dev]"
