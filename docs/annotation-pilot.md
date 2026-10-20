@@ -64,6 +64,17 @@ return ("never a rating"), and the report stores nothing either. An excerpt rati
 compared with, or substituted for, a full-episode rating. Full episodes stay the scientific
 task: calibration, then development items, as below.
 
+**Message to send with the pilot file (template):**
+
+> Thank you for trying this. The attached file opens in any browser and works offline: it
+> cannot send anything anywhere. It holds the opening part of one podcast episode (about 1,500
+> words), so expect 15–20 minutes. Please read the consent text at the top first; you can
+> download your answers only after agreeing. Then rate the ten aspects as best you can, and
+> write down anything that was unclear or slow, in the box at the end: that is what this trial
+> is for. Your answers are never used as a rating of the episode. When you are done, press
+> **Mark this item complete**, then **Download ratings file**, and send that file back to me
+> privately (not in a public GitHub issue).
+
 Also send [`templates/query-elicitation.txt`](templates/query-elicitation.txt) **before** the
 first packet. It collects one search written by someone who has not seen the catalog
 (`benchmarks/datasets/relevance_v1/README.md`).
