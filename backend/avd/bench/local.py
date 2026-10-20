@@ -406,9 +406,17 @@ def bench_local(
         engine.dispose()
         per_model[m] = entry
 
+    from avd.datasets.pilot import load_manifest
+
+    manifest = load_manifest(cfg.manifest)
     report = {
+        "format": "avd-bench-local-report",
+        "format_version": "1.0",
         "meta": {
             "bench_id": cfg.bench_id,
+            "dataset": f"{manifest['name']}@{manifest['version']}",
+            "manifest_items_sha256": manifest["items_sha256"],
+            "transport_kind": "injected" if injected else "real",
             "started": cfg.bench_id,
             "finished_at": datetime.now(UTC).isoformat(timespec="seconds"),
             "manifest": str(cfg.manifest),

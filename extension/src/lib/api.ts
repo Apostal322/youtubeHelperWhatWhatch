@@ -84,7 +84,7 @@ export class ApiClient {
 
   constructor(private fetchImpl: FetchLike = (...a) => fetch(...a)) {}
 
-  private async request<T>(path: string, init: RequestInit = {}, auth = false): Promise<T> {
+  private async request<T>(path: string, init: RequestInit = {}, auth = false, retried = false): Promise<T> {
     const base = await getApiBase();
     // Nothing is sent to a backend on another computer until the user has agreed to it.
     if (!isLocalBase(base) && !(await hasRemoteConsent(base)))
@@ -126,7 +126,12 @@ export class ApiClient {
       } catch {
         /* non-JSON error */
       }
-      if (res.status === 401) await removeItem(TOKEN_KEY);
+      if (res.status === 401) {
+        await removeItem(TOKEN_KEY);
+        // An expired or deleted anonymous account: register again and retry once, so the user
+        // does not see an error for something the extension can fix itself.
+        if (auth && !retried) return this.request<T>(path, init, auth, true);
+      }
       const retry = Number(res.headers.get("Retry-After"));
       throw new ApiError(res.status, detail, code, requestId, Number.isFinite(retry) && retry > 0 ? retry : null);
     }

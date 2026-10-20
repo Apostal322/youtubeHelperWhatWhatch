@@ -392,3 +392,52 @@ class TestExperimentalEvaluators:
 
         with pytest.raises(PluginError):
             load_evaluators([spec])
+
+
+def test_embedded_worker_survives_database_errors(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """A failing claim or job (e.g. "database or disk is full") must not kill the worker thread;
+    it records the error, backs off, and processes work once the database recovers."""
+    from sqlalchemy.exc import OperationalError
+
+    from avd.services import seed_demo
+    from avd.workers import runner
+    from avd.workers.context import build_context
+    from avd.workers.embedded import EmbeddedWorker
+    from tests.conftest import _make_db
+
+    db = _make_db(tmp_path, None)
+    with db.sf() as s:
+        seed_demo(s, db.settings)
+        s.commit()
+    real_claim, real_exec = runner.claim_batch, runner.execute_job
+    calls = {"claim": 0, "exec": 0}
+
+    def flaky_claim(*a: Any, **k: Any) -> Any:
+        calls["claim"] += 1
+        if calls["claim"] == 1:
+            raise OperationalError("INSERT", {}, Exception("database or disk is full"))
+        return real_claim(*a, **k)
+
+    def flaky_exec(*a: Any, **k: Any) -> Any:
+        calls["exec"] += 1
+        if calls["exec"] == 1:
+            raise OperationalError("UPDATE", {}, Exception("database or disk is full"))
+        return real_exec(*a, **k)
+
+    monkeypatch.setattr(runner, "claim_batch", flaky_claim)
+    monkeypatch.setattr(runner, "execute_job", flaky_exec)
+    w = EmbeddedWorker(build_context(settings=db.settings, session_factory=db.sf), poll_seconds=0.01)
+    w.start()
+    from avd.workers import queue
+
+    deadline = time.monotonic() + 60
+    while time.monotonic() < deadline:
+        with db.sf() as s:
+            st = queue.stats(s)
+        if all(set(v) <= {"succeeded", "skipped"} for v in st.values()) and st:
+            break
+        time.sleep(0.05)
+    w.stop()
+    assert "disk is full" in (w.last_error or "") and calls["claim"] >= 2 and calls["exec"] >= 2
+    # The crashed job was released at once and completed: nothing is left locked or dead.
+    assert all(set(v) <= {"succeeded", "skipped"} for v in st.values()), st

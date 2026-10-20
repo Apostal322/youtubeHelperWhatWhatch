@@ -94,8 +94,24 @@ class EmbeddedWorker:
             except Exception as exc:  # execute_job records failures itself; this is a last resort
                 self.last_error = f"{type(exc).__name__}: {exc}"
                 log.exception("embedded worker job failed")
+                self._release(ids[0])
             finally:
                 self.current_job = None
+
+    def _release(self, job_id: str) -> None:
+        """A job whose execution crashed (e.g. the database failed mid-write) is put back in the
+        queue now, rather than staying locked until its lease expires. The attempt still counts,
+        so a job that keeps crashing ends up dead instead of looping."""
+        try:
+            with self.ctx.session_factory() as s:
+                job = s.get(PipelineJob, job_id)
+                if job is not None and job.status == "running":
+                    job.status = "queued" if job.attempts < job.max_attempts else "dead"
+                    job.lease_expires_at = None
+                    job.last_error = f"worker crash: {self.last_error}"[:4000]
+                    s.commit()
+        except Exception:  # the database is still failing: the lease will expire on its own
+            log.exception("could not release job %s", job_id)
 
     def status(self) -> dict[str, Any]:
         return {

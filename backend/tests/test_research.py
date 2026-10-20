@@ -87,7 +87,11 @@ def test_mmr_caps_items_per_channel() -> None:
     ]
     cands.append({"video": SimpleNamespace(channel_id="other", embedding=[0.0, 1.0]), "rank": 0.5})
     picked = _mmr(cands, 5, diversity=0.3)
-    assert sum(1 for c in picked if c["video"].channel_id == "same") == 2
+    # The cap holds while there is a choice: the other channel is taken before a third "same" item,
+    # even though it ranks lower. Only then is the cap relaxed (soft cap, Phase 3.3), visibly.
+    assert [c["video"].channel_id for c in picked[:3]] == ["same", "same", "other"]
+    assert len(picked) == 5 and all(c.get("channel_cap_relaxed") for c in picked[3:])
+    assert not any(c.get("channel_cap_relaxed") for c in picked[:3])
 
 
 def test_benchmark_harness_end_to_end() -> None:

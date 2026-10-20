@@ -65,7 +65,9 @@ class OllamaModelInfo:
 
     @property
     def fingerprint(self) -> str:
-        return f"{self.name}@{(self.digest or 'unknown')[:12]}:{self.quantization or '?'}"
+        # Ollama may report digests with or without a "sha256:" prefix; keep 12 hex characters.
+        digest = (self.digest or "unknown").removeprefix("sha256:")
+        return f"{self.name}@{digest[:12]}:{self.quantization or '?'}"
 
 
 def is_cloud_model(name: str) -> bool:

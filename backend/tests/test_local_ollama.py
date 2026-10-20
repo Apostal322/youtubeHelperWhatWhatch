@@ -66,7 +66,7 @@ class TestClient:
         assert p.version() == "0.0.0-mock"
         info = p.model_info(MODEL)
         assert info.quantization == "Q4_K_M" and info.context_length == 262144
-        assert info.fingerprint == f"{MODEL}@sha256:ababa:Q4_K_M"
+        assert info.fingerprint == f"{MODEL}@abababababab:Q4_K_M"
         assert p.effective_context(MODEL) == 16384  # min(requested, native)
 
     def test_request_shape_native_api(self) -> None:
@@ -387,7 +387,7 @@ class TestEvaluateRealLocal:
         r = er.run(_cfg(tmp_path, manifest), _local_settings(tmp_path), _provider(fake))
         s, m = r["summary"], r["meta"]
         assert m["provider"] == "ollama" and m["budget_usd"] is None  # no budget needed for $0 calls
-        assert m["local_runtime"]["models"][MODEL]["fingerprint"].startswith(f"{MODEL}@sha256:")
+        assert m["local_runtime"]["models"][MODEL]["fingerprint"].startswith(f"{MODEL}@ababab")
         assert m["local_runtime"]["hardware"]["cpu_logical"] >= 1
         assert s["evaluated_by_llm"] == 3 and s["cost_usd"] == 0.0 and s["parse_failures"] == 0
         assert s["evidence"]["verified"] == s["evidence"]["claimed"] > 0

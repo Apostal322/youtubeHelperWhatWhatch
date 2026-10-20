@@ -7,6 +7,10 @@
 * The repository has **no `LICENSE` file**. Without the license text in the repository, people
   cannot rely on the grant with confidence. **Adding it is the owner's decision**, and so is
   choosing a different license. Nothing here changes the license.
+* **Prepared for approval:** branch `claude/proposal-apache-license` (draft pull request
+  against `main`) adds only `LICENSE`, the unmodified Apache License 2.0 text downloaded from
+  `https://www.apache.org/licenses/LICENSE-2.0.txt` (SHA-256 `cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30`).
+  Merging it is the owner's decision; closing it leaves everything as it is.
 
 ## Who holds copyright today
 

@@ -52,13 +52,20 @@ def _windows(text: str, size: int = WINDOW_WORDS, limit: int = MAX_WINDOWS) -> l
 
 
 def document_inputs(embedder: Embedder, video: Video, transcript: Transcript | None) -> tuple[str, list[str]]:
+    from avd.evaluation.sanitize import sanitize_description, sanitize_tags, sanitize_title
+
     recipe = getattr(embedder, "preprocessing", "meta_keywords_v1")
-    tags, topics = list(video.tags or []), list(video.topics or [])
+    # The same popularity stripping as the evaluator's input: "1M views", "trending" and the like
+    # must not shape retrieval either. Changed text changes the content hash, so `avd embeddings
+    # reindex` re-embeds affected videos.
+    title = sanitize_title(video.title)[0]
+    description = sanitize_description(video.description or "")[0]
+    tags, topics = list(sanitize_tags(list(video.tags or []))[0]), list(video.topics or [])
     if recipe == "chunk_mean_v1":
-        meta = ". ".join(p for p in (video.title, " ".join(tags), (video.description or "")[:600]) if p)
+        meta = ". ".join(p for p in (title, " ".join(tags), description[:600]) if p)
         return recipe, [meta, *(_windows(transcript.text) if transcript is not None else [])]
     keywords = transcript_keywords(transcript.text) if transcript is not None else None
-    return recipe, [video_embedding_text(video.title, video.description or "", tags, topics, keywords)]
+    return recipe, [video_embedding_text(title, description, tags, topics, keywords)]
 
 
 def embed_video(embedder: Embedder, video: Video, transcript: Transcript | None) -> EmbeddingRecord:

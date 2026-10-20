@@ -57,6 +57,10 @@ cd extension && npm run typecheck && npm test && npm run build
 ## Where to start
 
 * Issues labelled `good first issue` (maintainers add the label; if none are open, ask in an issue).
+  Ready-to-file candidates: [`docs/good-first-issues.md`](docs/good-first-issues.md).
+* Research contributions (model runs, ratings, relevance judgments, reproducing a benchmark):
+  [`docs/research-contributing.md`](docs/research-contributing.md) and
+  [`docs/volunteer-pilot.md`](docs/volunteer-pilot.md).
 * Evaluators, content sources, embeddings, rankers and exporters have documented extension
   points: [`docs/extending.md`](docs/extending.md).
 * Architecture: [`docs/architecture.md`](docs/architecture.md). Research method:
@@ -80,6 +84,7 @@ data files (raters are pseudonymous).
 
 The project declares Apache-2.0 for code (`backend/pyproject.toml`) and CC0-1.0 for synthetic
 fixtures and benchmark data. **The repository does not yet contain a LICENSE file. Adding it is
-a decision for the owner** (see [`docs/licensing.md`](docs/licensing.md)). By contributing, you
+a decision for the owner**; the exact change is prepared as a separate draft pull request (see
+[`docs/licensing.md`](docs/licensing.md)). By contributing, you
 agree that your contribution is provided under the license the project declares at the time of
 your contribution.
