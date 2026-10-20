@@ -15,6 +15,12 @@ from avd.embeddings.base import Embedder, get_embedder
 
 
 def db() -> Iterator[Session]:
+    """Request session; commits when the endpoint returns.
+
+    Always declare it as ``Depends(db, scope="function")``. With FastAPI's default (``"request"``)
+    the code after ``yield`` runs after the response has been sent, so a client could act on a
+    response whose transaction had not committed yet, or had failed to commit
+    (``tests/test_commit_before_response.py``)."""
     session = get_sessionmaker()()
     try:
         yield session
@@ -30,7 +36,9 @@ def hash_token(token: str) -> str:
     return hashlib.sha256(token.encode()).hexdigest()
 
 
-def current_user(authorization: str | None = Header(default=None), session: Session = Depends(db)) -> User:
+def current_user(
+    authorization: str | None = Header(default=None), session: Session = Depends(db, scope="function")
+) -> User:
     if not authorization or not authorization.lower().startswith("bearer "):
         raise HTTPException(status.HTTP_401_UNAUTHORIZED, "missing bearer token")
     user = session.scalar(select(User).where(User.token_hash == hash_token(authorization[7:].strip())))
@@ -41,7 +49,7 @@ def current_user(authorization: str | None = Header(default=None), session: Sess
 
 def optional_reader(
     authorization: str | None = Header(default=None),
-    session: Session = Depends(db),
+    session: Session = Depends(db, scope="function"),
     settings: Settings = Depends(get_settings),
 ) -> None:
     """Catalog and evaluation reads: open on local instances and on public servers; a private
@@ -50,7 +58,9 @@ def optional_reader(
         current_user(authorization, session)
 
 
-def backlog_guard(session: Session = Depends(db), settings: Settings = Depends(get_settings)) -> None:
+def backlog_guard(
+    session: Session = Depends(db, scope="function"), settings: Settings = Depends(get_settings)
+) -> None:
     """Bounded queue: new work is refused while too many jobs wait, so a slow (CPU-only) machine is
     never buried under an unbounded backlog."""
     queued = session.scalar(

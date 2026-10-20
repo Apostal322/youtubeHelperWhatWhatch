@@ -25,6 +25,17 @@ def _migrate() -> None:
     command.upgrade(cfg, "head")
 
 
+def _ensure_schema() -> None:
+    """Create the schema on a brand-new database (a volunteer's fresh checkout). An existing
+    database is left as it is: upgrading it stays an explicit `avd migrate`."""
+    from sqlalchemy import inspect
+
+    from avd.db.session import get_engine
+
+    if not inspect(get_engine()).get_table_names():
+        _migrate()
+
+
 def cmd_eval_export(args: argparse.Namespace) -> None:
     from avd.db.session import session_scope
     from avd.portability import export_evaluations, write_export
@@ -477,6 +488,7 @@ def cmd_dataset_import(args: argparse.Namespace) -> None:
     from avd.db.session import session_scope
     from avd.services import enqueue_stage_a
 
+    _ensure_schema()
     with session_scope() as s:
         result = import_manifest(s, Path(args.manifest), _fetcher(args))
         if args.evaluate:
@@ -536,7 +548,10 @@ def cmd_annotate(args: argparse.Namespace) -> None:
             out = Path(args.out)
             out.mkdir(parents=True, exist_ok=True)
             data = svc.export_labels(s, args.dataset)
-            for name in ("labels", "repeats", "pairs", "items", "enjoyment"):
+            from avd.annotation.offline import export_relevance
+
+            data["relevance"] = export_relevance(s)
+            for name in ("labels", "repeats", "pairs", "items", "enjoyment", "relevance"):
                 with (out / f"{name}.jsonl").open("w", encoding="utf-8") as f:
                     for row in data[name]:
                         f.write(json.dumps(row, ensure_ascii=False) + "\n")
@@ -549,6 +564,48 @@ def cmd_annotate(args: argparse.Namespace) -> None:
                 sys.exit(f"unknown dataset {args.dataset}")
             ds.public_blinding = args.annotate_cmd == "blind"
             print(json.dumps({"dataset": ds.id, "public_blinding": ds.public_blinding}))
+        elif args.annotate_cmd == "packet":
+            from sqlalchemy import select
+
+            from avd.annotation import offline
+            from avd.db.models import Rater
+
+            found = s.scalar(select(Rater).where(Rater.pseudonym == args.rater))
+            if found is None:
+                sys.exit(f"unknown rater {args.rater} (avd annotate create-rater)")
+            rater = found
+            consent = Path(args.consent_file).read_text(encoding="utf-8")
+            try:
+                packet, secret, payloads = offline.issue_packet(
+                    s, rater, args.dataset, args.items, tuple(args.splits.split(",")), consent_text=consent
+                )
+            except svc.AnnotationError as exc:
+                sys.exit(str(exc))
+            out = Path(args.out or f"packet-{rater.pseudonym}-{packet.id[:8]}.html")
+            out.write_text(offline.render_packet(packet, rater, payloads, secret, consent), encoding="utf-8")
+            print(
+                json.dumps(
+                    {
+                        "packet_id": packet.id,
+                        "rater": rater.pseudonym,
+                        "items": [p["video_id"] for p in payloads],
+                        "calibration": all(p["is_calibration"] for p in payloads),
+                        "file": str(out),
+                    }
+                )
+            )
+        elif args.annotate_cmd == "import-packet":
+            from avd.annotation import offline
+
+            try:
+                result = offline.import_return(s, json.loads(Path(args.file).read_text(encoding="utf-8")))
+            except (svc.AnnotationError, ValueError) as exc:
+                sys.exit(f"refused: {exc}")
+            print(json.dumps(result, indent=2))
+        elif args.annotate_cmd == "release-packet":
+            from avd.annotation import offline
+
+            print(json.dumps({"released_assignments": offline.release_packet(s, args.packet_id)}))
 
 
 def cmd_bench_real(args: argparse.Namespace) -> None:
@@ -753,9 +810,23 @@ def main(argv: list[str] | None = None) -> None:
         "blind", help="withhold model assessments of the dataset's items from public endpoints"
     )
     ub = an.add_parser("unblind", help="annotation closed: publish model assessments of the dataset's items")
-    for sp in (q, ex, bl, ub):
+    pk = an.add_parser("packet", help="offline rating file for one rater (no server needed)")
+    pk.add_argument("--rater", required=True, help="pseudonym from create-rater")
+    pk.add_argument("--items", type=int, default=3, help="dev items per packet (calibration comes first)")
+    pk.add_argument("--splits", default="dev", help="dev, or dev,test once the dev round is analysed")
+    pk.add_argument("--out", default=None)
+    pk.add_argument(
+        "--consent-file",
+        required=True,
+        help="consent text approved by the project owner (template: docs/templates/rating-consent.txt)",
+    )
+    ip = an.add_parser("import-packet", help="validate and record a returned ratings file")
+    ip.add_argument("file")
+    rp = an.add_parser("release-packet", help="withdraw a packet's unreturned assignments")
+    rp.add_argument("packet_id")
+    for sp in (q, ex, bl, ub, pk):
         sp.add_argument("--dataset", default="real_pilot@v1")
-    for sp in (cr, q, ex, bl, ub):
+    for sp in (cr, q, ex, bl, ub, pk, ip, rp):
         sp.set_defaults(fn=cmd_annotate)
     br = sub.add_parser("bench-real", help="benchmark on a real licensed dataset against human labels")
     br.add_argument(
@@ -818,6 +889,9 @@ def main(argv: list[str] | None = None) -> None:
     from avd.bench.community import add_parser as add_community_parser
 
     add_community_parser(sub)
+    from avd.bench.evidence_review import add_parser as add_evidence_review_parser
+
+    add_evidence_review_parser(sub)
     sub.add_parser("prompts", help="list registered evaluation prompts and their metadata").set_defaults(
         fn=cmd_prompts
     )

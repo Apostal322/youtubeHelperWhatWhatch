@@ -18,15 +18,17 @@ from typing import Any
 
 import numpy as np
 from sqlalchemy import func, select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session, selectinload
 
-from avd.datasets.blinding import blinded_video_ids
+from avd.datasets.blinding import blinded_video_ids, blinding_note
 from avd.db.models import (
     Channel,
     DimensionScoreRow,
     Evaluation,
     Feedback,
     RecommendationImpression,
+    RecommendationPolicy,
     UserPreferences,
     Video,
 )
@@ -35,6 +37,14 @@ from avd.evaluation.profiles import get_profile
 from avd.evaluation.schema import Dimension, expand_genres, genre_preference
 from avd.evaluation.service import assessment_state, genre_or_other, summary
 from avd.recsys.index import SearchFilters, vector_search
+from avd.recsys.policy import (
+    EXPLORATION_SHARE,
+    MAX_PER_CHANNEL,
+    QUALITY_CANDIDATES,
+    RETRIEVAL_PER_INTEREST,
+    policy_config,
+    policy_version,
+)
 from avd.recsys.ranker import DEFAULT_WEIGHTS, LinearRanker, Ranker
 
 DEPTH_TARGET = {"intro": 2.5, "intermediate": 3.5, "advanced": 4.5}
@@ -55,7 +65,6 @@ INTENT_GENRES: dict[str, dict[str, float]] = {
 UNUSABLE_STATES = {"failed", "insufficient_evidence"}
 POSITIVE = {"recommendation_useful"}
 NEGATIVE = {"recommendation_not_useful", "not_interested"}
-MAX_PER_CHANNEL = 2
 
 DEFAULT_RANKER = LinearRanker(weights=dict(DEFAULT_WEIGHTS))
 
@@ -185,6 +194,8 @@ def recommend(
     ``selected_exploration``, ``ineligible:<reason>``, ``below_relevance_floor``,
     ``channel_cap``, ``not_selected``). Candidates absent from it were never retrieved."""
     prof = build_profile(session, user_id, embedder)
+    config = policy_config(ranker, embedder)
+    version = policy_version(config)
     filters = SearchFilters(
         languages=prof.languages or None,
         include_synthetic=prof.include_synthetic,
@@ -195,7 +206,7 @@ def recommend(
     # ---- retrieval: per-interest vector search + quality-based candidates for preferred genres
     relevance: dict[str, tuple[float, str | None]] = {}
     for interest, vec in zip(prof.interests, prof.interest_vectors, strict=True):
-        for vid, sim in vector_search(session, vec, 60, embedder.model_id, filters):
+        for vid, sim in vector_search(session, vec, RETRIEVAL_PER_INTEREST, embedder.model_id, filters):
             if vid not in relevance or sim > relevance[vid][0]:
                 relevance[vid] = (sim, interest)
     preferred = expand_genres([g for g, w in prof.genre_weights.items() if w > 0]) or None
@@ -204,7 +215,7 @@ def recommend(
         .join(Evaluation, (Evaluation.video_id == Video.id) & Evaluation.is_current.is_(True))
         .where(Evaluation.status.in_(("complete", "partial")))
         .order_by(Evaluation.overall_score.desc().nulls_last())
-        .limit(40)
+        .limit(QUALITY_CANDIDATES)
     )
     if preferred:
         q = q.where(Video.genre.in_(preferred))
@@ -224,13 +235,27 @@ def recommend(
         if vid not in prof.excluded:
             relevance.setdefault(vid, (0.0, None))
 
+    hidden = blinding_note(session)
     if not relevance:
+        # Say *why* nothing is shown: an empty catalog, items hidden for annotation, or no match.
+        any_evaluated = session.scalar(select(Evaluation.id).where(Evaluation.is_current.is_(True)).limit(1))
+        if hidden:
+            reason, note = "hidden_for_blind_annotation", hidden
+        elif any_evaluated is None:
+            reason, note = (
+                "empty_catalog",
+                "The catalog is empty: nothing has been imported and analyzed yet.",
+            )
+        else:
+            reason, note = "no_match", "No analyzed videos match your filters yet."
         return {
             "request_id": None,
             "ranker_version": ranker.version,
+            "selection_policy_version": version,
             "items": [],
             "eligibility": {"candidates": 0, "ineligible": {}},
-            "notes": ["no analyzed videos match your filters yet"],
+            "empty_reason": reason,
+            "notes": [note],
         }
 
     videos = {v.id: v for v in session.scalars(select(Video).where(Video.id.in_(relevance.keys()))).all()}
@@ -313,7 +338,7 @@ def recommend(
     if prof.interests:
         topical = [c for c in scored if c["features"]["relevance"] > 0]
         explore = [c for c in scored if c["features"]["relevance"] <= 0]
-        quota = min(len(explore), max(1, limit // 5))
+        quota = min(len(explore), max(1, limit // EXPLORATION_SHARE))
         selected = _mmr(topical, limit - quota, prof.diversity)
         for c in explore:
             c["exploration"] = True
@@ -336,6 +361,17 @@ def recommend(
             else:
                 trace[vid] = "not_selected"
     request_id = str(uuid.uuid4())
+    request_context = {
+        "limit": limit,
+        "diversity": prof.diversity,
+        "min_quality": prof.min_quality,
+        "depth_preference": prof.depth_preference,
+        "small_creator_boost": prof.small_creator_boost,
+        "has_interests": bool(prof.interests),
+        "genre_weights_source": prof.genre_weights_source,
+    }
+    if log_impressions and selected:
+        _register_policy(session, version, config)
     items = []
     for pos, c in enumerate(selected):
         v, ev = c["video"], c["evaluation"]
@@ -348,6 +384,13 @@ def recommend(
                 evaluation_id=ev.id,
                 position=pos,
                 ranker_version=ranker.version,
+                selection_policy_version=version,
+                selection_context={
+                    **request_context,
+                    "exploration": bool(c.get("exploration", False)),
+                    "channel_cap_relaxed": bool(c.get("channel_cap_relaxed", False)),
+                    "mmr_penalty": c.get("mmr_penalty", 0.0),
+                },
                 intrinsic_quality=intrinsic_value(ev),
                 relevance=c["similarity"],
                 rank_score=c["rank"],
@@ -370,6 +413,8 @@ def recommend(
                 "ranking": {
                     "score": c["rank"],
                     "ranker_version": ranker.version,
+                    "selection_policy_version": version,
+                    "channel_cap_relaxed": bool(c.get("channel_cap_relaxed", False)),
                     "personal_quality": None
                     if c["personal_quality"] is None
                     else round(c["personal_quality"], 3),
@@ -381,16 +426,39 @@ def recommend(
                 "explanations": _explain(c, prof),
             }
         )
-    notes = []
+    notes = [hidden] if hidden else []
+    topical_shown = sum(1 for c in selected if not c.get("exploration"))
+    if prof.interests and topical_shown < limit:
+        notes.append(
+            f"{topical_shown} of {len(scored)} analyzed candidates match your interests closely enough; "
+            "the list is not filled up with unrelated videos."
+            + (
+                f" {len(selected) - topical_shown} exploration pick(s) outside them are labelled as such."
+                if len(selected) > topical_shown
+                else ""
+            )
+        )
     if prof.genre_weights_source == "intent":
         notes.append(f"Genre priorities come from your stated intent '{prof.intent}' (no genre weights set).")
     return {
         "request_id": request_id,
         "ranker_version": ranker.version,
+        "selection_policy_version": version,
         "items": items,
         "eligibility": {"candidates": len(relevance), "eligible": len(scored), "ineligible": ineligible},
         "notes": notes,
     }
+
+
+def _register_policy(session: Session, version: str, config: dict[str, Any]) -> None:
+    """Store a configuration the first time it is used. Existing rows are never modified."""
+    if session.get(RecommendationPolicy, version) is not None:
+        return
+    try:
+        with session.begin_nested():
+            session.add(RecommendationPolicy(version=version, config=config))
+    except IntegrityError:  # another request registered it concurrently
+        pass
 
 
 def _mmr(

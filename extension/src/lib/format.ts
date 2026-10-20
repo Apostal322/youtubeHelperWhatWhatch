@@ -27,6 +27,20 @@ export function duration(seconds: number | null | undefined): string {
   return m >= 60 ? `${Math.floor(m / 60)}h ${m % 60}m` : `${m}:${String(s).padStart(2, "0")}`;
 }
 
+/** A link to the moment in the video, only where the platform supports it (YouTube's `t`
+ * parameter). Other pages, such as a podcast's episode page, get no deep link. */
+export function timeLink(videoUrl: string | null, seconds: number): string | null {
+  if (!videoUrl) return null;
+  try {
+    const u = new URL(videoUrl);
+    if (!/(^|\.)youtube\.com$/.test(u.hostname) && u.hostname !== "youtu.be") return null;
+    u.searchParams.set("t", `${Math.floor(seconds)}s`);
+    return u.toString();
+  } catch {
+    return null;
+  }
+}
+
 export function timestamp(seconds: number | null | undefined): string {
   if (seconds === null || seconds === undefined) return "";
   const s = Math.floor(seconds);

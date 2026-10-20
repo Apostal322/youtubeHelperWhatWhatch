@@ -607,3 +607,25 @@ def test_live_structured_output_from_a_real_local_model() -> None:
         )
     )
     assert r.data.get("segment_index") == 0 and r.served_model.startswith(f"ollama:{LIVE_MODEL}@")
+
+
+def test_windows_hardware_reports_ram_and_cpu(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Without RAM, `community verify` refused every Windows submission and `local doctor`
+    recommended nothing. Simulated platform: the Windows API itself cannot run on Linux."""
+    from avd.llm import local
+
+    monkeypatch.setattr(local.platform, "system", lambda: "Windows")
+    monkeypatch.setattr(local, "_windows_memory", lambda: (15.7, 9.2))
+    monkeypatch.setattr(local, "_windows_cpu_name", lambda: "Intel(R) Core(TM) i7-1165G7 @ 2.80GHz")
+    monkeypatch.setattr(local, "_nvidia", lambda: [])
+    hw = local.detect_hardware()
+    assert hw.ram_total_gb == 15.7 and hw.ram_available_gb == 9.2
+    assert hw.cpu_model.startswith("Intel(R) Core")
+    rec = local.recommend(hw, 8192, set())
+    assert rec["primary"] == "qwen3.5:4b", rec  # a 4B model fits in 9 GB of free RAM
+
+    def broken() -> tuple[float, float]:
+        raise OSError("GlobalMemoryStatusEx failed")
+
+    monkeypatch.setattr(local, "_windows_memory", broken)
+    assert any("RAM could not be read" in n for n in local.detect_hardware().notes)

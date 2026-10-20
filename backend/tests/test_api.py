@@ -222,3 +222,8 @@ def test_off_topic_items_only_fill_a_labelled_exploration_quota(client: TestClie
         assert it["explanations"][0].startswith("Exploration pick")
     for it in topical:
         assert it["ranking"]["features"]["relevance"] > 0
+
+
+def test_status_reports_catalog_size(client: TestClient) -> None:
+    catalog = client.get("/v1/status").json()["catalog"]
+    assert catalog["videos"] >= 20 and catalog["synthetic"] >= 20 and catalog["evaluated"] >= 20

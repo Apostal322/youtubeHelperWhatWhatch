@@ -1,5 +1,11 @@
 # Human annotation
 
+> **Volunteers without a server:** [`annotation-pilot.md`](annotation-pilot.md) describes offline
+> rating packets: one HTML file per rater, no network access, ratings returned as a file. That
+> guide also has the invitation, instructions and consent templates and realistic time
+> estimates. This page describes the online workflow and the shared rules (blinding, QC,
+> adjudication, export).
+
 The workflow that produces the **only** labels this project treats as ground truth for real
 content. It ships empty: no rater has annotated anything yet, and no labels are generated or
 imported from model output.

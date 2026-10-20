@@ -193,3 +193,35 @@ def test_channel_cap_is_soft_when_only_one_creator_covers_the_topic() -> None:
         "show"
     ) == MAX_PER_CHANNEL  # cap holds when there is a choice
     assert not any(c.get("channel_cap_relaxed") for c in picked)
+
+
+@pytest.mark.parametrize(
+    "genre,should_move",
+    [("comedy", False), ("entertainment", False), ("lecture", True), ("science", True)],
+)
+def test_factual_accuracy_only_counts_where_the_genre_makes_claims(genre: str, should_move: bool) -> None:
+    """The same transcript judgements, with only factual accuracy changed from 1 to 5: a lecture's
+    content score moves, a comedy sketch's does not (its profile does not apply that rubric)."""
+    from avd.evaluation.aggregation import aggregate
+    from avd.evaluation.profiles import get_profile
+    from avd.evaluation.schema import DimensionScore, DimensionStatus, Genre
+
+    def dims(accuracy: float) -> list[DimensionScore]:
+        return [
+            DimensionScore(
+                dimension=d,
+                status=DimensionStatus.SCORED,
+                score=accuracy if d.value == "factual_accuracy" else 3.0,
+                confidence=0.7,
+                justification="test input",
+                method="test",
+            )
+            for d in Dimension
+            if d.group != DimensionGroup.TECHNICAL
+        ]
+
+    profile = get_profile(Genre(genre))
+    low, high = aggregate(dims(1.0), profile), aggregate(dims(5.0), profile)
+    moved = low.groups[DimensionGroup.CONTENT].score != high.groups[DimensionGroup.CONTENT].score
+    assert moved is should_move
+    assert profile.applicable(Dimension("factual_accuracy")) is should_move

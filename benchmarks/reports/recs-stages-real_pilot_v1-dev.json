@@ -14,8 +14,8 @@
     }
   },
   "meta": {
-    "run_at": "2026-10-19T19:07:30+00:00",
-    "git_commit": "17fc8179d8569d8c8528636fba25da9feef2d38c",
+    "run_at": "2026-10-19T21:12:06+00:00",
+    "git_commit": "f59c3c5b44c921243a0a61d99b3f9bedf51d9c95",
     "dataset": "real_pilot@v1",
     "split": "dev (exploratory; development data only)",
     "k": 5,
@@ -78,7 +78,8 @@
             "selected": 6,
             "below_relevance_floor": 4
           },
-          "latency_ms_mean": 15.175
+          "latency_ms_mean": 31.5,
+          "selection_policy_version": "two_stage_mmr_r2:c2ec3317ea49"
         },
         "0.3": {
           "recall@5": 0.5833,
@@ -91,7 +92,8 @@
             "selected": 6,
             "below_relevance_floor": 4
           },
-          "latency_ms_mean": 13.1
+          "latency_ms_mean": 14.825,
+          "selection_policy_version": "two_stage_mmr_r2:c2ec3317ea49"
         }
       },
       "personas": [
@@ -118,7 +120,90 @@
               "relevant_fates": {
                 "selected": 3
               },
-              "latency_ms": 22.1
+              "latency_ms": 24.1,
+              "selection_policy_version": "two_stage_mmr_r2:c2ec3317ea49",
+              "candidates": [
+                {
+                  "video_id": "chl_gotime_179",
+                  "proxy_relevant": true,
+                  "similarity": 0.118,
+                  "calibrated_relevance": 0.215,
+                  "fate": "selected",
+                  "position": 1
+                },
+                {
+                  "video_id": "chl_gotime_226",
+                  "proxy_relevant": true,
+                  "similarity": 0.1153,
+                  "calibrated_relevance": 0.2047,
+                  "fate": "selected",
+                  "position": 0
+                },
+                {
+                  "video_id": "chl_gotime_47",
+                  "proxy_relevant": true,
+                  "similarity": 0.0805,
+                  "calibrated_relevance": 0.0759,
+                  "fate": "selected",
+                  "position": 3
+                },
+                {
+                  "video_id": "chl_practicalai_100",
+                  "proxy_relevant": false,
+                  "similarity": 0.0696,
+                  "calibrated_relevance": 0.0355,
+                  "fate": "selected",
+                  "position": 2
+                },
+                {
+                  "video_id": "chl_backstage_21",
+                  "proxy_relevant": false,
+                  "similarity": 0.0381,
+                  "calibrated_relevance": 0.0,
+                  "fate": "below_relevance_floor",
+                  "position": null
+                },
+                {
+                  "video_id": "chl_practicalai_178",
+                  "proxy_relevant": false,
+                  "similarity": 0.0357,
+                  "calibrated_relevance": 0.0,
+                  "fate": "selected_exploration",
+                  "position": 4
+                },
+                {
+                  "video_id": "chl_backstage_4",
+                  "proxy_relevant": false,
+                  "similarity": 0.0189,
+                  "calibrated_relevance": 0.0,
+                  "fate": "below_relevance_floor",
+                  "position": null
+                },
+                {
+                  "video_id": "chl_practicalai_65",
+                  "proxy_relevant": false,
+                  "similarity": 0.0171,
+                  "calibrated_relevance": 0.0,
+                  "fate": "below_relevance_floor",
+                  "position": null
+                },
+                {
+                  "video_id": "chl_founderstalk_76",
+                  "proxy_relevant": false,
+                  "similarity": 0.0,
+                  "calibrated_relevance": 0.0,
+                  "fate": "below_relevance_floor",
+                  "position": null
+                },
+                {
+                  "video_id": "chl_founderstalk_58",
+                  "proxy_relevant": false,
+                  "similarity": -0.0177,
+                  "calibrated_relevance": 0.0,
+                  "fate": "below_relevance_floor",
+                  "position": null
+                }
+              ]
             },
             "0.3": {
               "recall@5": 1.0,
@@ -131,7 +216,90 @@
               "relevant_fates": {
                 "selected": 3
               },
-              "latency_ms": 13.4
+              "latency_ms": 15.9,
+              "selection_policy_version": "two_stage_mmr_r2:c2ec3317ea49",
+              "candidates": [
+                {
+                  "video_id": "chl_gotime_179",
+                  "proxy_relevant": true,
+                  "similarity": 0.118,
+                  "calibrated_relevance": 0.215,
+                  "fate": "selected",
+                  "position": 1
+                },
+                {
+                  "video_id": "chl_gotime_226",
+                  "proxy_relevant": true,
+                  "similarity": 0.1153,
+                  "calibrated_relevance": 0.2047,
+                  "fate": "selected",
+                  "position": 0
+                },
+                {
+                  "video_id": "chl_gotime_47",
+                  "proxy_relevant": true,
+                  "similarity": 0.0805,
+                  "calibrated_relevance": 0.0759,
+                  "fate": "selected",
+                  "position": 3
+                },
+                {
+                  "video_id": "chl_practicalai_100",
+                  "proxy_relevant": false,
+                  "similarity": 0.0696,
+                  "calibrated_relevance": 0.0355,
+                  "fate": "selected",
+                  "position": 2
+                },
+                {
+                  "video_id": "chl_backstage_21",
+                  "proxy_relevant": false,
+                  "similarity": 0.0381,
+                  "calibrated_relevance": 0.0,
+                  "fate": "below_relevance_floor",
+                  "position": null
+                },
+                {
+                  "video_id": "chl_practicalai_178",
+                  "proxy_relevant": false,
+                  "similarity": 0.0357,
+                  "calibrated_relevance": 0.0,
+                  "fate": "below_relevance_floor",
+                  "position": null
+                },
+                {
+                  "video_id": "chl_backstage_4",
+                  "proxy_relevant": false,
+                  "similarity": 0.0189,
+                  "calibrated_relevance": 0.0,
+                  "fate": "below_relevance_floor",
+                  "position": null
+                },
+                {
+                  "video_id": "chl_practicalai_65",
+                  "proxy_relevant": false,
+                  "similarity": 0.0171,
+                  "calibrated_relevance": 0.0,
+                  "fate": "below_relevance_floor",
+                  "position": null
+                },
+                {
+                  "video_id": "chl_founderstalk_76",
+                  "proxy_relevant": false,
+                  "similarity": 0.0,
+                  "calibrated_relevance": 0.0,
+                  "fate": "below_relevance_floor",
+                  "position": null
+                },
+                {
+                  "video_id": "chl_founderstalk_58",
+                  "proxy_relevant": false,
+                  "similarity": -0.0177,
+                  "calibrated_relevance": 0.0,
+                  "fate": "selected_exploration",
+                  "position": 4
+                }
+              ]
             }
           }
         },
@@ -159,7 +327,90 @@
                 "below_relevance_floor": 2,
                 "selected": 1
               },
-              "latency_ms": 11.7
+              "latency_ms": 13.0,
+              "selection_policy_version": "two_stage_mmr_r2:c2ec3317ea49",
+              "candidates": [
+                {
+                  "video_id": "chl_practicalai_65",
+                  "proxy_relevant": true,
+                  "similarity": 0.1112,
+                  "calibrated_relevance": 0.1897,
+                  "fate": "selected",
+                  "position": 0
+                },
+                {
+                  "video_id": "chl_practicalai_100",
+                  "proxy_relevant": true,
+                  "similarity": 0.0358,
+                  "calibrated_relevance": 0.0,
+                  "fate": "below_relevance_floor",
+                  "position": null
+                },
+                {
+                  "video_id": "chl_practicalai_178",
+                  "proxy_relevant": true,
+                  "similarity": -0.003,
+                  "calibrated_relevance": 0.0,
+                  "fate": "below_relevance_floor",
+                  "position": null
+                },
+                {
+                  "video_id": "chl_backstage_4",
+                  "proxy_relevant": false,
+                  "similarity": -0.014,
+                  "calibrated_relevance": 0.0,
+                  "fate": "below_relevance_floor",
+                  "position": null
+                },
+                {
+                  "video_id": "chl_founderstalk_58",
+                  "proxy_relevant": false,
+                  "similarity": -0.0264,
+                  "calibrated_relevance": 0.0,
+                  "fate": "below_relevance_floor",
+                  "position": null
+                },
+                {
+                  "video_id": "chl_backstage_21",
+                  "proxy_relevant": false,
+                  "similarity": -0.0283,
+                  "calibrated_relevance": 0.0,
+                  "fate": "below_relevance_floor",
+                  "position": null
+                },
+                {
+                  "video_id": "chl_gotime_179",
+                  "proxy_relevant": false,
+                  "similarity": -0.0388,
+                  "calibrated_relevance": 0.0,
+                  "fate": "below_relevance_floor",
+                  "position": null
+                },
+                {
+                  "video_id": "chl_gotime_47",
+                  "proxy_relevant": false,
+                  "similarity": -0.0501,
+                  "calibrated_relevance": 0.0,
+                  "fate": "below_relevance_floor",
+                  "position": null
+                },
+                {
+                  "video_id": "chl_founderstalk_76",
+                  "proxy_relevant": false,
+                  "similarity": -0.0724,
+                  "calibrated_relevance": 0.0,
+                  "fate": "below_relevance_floor",
+                  "position": null
+                },
+                {
+                  "video_id": "chl_gotime_226",
+                  "proxy_relevant": false,
+                  "similarity": -0.1391,
+                  "calibrated_relevance": 0.0,
+                  "fate": "selected_exploration",
+                  "position": 1
+                }
+              ]
             },
             "0.3": {
               "recall@5": 0.3333333333333333,
@@ -173,7 +424,90 @@
                 "below_relevance_floor": 2,
                 "selected": 1
               },
-              "latency_ms": 11.8
+              "latency_ms": 13.0,
+              "selection_policy_version": "two_stage_mmr_r2:c2ec3317ea49",
+              "candidates": [
+                {
+                  "video_id": "chl_practicalai_65",
+                  "proxy_relevant": true,
+                  "similarity": 0.1112,
+                  "calibrated_relevance": 0.1897,
+                  "fate": "selected",
+                  "position": 0
+                },
+                {
+                  "video_id": "chl_practicalai_100",
+                  "proxy_relevant": true,
+                  "similarity": 0.0358,
+                  "calibrated_relevance": 0.0,
+                  "fate": "below_relevance_floor",
+                  "position": null
+                },
+                {
+                  "video_id": "chl_practicalai_178",
+                  "proxy_relevant": true,
+                  "similarity": -0.003,
+                  "calibrated_relevance": 0.0,
+                  "fate": "below_relevance_floor",
+                  "position": null
+                },
+                {
+                  "video_id": "chl_backstage_4",
+                  "proxy_relevant": false,
+                  "similarity": -0.014,
+                  "calibrated_relevance": 0.0,
+                  "fate": "below_relevance_floor",
+                  "position": null
+                },
+                {
+                  "video_id": "chl_founderstalk_58",
+                  "proxy_relevant": false,
+                  "similarity": -0.0264,
+                  "calibrated_relevance": 0.0,
+                  "fate": "below_relevance_floor",
+                  "position": null
+                },
+                {
+                  "video_id": "chl_backstage_21",
+                  "proxy_relevant": false,
+                  "similarity": -0.0283,
+                  "calibrated_relevance": 0.0,
+                  "fate": "below_relevance_floor",
+                  "position": null
+                },
+                {
+                  "video_id": "chl_gotime_179",
+                  "proxy_relevant": false,
+                  "similarity": -0.0388,
+                  "calibrated_relevance": 0.0,
+                  "fate": "below_relevance_floor",
+                  "position": null
+                },
+                {
+                  "video_id": "chl_gotime_47",
+                  "proxy_relevant": false,
+                  "similarity": -0.0501,
+                  "calibrated_relevance": 0.0,
+                  "fate": "below_relevance_floor",
+                  "position": null
+                },
+                {
+                  "video_id": "chl_founderstalk_76",
+                  "proxy_relevant": false,
+                  "similarity": -0.0724,
+                  "calibrated_relevance": 0.0,
+                  "fate": "below_relevance_floor",
+                  "position": null
+                },
+                {
+                  "video_id": "chl_gotime_226",
+                  "proxy_relevant": false,
+                  "similarity": -0.1391,
+                  "calibrated_relevance": 0.0,
+                  "fate": "selected_exploration",
+                  "position": 1
+                }
+              ]
             }
           }
         },
@@ -201,7 +535,90 @@
                 "below_relevance_floor": 1,
                 "selected": 1
               },
-              "latency_ms": 13.2
+              "latency_ms": 14.8,
+              "selection_policy_version": "two_stage_mmr_r2:c2ec3317ea49",
+              "candidates": [
+                {
+                  "video_id": "chl_practicalai_100",
+                  "proxy_relevant": false,
+                  "similarity": 0.1437,
+                  "calibrated_relevance": 0.3099,
+                  "fate": "selected",
+                  "position": 1
+                },
+                {
+                  "video_id": "chl_practicalai_178",
+                  "proxy_relevant": false,
+                  "similarity": 0.1309,
+                  "calibrated_relevance": 0.2626,
+                  "fate": "selected",
+                  "position": 0
+                },
+                {
+                  "video_id": "chl_founderstalk_76",
+                  "proxy_relevant": true,
+                  "similarity": 0.1193,
+                  "calibrated_relevance": 0.2197,
+                  "fate": "selected",
+                  "position": 2
+                },
+                {
+                  "video_id": "chl_backstage_4",
+                  "proxy_relevant": false,
+                  "similarity": 0.0346,
+                  "calibrated_relevance": 0.0,
+                  "fate": "below_relevance_floor",
+                  "position": null
+                },
+                {
+                  "video_id": "chl_founderstalk_58",
+                  "proxy_relevant": true,
+                  "similarity": 0.01,
+                  "calibrated_relevance": 0.0,
+                  "fate": "below_relevance_floor",
+                  "position": null
+                },
+                {
+                  "video_id": "chl_gotime_179",
+                  "proxy_relevant": false,
+                  "similarity": 0.0,
+                  "calibrated_relevance": 0.0,
+                  "fate": "below_relevance_floor",
+                  "position": null
+                },
+                {
+                  "video_id": "chl_gotime_226",
+                  "proxy_relevant": false,
+                  "similarity": 0.0,
+                  "calibrated_relevance": 0.0,
+                  "fate": "selected_exploration",
+                  "position": 3
+                },
+                {
+                  "video_id": "chl_practicalai_65",
+                  "proxy_relevant": false,
+                  "similarity": 0.0,
+                  "calibrated_relevance": 0.0,
+                  "fate": "below_relevance_floor",
+                  "position": null
+                },
+                {
+                  "video_id": "chl_gotime_47",
+                  "proxy_relevant": false,
+                  "similarity": -0.0155,
+                  "calibrated_relevance": 0.0,
+                  "fate": "below_relevance_floor",
+                  "position": null
+                },
+                {
+                  "video_id": "chl_backstage_21",
+                  "proxy_relevant": false,
+                  "similarity": -0.0175,
+                  "calibrated_relevance": 0.0,
+                  "fate": "below_relevance_floor",
+                  "position": null
+                }
+              ]
             },
             "0.3": {
               "recall@5": 0.5,
@@ -215,7 +632,90 @@
                 "below_relevance_floor": 1,
                 "selected": 1
               },
-              "latency_ms": 13.7
+              "latency_ms": 15.1,
+              "selection_policy_version": "two_stage_mmr_r2:c2ec3317ea49",
+              "candidates": [
+                {
+                  "video_id": "chl_practicalai_100",
+                  "proxy_relevant": false,
+                  "similarity": 0.1437,
+                  "calibrated_relevance": 0.3099,
+                  "fate": "selected",
+                  "position": 2
+                },
+                {
+                  "video_id": "chl_practicalai_178",
+                  "proxy_relevant": false,
+                  "similarity": 0.1309,
+                  "calibrated_relevance": 0.2626,
+                  "fate": "selected",
+                  "position": 0
+                },
+                {
+                  "video_id": "chl_founderstalk_76",
+                  "proxy_relevant": true,
+                  "similarity": 0.1193,
+                  "calibrated_relevance": 0.2197,
+                  "fate": "selected",
+                  "position": 1
+                },
+                {
+                  "video_id": "chl_backstage_4",
+                  "proxy_relevant": false,
+                  "similarity": 0.0346,
+                  "calibrated_relevance": 0.0,
+                  "fate": "below_relevance_floor",
+                  "position": null
+                },
+                {
+                  "video_id": "chl_founderstalk_58",
+                  "proxy_relevant": true,
+                  "similarity": 0.01,
+                  "calibrated_relevance": 0.0,
+                  "fate": "below_relevance_floor",
+                  "position": null
+                },
+                {
+                  "video_id": "chl_gotime_179",
+                  "proxy_relevant": false,
+                  "similarity": 0.0,
+                  "calibrated_relevance": 0.0,
+                  "fate": "below_relevance_floor",
+                  "position": null
+                },
+                {
+                  "video_id": "chl_gotime_226",
+                  "proxy_relevant": false,
+                  "similarity": 0.0,
+                  "calibrated_relevance": 0.0,
+                  "fate": "selected_exploration",
+                  "position": 3
+                },
+                {
+                  "video_id": "chl_practicalai_65",
+                  "proxy_relevant": false,
+                  "similarity": 0.0,
+                  "calibrated_relevance": 0.0,
+                  "fate": "below_relevance_floor",
+                  "position": null
+                },
+                {
+                  "video_id": "chl_gotime_47",
+                  "proxy_relevant": false,
+                  "similarity": -0.0155,
+                  "calibrated_relevance": 0.0,
+                  "fate": "below_relevance_floor",
+                  "position": null
+                },
+                {
+                  "video_id": "chl_backstage_21",
+                  "proxy_relevant": false,
+                  "similarity": -0.0175,
+                  "calibrated_relevance": 0.0,
+                  "fate": "below_relevance_floor",
+                  "position": null
+                }
+              ]
             }
           }
         },
@@ -240,10 +740,93 @@
               "exploration_slots": 1,
               "off_topic_rate_topical": 0.5,
               "relevant_fates": {
-                "below_relevance_floor": 1,
-                "selected": 1
+                "selected": 1,
+                "below_relevance_floor": 1
               },
-              "latency_ms": 13.7
+              "latency_ms": 74.1,
+              "selection_policy_version": "two_stage_mmr_r2:c2ec3317ea49",
+              "candidates": [
+                {
+                  "video_id": "chl_backstage_21",
+                  "proxy_relevant": true,
+                  "similarity": 0.1112,
+                  "calibrated_relevance": 0.1897,
+                  "fate": "selected",
+                  "position": 0
+                },
+                {
+                  "video_id": "chl_gotime_226",
+                  "proxy_relevant": false,
+                  "similarity": 0.0612,
+                  "calibrated_relevance": 0.0046,
+                  "fate": "selected",
+                  "position": 1
+                },
+                {
+                  "video_id": "chl_founderstalk_76",
+                  "proxy_relevant": false,
+                  "similarity": 0.0422,
+                  "calibrated_relevance": 0.0,
+                  "fate": "below_relevance_floor",
+                  "position": null
+                },
+                {
+                  "video_id": "chl_gotime_179",
+                  "proxy_relevant": false,
+                  "similarity": 0.0401,
+                  "calibrated_relevance": 0.0,
+                  "fate": "below_relevance_floor",
+                  "position": null
+                },
+                {
+                  "video_id": "chl_backstage_4",
+                  "proxy_relevant": true,
+                  "similarity": 0.0367,
+                  "calibrated_relevance": 0.0,
+                  "fate": "below_relevance_floor",
+                  "position": null
+                },
+                {
+                  "video_id": "chl_practicalai_100",
+                  "proxy_relevant": false,
+                  "similarity": 0.0339,
+                  "calibrated_relevance": 0.0,
+                  "fate": "below_relevance_floor",
+                  "position": null
+                },
+                {
+                  "video_id": "chl_gotime_47",
+                  "proxy_relevant": false,
+                  "similarity": 0.0279,
+                  "calibrated_relevance": 0.0,
+                  "fate": "below_relevance_floor",
+                  "position": null
+                },
+                {
+                  "video_id": "chl_practicalai_178",
+                  "proxy_relevant": false,
+                  "similarity": 0.0,
+                  "calibrated_relevance": 0.0,
+                  "fate": "selected_exploration",
+                  "position": 2
+                },
+                {
+                  "video_id": "chl_founderstalk_58",
+                  "proxy_relevant": false,
+                  "similarity": -0.0115,
+                  "calibrated_relevance": 0.0,
+                  "fate": "below_relevance_floor",
+                  "position": null
+                },
+                {
+                  "video_id": "chl_practicalai_65",
+                  "proxy_relevant": false,
+                  "similarity": -0.0332,
+                  "calibrated_relevance": 0.0,
+                  "fate": "below_relevance_floor",
+                  "position": null
+                }
+              ]
             },
             "0.3": {
               "recall@5": 0.5,
@@ -254,10 +837,93 @@
               "exploration_slots": 1,
               "off_topic_rate_topical": 0.5,
               "relevant_fates": {
-                "below_relevance_floor": 1,
-                "selected": 1
+                "selected": 1,
+                "below_relevance_floor": 1
               },
-              "latency_ms": 13.5
+              "latency_ms": 15.3,
+              "selection_policy_version": "two_stage_mmr_r2:c2ec3317ea49",
+              "candidates": [
+                {
+                  "video_id": "chl_backstage_21",
+                  "proxy_relevant": true,
+                  "similarity": 0.1112,
+                  "calibrated_relevance": 0.1897,
+                  "fate": "selected",
+                  "position": 0
+                },
+                {
+                  "video_id": "chl_gotime_226",
+                  "proxy_relevant": false,
+                  "similarity": 0.0612,
+                  "calibrated_relevance": 0.0046,
+                  "fate": "selected",
+                  "position": 1
+                },
+                {
+                  "video_id": "chl_founderstalk_76",
+                  "proxy_relevant": false,
+                  "similarity": 0.0422,
+                  "calibrated_relevance": 0.0,
+                  "fate": "below_relevance_floor",
+                  "position": null
+                },
+                {
+                  "video_id": "chl_gotime_179",
+                  "proxy_relevant": false,
+                  "similarity": 0.0401,
+                  "calibrated_relevance": 0.0,
+                  "fate": "below_relevance_floor",
+                  "position": null
+                },
+                {
+                  "video_id": "chl_backstage_4",
+                  "proxy_relevant": true,
+                  "similarity": 0.0367,
+                  "calibrated_relevance": 0.0,
+                  "fate": "below_relevance_floor",
+                  "position": null
+                },
+                {
+                  "video_id": "chl_practicalai_100",
+                  "proxy_relevant": false,
+                  "similarity": 0.0339,
+                  "calibrated_relevance": 0.0,
+                  "fate": "below_relevance_floor",
+                  "position": null
+                },
+                {
+                  "video_id": "chl_gotime_47",
+                  "proxy_relevant": false,
+                  "similarity": 0.0279,
+                  "calibrated_relevance": 0.0,
+                  "fate": "below_relevance_floor",
+                  "position": null
+                },
+                {
+                  "video_id": "chl_practicalai_178",
+                  "proxy_relevant": false,
+                  "similarity": 0.0,
+                  "calibrated_relevance": 0.0,
+                  "fate": "selected_exploration",
+                  "position": 2
+                },
+                {
+                  "video_id": "chl_founderstalk_58",
+                  "proxy_relevant": false,
+                  "similarity": -0.0115,
+                  "calibrated_relevance": 0.0,
+                  "fate": "below_relevance_floor",
+                  "position": null
+                },
+                {
+                  "video_id": "chl_practicalai_65",
+                  "proxy_relevant": false,
+                  "similarity": -0.0332,
+                  "calibrated_relevance": 0.0,
+                  "fate": "below_relevance_floor",
+                  "position": null
+                }
+              ]
             }
           }
         }
@@ -289,7 +955,8 @@
             "channel_cap": 1,
             "not_selected": 1
           },
-          "latency_ms_mean": 21.575
+          "latency_ms_mean": 28.5,
+          "selection_policy_version": "two_stage_mmr_r2:b9d27ef50cc5"
         },
         "0.3": {
           "recall@5": 0.7917,
@@ -303,7 +970,8 @@
             "channel_cap": 1,
             "not_selected": 1
           },
-          "latency_ms_mean": 20.075
+          "latency_ms_mean": 44.075,
+          "selection_policy_version": "two_stage_mmr_r2:b9d27ef50cc5"
         }
       },
       "personas": [
@@ -331,7 +999,90 @@
                 "selected": 2,
                 "channel_cap": 1
               },
-              "latency_ms": 26.5
+              "latency_ms": 28.8,
+              "selection_policy_version": "two_stage_mmr_r2:b9d27ef50cc5",
+              "candidates": [
+                {
+                  "video_id": "chl_gotime_226",
+                  "proxy_relevant": true,
+                  "similarity": 0.4687,
+                  "calibrated_relevance": 0.8956,
+                  "fate": "selected",
+                  "position": 0
+                },
+                {
+                  "video_id": "chl_gotime_179",
+                  "proxy_relevant": true,
+                  "similarity": 0.4057,
+                  "calibrated_relevance": 0.6858,
+                  "fate": "selected",
+                  "position": 1
+                },
+                {
+                  "video_id": "chl_gotime_47",
+                  "proxy_relevant": true,
+                  "similarity": 0.4005,
+                  "calibrated_relevance": 0.6684,
+                  "fate": "channel_cap",
+                  "position": null
+                },
+                {
+                  "video_id": "chl_practicalai_178",
+                  "proxy_relevant": false,
+                  "similarity": 0.3069,
+                  "calibrated_relevance": 0.3563,
+                  "fate": "selected",
+                  "position": 2
+                },
+                {
+                  "video_id": "chl_practicalai_65",
+                  "proxy_relevant": false,
+                  "similarity": 0.3058,
+                  "calibrated_relevance": 0.3526,
+                  "fate": "selected",
+                  "position": 3
+                },
+                {
+                  "video_id": "chl_practicalai_100",
+                  "proxy_relevant": false,
+                  "similarity": 0.2825,
+                  "calibrated_relevance": 0.275,
+                  "fate": "channel_cap",
+                  "position": null
+                },
+                {
+                  "video_id": "chl_founderstalk_58",
+                  "proxy_relevant": false,
+                  "similarity": 0.262,
+                  "calibrated_relevance": 0.2065,
+                  "fate": "not_selected",
+                  "position": null
+                },
+                {
+                  "video_id": "chl_founderstalk_76",
+                  "proxy_relevant": false,
+                  "similarity": 0.2123,
+                  "calibrated_relevance": 0.041,
+                  "fate": "not_selected",
+                  "position": null
+                },
+                {
+                  "video_id": "chl_backstage_21",
+                  "proxy_relevant": false,
+                  "similarity": 0.2022,
+                  "calibrated_relevance": 0.0075,
+                  "fate": "not_selected",
+                  "position": null
+                },
+                {
+                  "video_id": "chl_backstage_4",
+                  "proxy_relevant": false,
+                  "similarity": 0.1875,
+                  "calibrated_relevance": 0.0,
+                  "fate": "selected_exploration",
+                  "position": 4
+                }
+              ]
             },
             "0.3": {
               "recall@5": 0.6666666666666666,
@@ -345,7 +1096,90 @@
                 "selected": 2,
                 "channel_cap": 1
               },
-              "latency_ms": 21.6
+              "latency_ms": 20.7,
+              "selection_policy_version": "two_stage_mmr_r2:b9d27ef50cc5",
+              "candidates": [
+                {
+                  "video_id": "chl_gotime_226",
+                  "proxy_relevant": true,
+                  "similarity": 0.4687,
+                  "calibrated_relevance": 0.8956,
+                  "fate": "selected",
+                  "position": 0
+                },
+                {
+                  "video_id": "chl_gotime_179",
+                  "proxy_relevant": true,
+                  "similarity": 0.4057,
+                  "calibrated_relevance": 0.6858,
+                  "fate": "channel_cap",
+                  "position": null
+                },
+                {
+                  "video_id": "chl_gotime_47",
+                  "proxy_relevant": true,
+                  "similarity": 0.4005,
+                  "calibrated_relevance": 0.6684,
+                  "fate": "selected",
+                  "position": 1
+                },
+                {
+                  "video_id": "chl_practicalai_178",
+                  "proxy_relevant": false,
+                  "similarity": 0.3069,
+                  "calibrated_relevance": 0.3563,
+                  "fate": "not_selected",
+                  "position": null
+                },
+                {
+                  "video_id": "chl_practicalai_65",
+                  "proxy_relevant": false,
+                  "similarity": 0.3058,
+                  "calibrated_relevance": 0.3526,
+                  "fate": "selected",
+                  "position": 2
+                },
+                {
+                  "video_id": "chl_practicalai_100",
+                  "proxy_relevant": false,
+                  "similarity": 0.2825,
+                  "calibrated_relevance": 0.275,
+                  "fate": "not_selected",
+                  "position": null
+                },
+                {
+                  "video_id": "chl_founderstalk_58",
+                  "proxy_relevant": false,
+                  "similarity": 0.262,
+                  "calibrated_relevance": 0.2065,
+                  "fate": "selected",
+                  "position": 3
+                },
+                {
+                  "video_id": "chl_founderstalk_76",
+                  "proxy_relevant": false,
+                  "similarity": 0.2123,
+                  "calibrated_relevance": 0.041,
+                  "fate": "not_selected",
+                  "position": null
+                },
+                {
+                  "video_id": "chl_backstage_21",
+                  "proxy_relevant": false,
+                  "similarity": 0.2022,
+                  "calibrated_relevance": 0.0075,
+                  "fate": "not_selected",
+                  "position": null
+                },
+                {
+                  "video_id": "chl_backstage_4",
+                  "proxy_relevant": false,
+                  "similarity": 0.1875,
+                  "calibrated_relevance": 0.0,
+                  "fate": "selected_exploration",
+                  "position": 4
+                }
+              ]
             }
           }
         },
@@ -372,7 +1206,90 @@
               "relevant_fates": {
                 "selected": 3
               },
-              "latency_ms": 19.6
+              "latency_ms": 22.1,
+              "selection_policy_version": "two_stage_mmr_r2:b9d27ef50cc5",
+              "candidates": [
+                {
+                  "video_id": "chl_practicalai_65",
+                  "proxy_relevant": true,
+                  "similarity": 0.5385,
+                  "calibrated_relevance": 1.0,
+                  "fate": "selected",
+                  "position": 0
+                },
+                {
+                  "video_id": "chl_practicalai_100",
+                  "proxy_relevant": true,
+                  "similarity": 0.5167,
+                  "calibrated_relevance": 1.0,
+                  "fate": "selected",
+                  "position": 1
+                },
+                {
+                  "video_id": "chl_practicalai_178",
+                  "proxy_relevant": true,
+                  "similarity": 0.4735,
+                  "calibrated_relevance": 0.9116,
+                  "fate": "selected",
+                  "position": 2
+                },
+                {
+                  "video_id": "chl_gotime_226",
+                  "proxy_relevant": false,
+                  "similarity": 0.0962,
+                  "calibrated_relevance": 0.0,
+                  "fate": "selected_exploration",
+                  "position": 3
+                },
+                {
+                  "video_id": "chl_backstage_21",
+                  "proxy_relevant": false,
+                  "similarity": 0.0817,
+                  "calibrated_relevance": 0.0,
+                  "fate": "below_relevance_floor",
+                  "position": null
+                },
+                {
+                  "video_id": "chl_backstage_4",
+                  "proxy_relevant": false,
+                  "similarity": 0.0683,
+                  "calibrated_relevance": 0.0,
+                  "fate": "below_relevance_floor",
+                  "position": null
+                },
+                {
+                  "video_id": "chl_gotime_179",
+                  "proxy_relevant": false,
+                  "similarity": 0.066,
+                  "calibrated_relevance": 0.0,
+                  "fate": "below_relevance_floor",
+                  "position": null
+                },
+                {
+                  "video_id": "chl_gotime_47",
+                  "proxy_relevant": false,
+                  "similarity": 0.0507,
+                  "calibrated_relevance": 0.0,
+                  "fate": "below_relevance_floor",
+                  "position": null
+                },
+                {
+                  "video_id": "chl_founderstalk_58",
+                  "proxy_relevant": false,
+                  "similarity": 0.0446,
+                  "calibrated_relevance": 0.0,
+                  "fate": "below_relevance_floor",
+                  "position": null
+                },
+                {
+                  "video_id": "chl_founderstalk_76",
+                  "proxy_relevant": false,
+                  "similarity": 0.0322,
+                  "calibrated_relevance": 0.0,
+                  "fate": "below_relevance_floor",
+                  "position": null
+                }
+              ]
             },
             "0.3": {
               "recall@5": 1.0,
@@ -385,7 +1302,90 @@
               "relevant_fates": {
                 "selected": 3
               },
-              "latency_ms": 19.4
+              "latency_ms": 21.4,
+              "selection_policy_version": "two_stage_mmr_r2:b9d27ef50cc5",
+              "candidates": [
+                {
+                  "video_id": "chl_practicalai_65",
+                  "proxy_relevant": true,
+                  "similarity": 0.5385,
+                  "calibrated_relevance": 1.0,
+                  "fate": "selected",
+                  "position": 0
+                },
+                {
+                  "video_id": "chl_practicalai_100",
+                  "proxy_relevant": true,
+                  "similarity": 0.5167,
+                  "calibrated_relevance": 1.0,
+                  "fate": "selected",
+                  "position": 1
+                },
+                {
+                  "video_id": "chl_practicalai_178",
+                  "proxy_relevant": true,
+                  "similarity": 0.4735,
+                  "calibrated_relevance": 0.9116,
+                  "fate": "selected",
+                  "position": 2
+                },
+                {
+                  "video_id": "chl_gotime_226",
+                  "proxy_relevant": false,
+                  "similarity": 0.0962,
+                  "calibrated_relevance": 0.0,
+                  "fate": "selected_exploration",
+                  "position": 3
+                },
+                {
+                  "video_id": "chl_backstage_21",
+                  "proxy_relevant": false,
+                  "similarity": 0.0817,
+                  "calibrated_relevance": 0.0,
+                  "fate": "below_relevance_floor",
+                  "position": null
+                },
+                {
+                  "video_id": "chl_backstage_4",
+                  "proxy_relevant": false,
+                  "similarity": 0.0683,
+                  "calibrated_relevance": 0.0,
+                  "fate": "below_relevance_floor",
+                  "position": null
+                },
+                {
+                  "video_id": "chl_gotime_179",
+                  "proxy_relevant": false,
+                  "similarity": 0.066,
+                  "calibrated_relevance": 0.0,
+                  "fate": "below_relevance_floor",
+                  "position": null
+                },
+                {
+                  "video_id": "chl_gotime_47",
+                  "proxy_relevant": false,
+                  "similarity": 0.0507,
+                  "calibrated_relevance": 0.0,
+                  "fate": "below_relevance_floor",
+                  "position": null
+                },
+                {
+                  "video_id": "chl_founderstalk_58",
+                  "proxy_relevant": false,
+                  "similarity": 0.0446,
+                  "calibrated_relevance": 0.0,
+                  "fate": "below_relevance_floor",
+                  "position": null
+                },
+                {
+                  "video_id": "chl_founderstalk_76",
+                  "proxy_relevant": false,
+                  "similarity": 0.0322,
+                  "calibrated_relevance": 0.0,
+                  "fate": "below_relevance_floor",
+                  "position": null
+                }
+              ]
             }
           }
         },
@@ -412,7 +1412,90 @@
               "relevant_fates": {
                 "selected": 2
               },
-              "latency_ms": 19.0
+              "latency_ms": 24.4,
+              "selection_policy_version": "two_stage_mmr_r2:b9d27ef50cc5",
+              "candidates": [
+                {
+                  "video_id": "chl_founderstalk_76",
+                  "proxy_relevant": true,
+                  "similarity": 0.5731,
+                  "calibrated_relevance": 1.0,
+                  "fate": "selected",
+                  "position": 0
+                },
+                {
+                  "video_id": "chl_founderstalk_58",
+                  "proxy_relevant": true,
+                  "similarity": 0.5419,
+                  "calibrated_relevance": 1.0,
+                  "fate": "selected",
+                  "position": 1
+                },
+                {
+                  "video_id": "chl_backstage_4",
+                  "proxy_relevant": false,
+                  "similarity": 0.1644,
+                  "calibrated_relevance": 0.0,
+                  "fate": "below_relevance_floor",
+                  "position": null
+                },
+                {
+                  "video_id": "chl_gotime_47",
+                  "proxy_relevant": false,
+                  "similarity": 0.086,
+                  "calibrated_relevance": 0.0,
+                  "fate": "below_relevance_floor",
+                  "position": null
+                },
+                {
+                  "video_id": "chl_backstage_21",
+                  "proxy_relevant": false,
+                  "similarity": 0.0858,
+                  "calibrated_relevance": 0.0,
+                  "fate": "below_relevance_floor",
+                  "position": null
+                },
+                {
+                  "video_id": "chl_practicalai_100",
+                  "proxy_relevant": false,
+                  "similarity": 0.0512,
+                  "calibrated_relevance": 0.0,
+                  "fate": "below_relevance_floor",
+                  "position": null
+                },
+                {
+                  "video_id": "chl_practicalai_65",
+                  "proxy_relevant": false,
+                  "similarity": 0.041,
+                  "calibrated_relevance": 0.0,
+                  "fate": "below_relevance_floor",
+                  "position": null
+                },
+                {
+                  "video_id": "chl_practicalai_178",
+                  "proxy_relevant": false,
+                  "similarity": 0.0299,
+                  "calibrated_relevance": 0.0,
+                  "fate": "below_relevance_floor",
+                  "position": null
+                },
+                {
+                  "video_id": "chl_gotime_226",
+                  "proxy_relevant": false,
+                  "similarity": 0.0123,
+                  "calibrated_relevance": 0.0,
+                  "fate": "selected_exploration",
+                  "position": 2
+                },
+                {
+                  "video_id": "chl_gotime_179",
+                  "proxy_relevant": false,
+                  "similarity": -0.0019,
+                  "calibrated_relevance": 0.0,
+                  "fate": "below_relevance_floor",
+                  "position": null
+                }
+              ]
             },
             "0.3": {
               "recall@5": 1.0,
@@ -425,7 +1508,90 @@
               "relevant_fates": {
                 "selected": 2
               },
-              "latency_ms": 18.8
+              "latency_ms": 101.3,
+              "selection_policy_version": "two_stage_mmr_r2:b9d27ef50cc5",
+              "candidates": [
+                {
+                  "video_id": "chl_founderstalk_76",
+                  "proxy_relevant": true,
+                  "similarity": 0.5731,
+                  "calibrated_relevance": 1.0,
+                  "fate": "selected",
+                  "position": 0
+                },
+                {
+                  "video_id": "chl_founderstalk_58",
+                  "proxy_relevant": true,
+                  "similarity": 0.5419,
+                  "calibrated_relevance": 1.0,
+                  "fate": "selected",
+                  "position": 1
+                },
+                {
+                  "video_id": "chl_backstage_4",
+                  "proxy_relevant": false,
+                  "similarity": 0.1644,
+                  "calibrated_relevance": 0.0,
+                  "fate": "below_relevance_floor",
+                  "position": null
+                },
+                {
+                  "video_id": "chl_gotime_47",
+                  "proxy_relevant": false,
+                  "similarity": 0.086,
+                  "calibrated_relevance": 0.0,
+                  "fate": "below_relevance_floor",
+                  "position": null
+                },
+                {
+                  "video_id": "chl_backstage_21",
+                  "proxy_relevant": false,
+                  "similarity": 0.0858,
+                  "calibrated_relevance": 0.0,
+                  "fate": "below_relevance_floor",
+                  "position": null
+                },
+                {
+                  "video_id": "chl_practicalai_100",
+                  "proxy_relevant": false,
+                  "similarity": 0.0512,
+                  "calibrated_relevance": 0.0,
+                  "fate": "below_relevance_floor",
+                  "position": null
+                },
+                {
+                  "video_id": "chl_practicalai_65",
+                  "proxy_relevant": false,
+                  "similarity": 0.041,
+                  "calibrated_relevance": 0.0,
+                  "fate": "below_relevance_floor",
+                  "position": null
+                },
+                {
+                  "video_id": "chl_practicalai_178",
+                  "proxy_relevant": false,
+                  "similarity": 0.0299,
+                  "calibrated_relevance": 0.0,
+                  "fate": "below_relevance_floor",
+                  "position": null
+                },
+                {
+                  "video_id": "chl_gotime_226",
+                  "proxy_relevant": false,
+                  "similarity": 0.0123,
+                  "calibrated_relevance": 0.0,
+                  "fate": "selected_exploration",
+                  "position": 2
+                },
+                {
+                  "video_id": "chl_gotime_179",
+                  "proxy_relevant": false,
+                  "similarity": -0.0019,
+                  "calibrated_relevance": 0.0,
+                  "fate": "below_relevance_floor",
+                  "position": null
+                }
+              ]
             }
           }
         },
@@ -450,10 +1616,93 @@
               "exploration_slots": 1,
               "off_topic_rate_topical": 0.75,
               "relevant_fates": {
-                "selected": 1,
-                "not_selected": 1
+                "not_selected": 1,
+                "selected": 1
               },
-              "latency_ms": 21.2
+              "latency_ms": 38.7,
+              "selection_policy_version": "two_stage_mmr_r2:b9d27ef50cc5",
+              "candidates": [
+                {
+                  "video_id": "chl_founderstalk_76",
+                  "proxy_relevant": false,
+                  "similarity": 0.3969,
+                  "calibrated_relevance": 0.6563,
+                  "fate": "selected",
+                  "position": 0
+                },
+                {
+                  "video_id": "chl_backstage_4",
+                  "proxy_relevant": true,
+                  "similarity": 0.366,
+                  "calibrated_relevance": 0.5535,
+                  "fate": "selected",
+                  "position": 1
+                },
+                {
+                  "video_id": "chl_founderstalk_58",
+                  "proxy_relevant": false,
+                  "similarity": 0.3639,
+                  "calibrated_relevance": 0.5464,
+                  "fate": "selected",
+                  "position": 2
+                },
+                {
+                  "video_id": "chl_practicalai_100",
+                  "proxy_relevant": false,
+                  "similarity": 0.2439,
+                  "calibrated_relevance": 0.1462,
+                  "fate": "selected",
+                  "position": 3
+                },
+                {
+                  "video_id": "chl_backstage_21",
+                  "proxy_relevant": true,
+                  "similarity": 0.2233,
+                  "calibrated_relevance": 0.0778,
+                  "fate": "not_selected",
+                  "position": null
+                },
+                {
+                  "video_id": "chl_gotime_47",
+                  "proxy_relevant": false,
+                  "similarity": 0.1691,
+                  "calibrated_relevance": 0.0,
+                  "fate": "below_relevance_floor",
+                  "position": null
+                },
+                {
+                  "video_id": "chl_practicalai_65",
+                  "proxy_relevant": false,
+                  "similarity": 0.1297,
+                  "calibrated_relevance": 0.0,
+                  "fate": "below_relevance_floor",
+                  "position": null
+                },
+                {
+                  "video_id": "chl_practicalai_178",
+                  "proxy_relevant": false,
+                  "similarity": 0.1282,
+                  "calibrated_relevance": 0.0,
+                  "fate": "below_relevance_floor",
+                  "position": null
+                },
+                {
+                  "video_id": "chl_gotime_179",
+                  "proxy_relevant": false,
+                  "similarity": 0.0685,
+                  "calibrated_relevance": 0.0,
+                  "fate": "below_relevance_floor",
+                  "position": null
+                },
+                {
+                  "video_id": "chl_gotime_226",
+                  "proxy_relevant": false,
+                  "similarity": 0.0482,
+                  "calibrated_relevance": 0.0,
+                  "fate": "selected_exploration",
+                  "position": 4
+                }
+              ]
             },
             "0.3": {
               "recall@5": 0.5,
@@ -464,10 +1713,93 @@
               "exploration_slots": 1,
               "off_topic_rate_topical": 0.75,
               "relevant_fates": {
-                "selected": 1,
-                "not_selected": 1
+                "not_selected": 1,
+                "selected": 1
               },
-              "latency_ms": 20.5
+              "latency_ms": 32.9,
+              "selection_policy_version": "two_stage_mmr_r2:b9d27ef50cc5",
+              "candidates": [
+                {
+                  "video_id": "chl_founderstalk_76",
+                  "proxy_relevant": false,
+                  "similarity": 0.3969,
+                  "calibrated_relevance": 0.6563,
+                  "fate": "selected",
+                  "position": 0
+                },
+                {
+                  "video_id": "chl_backstage_4",
+                  "proxy_relevant": true,
+                  "similarity": 0.366,
+                  "calibrated_relevance": 0.5535,
+                  "fate": "selected",
+                  "position": 1
+                },
+                {
+                  "video_id": "chl_founderstalk_58",
+                  "proxy_relevant": false,
+                  "similarity": 0.3639,
+                  "calibrated_relevance": 0.5464,
+                  "fate": "selected",
+                  "position": 2
+                },
+                {
+                  "video_id": "chl_practicalai_100",
+                  "proxy_relevant": false,
+                  "similarity": 0.2439,
+                  "calibrated_relevance": 0.1462,
+                  "fate": "selected",
+                  "position": 3
+                },
+                {
+                  "video_id": "chl_backstage_21",
+                  "proxy_relevant": true,
+                  "similarity": 0.2233,
+                  "calibrated_relevance": 0.0778,
+                  "fate": "not_selected",
+                  "position": null
+                },
+                {
+                  "video_id": "chl_gotime_47",
+                  "proxy_relevant": false,
+                  "similarity": 0.1691,
+                  "calibrated_relevance": 0.0,
+                  "fate": "below_relevance_floor",
+                  "position": null
+                },
+                {
+                  "video_id": "chl_practicalai_65",
+                  "proxy_relevant": false,
+                  "similarity": 0.1297,
+                  "calibrated_relevance": 0.0,
+                  "fate": "below_relevance_floor",
+                  "position": null
+                },
+                {
+                  "video_id": "chl_practicalai_178",
+                  "proxy_relevant": false,
+                  "similarity": 0.1282,
+                  "calibrated_relevance": 0.0,
+                  "fate": "below_relevance_floor",
+                  "position": null
+                },
+                {
+                  "video_id": "chl_gotime_179",
+                  "proxy_relevant": false,
+                  "similarity": 0.0685,
+                  "calibrated_relevance": 0.0,
+                  "fate": "below_relevance_floor",
+                  "position": null
+                },
+                {
+                  "video_id": "chl_gotime_226",
+                  "proxy_relevant": false,
+                  "similarity": 0.0482,
+                  "calibrated_relevance": 0.0,
+                  "fate": "selected_exploration",
+                  "position": 4
+                }
+              ]
             }
           }
         }
@@ -498,7 +1830,8 @@
             "selected": 9,
             "channel_cap": 1
           },
-          "latency_ms_mean": 25.85
+          "latency_ms_mean": 26.35,
+          "selection_policy_version": "two_stage_mmr_r2:651dd4268a32"
         },
         "0.3": {
           "recall@5": 0.7917,
@@ -512,7 +1845,8 @@
             "channel_cap": 1,
             "not_selected": 1
           },
-          "latency_ms_mean": 22.6
+          "latency_ms_mean": 46.25,
+          "selection_policy_version": "two_stage_mmr_r2:651dd4268a32"
         }
       },
       "personas": [
@@ -540,7 +1874,90 @@
                 "selected": 2,
                 "channel_cap": 1
               },
-              "latency_ms": 29.8
+              "latency_ms": 28.6,
+              "selection_policy_version": "two_stage_mmr_r2:651dd4268a32",
+              "candidates": [
+                {
+                  "video_id": "chl_gotime_226",
+                  "proxy_relevant": true,
+                  "similarity": 0.3484,
+                  "calibrated_relevance": 0.4945,
+                  "fate": "selected",
+                  "position": 0
+                },
+                {
+                  "video_id": "chl_practicalai_65",
+                  "proxy_relevant": false,
+                  "similarity": 0.3328,
+                  "calibrated_relevance": 0.4425,
+                  "fate": "selected",
+                  "position": 1
+                },
+                {
+                  "video_id": "chl_practicalai_178",
+                  "proxy_relevant": false,
+                  "similarity": 0.3034,
+                  "calibrated_relevance": 0.3447,
+                  "fate": "selected",
+                  "position": 2
+                },
+                {
+                  "video_id": "chl_gotime_179",
+                  "proxy_relevant": true,
+                  "similarity": 0.2955,
+                  "calibrated_relevance": 0.3184,
+                  "fate": "selected",
+                  "position": 3
+                },
+                {
+                  "video_id": "chl_gotime_47",
+                  "proxy_relevant": true,
+                  "similarity": 0.2841,
+                  "calibrated_relevance": 0.2802,
+                  "fate": "channel_cap",
+                  "position": null
+                },
+                {
+                  "video_id": "chl_practicalai_100",
+                  "proxy_relevant": false,
+                  "similarity": 0.2777,
+                  "calibrated_relevance": 0.2589,
+                  "fate": "channel_cap",
+                  "position": null
+                },
+                {
+                  "video_id": "chl_founderstalk_58",
+                  "proxy_relevant": false,
+                  "similarity": 0.2734,
+                  "calibrated_relevance": 0.2448,
+                  "fate": "not_selected",
+                  "position": null
+                },
+                {
+                  "video_id": "chl_founderstalk_76",
+                  "proxy_relevant": false,
+                  "similarity": 0.1856,
+                  "calibrated_relevance": 0.0,
+                  "fate": "below_relevance_floor",
+                  "position": null
+                },
+                {
+                  "video_id": "chl_backstage_21",
+                  "proxy_relevant": false,
+                  "similarity": 0.1488,
+                  "calibrated_relevance": 0.0,
+                  "fate": "below_relevance_floor",
+                  "position": null
+                },
+                {
+                  "video_id": "chl_backstage_4",
+                  "proxy_relevant": false,
+                  "similarity": 0.1119,
+                  "calibrated_relevance": 0.0,
+                  "fate": "selected_exploration",
+                  "position": 4
+                }
+              ]
             },
             "0.3": {
               "recall@5": 0.6666666666666666,
@@ -554,7 +1971,90 @@
                 "selected": 2,
                 "channel_cap": 1
               },
-              "latency_ms": 24.0
+              "latency_ms": 98.9,
+              "selection_policy_version": "two_stage_mmr_r2:651dd4268a32",
+              "candidates": [
+                {
+                  "video_id": "chl_gotime_226",
+                  "proxy_relevant": true,
+                  "similarity": 0.3484,
+                  "calibrated_relevance": 0.4945,
+                  "fate": "selected",
+                  "position": 0
+                },
+                {
+                  "video_id": "chl_practicalai_65",
+                  "proxy_relevant": false,
+                  "similarity": 0.3328,
+                  "calibrated_relevance": 0.4425,
+                  "fate": "selected",
+                  "position": 1
+                },
+                {
+                  "video_id": "chl_practicalai_178",
+                  "proxy_relevant": false,
+                  "similarity": 0.3034,
+                  "calibrated_relevance": 0.3447,
+                  "fate": "not_selected",
+                  "position": null
+                },
+                {
+                  "video_id": "chl_gotime_179",
+                  "proxy_relevant": true,
+                  "similarity": 0.2955,
+                  "calibrated_relevance": 0.3184,
+                  "fate": "channel_cap",
+                  "position": null
+                },
+                {
+                  "video_id": "chl_gotime_47",
+                  "proxy_relevant": true,
+                  "similarity": 0.2841,
+                  "calibrated_relevance": 0.2802,
+                  "fate": "selected",
+                  "position": 3
+                },
+                {
+                  "video_id": "chl_practicalai_100",
+                  "proxy_relevant": false,
+                  "similarity": 0.2777,
+                  "calibrated_relevance": 0.2589,
+                  "fate": "not_selected",
+                  "position": null
+                },
+                {
+                  "video_id": "chl_founderstalk_58",
+                  "proxy_relevant": false,
+                  "similarity": 0.2734,
+                  "calibrated_relevance": 0.2448,
+                  "fate": "selected",
+                  "position": 2
+                },
+                {
+                  "video_id": "chl_founderstalk_76",
+                  "proxy_relevant": false,
+                  "similarity": 0.1856,
+                  "calibrated_relevance": 0.0,
+                  "fate": "below_relevance_floor",
+                  "position": null
+                },
+                {
+                  "video_id": "chl_backstage_21",
+                  "proxy_relevant": false,
+                  "similarity": 0.1488,
+                  "calibrated_relevance": 0.0,
+                  "fate": "below_relevance_floor",
+                  "position": null
+                },
+                {
+                  "video_id": "chl_backstage_4",
+                  "proxy_relevant": false,
+                  "similarity": 0.1119,
+                  "calibrated_relevance": 0.0,
+                  "fate": "selected_exploration",
+                  "position": 4
+                }
+              ]
             }
           }
         },
@@ -581,7 +2081,90 @@
               "relevant_fates": {
                 "selected": 3
               },
-              "latency_ms": 23.7
+              "latency_ms": 21.7,
+              "selection_policy_version": "two_stage_mmr_r2:651dd4268a32",
+              "candidates": [
+                {
+                  "video_id": "chl_practicalai_65",
+                  "proxy_relevant": true,
+                  "similarity": 0.518,
+                  "calibrated_relevance": 1.0,
+                  "fate": "selected",
+                  "position": 0
+                },
+                {
+                  "video_id": "chl_practicalai_100",
+                  "proxy_relevant": true,
+                  "similarity": 0.4886,
+                  "calibrated_relevance": 0.962,
+                  "fate": "selected",
+                  "position": 1
+                },
+                {
+                  "video_id": "chl_practicalai_178",
+                  "proxy_relevant": true,
+                  "similarity": 0.4446,
+                  "calibrated_relevance": 0.8152,
+                  "fate": "selected",
+                  "position": 2
+                },
+                {
+                  "video_id": "chl_gotime_226",
+                  "proxy_relevant": false,
+                  "similarity": 0.0862,
+                  "calibrated_relevance": 0.0,
+                  "fate": "selected_exploration",
+                  "position": 3
+                },
+                {
+                  "video_id": "chl_gotime_47",
+                  "proxy_relevant": false,
+                  "similarity": 0.052,
+                  "calibrated_relevance": 0.0,
+                  "fate": "below_relevance_floor",
+                  "position": null
+                },
+                {
+                  "video_id": "chl_founderstalk_58",
+                  "proxy_relevant": false,
+                  "similarity": 0.0515,
+                  "calibrated_relevance": 0.0,
+                  "fate": "below_relevance_floor",
+                  "position": null
+                },
+                {
+                  "video_id": "chl_gotime_179",
+                  "proxy_relevant": false,
+                  "similarity": 0.0371,
+                  "calibrated_relevance": 0.0,
+                  "fate": "below_relevance_floor",
+                  "position": null
+                },
+                {
+                  "video_id": "chl_backstage_4",
+                  "proxy_relevant": false,
+                  "similarity": 0.0142,
+                  "calibrated_relevance": 0.0,
+                  "fate": "below_relevance_floor",
+                  "position": null
+                },
+                {
+                  "video_id": "chl_founderstalk_76",
+                  "proxy_relevant": false,
+                  "similarity": 0.0042,
+                  "calibrated_relevance": 0.0,
+                  "fate": "below_relevance_floor",
+                  "position": null
+                },
+                {
+                  "video_id": "chl_backstage_21",
+                  "proxy_relevant": false,
+                  "similarity": -0.0077,
+                  "calibrated_relevance": 0.0,
+                  "fate": "below_relevance_floor",
+                  "position": null
+                }
+              ]
             },
             "0.3": {
               "recall@5": 1.0,
@@ -594,7 +2177,90 @@
               "relevant_fates": {
                 "selected": 3
               },
-              "latency_ms": 23.0
+              "latency_ms": 22.3,
+              "selection_policy_version": "two_stage_mmr_r2:651dd4268a32",
+              "candidates": [
+                {
+                  "video_id": "chl_practicalai_65",
+                  "proxy_relevant": true,
+                  "similarity": 0.518,
+                  "calibrated_relevance": 1.0,
+                  "fate": "selected",
+                  "position": 0
+                },
+                {
+                  "video_id": "chl_practicalai_100",
+                  "proxy_relevant": true,
+                  "similarity": 0.4886,
+                  "calibrated_relevance": 0.962,
+                  "fate": "selected",
+                  "position": 1
+                },
+                {
+                  "video_id": "chl_practicalai_178",
+                  "proxy_relevant": true,
+                  "similarity": 0.4446,
+                  "calibrated_relevance": 0.8152,
+                  "fate": "selected",
+                  "position": 2
+                },
+                {
+                  "video_id": "chl_gotime_226",
+                  "proxy_relevant": false,
+                  "similarity": 0.0862,
+                  "calibrated_relevance": 0.0,
+                  "fate": "selected_exploration",
+                  "position": 3
+                },
+                {
+                  "video_id": "chl_gotime_47",
+                  "proxy_relevant": false,
+                  "similarity": 0.052,
+                  "calibrated_relevance": 0.0,
+                  "fate": "below_relevance_floor",
+                  "position": null
+                },
+                {
+                  "video_id": "chl_founderstalk_58",
+                  "proxy_relevant": false,
+                  "similarity": 0.0515,
+                  "calibrated_relevance": 0.0,
+                  "fate": "below_relevance_floor",
+                  "position": null
+                },
+                {
+                  "video_id": "chl_gotime_179",
+                  "proxy_relevant": false,
+                  "similarity": 0.0371,
+                  "calibrated_relevance": 0.0,
+                  "fate": "below_relevance_floor",
+                  "position": null
+                },
+                {
+                  "video_id": "chl_backstage_4",
+                  "proxy_relevant": false,
+                  "similarity": 0.0142,
+                  "calibrated_relevance": 0.0,
+                  "fate": "below_relevance_floor",
+                  "position": null
+                },
+                {
+                  "video_id": "chl_founderstalk_76",
+                  "proxy_relevant": false,
+                  "similarity": 0.0042,
+                  "calibrated_relevance": 0.0,
+                  "fate": "below_relevance_floor",
+                  "position": null
+                },
+                {
+                  "video_id": "chl_backstage_21",
+                  "proxy_relevant": false,
+                  "similarity": -0.0077,
+                  "calibrated_relevance": 0.0,
+                  "fate": "below_relevance_floor",
+                  "position": null
+                }
+              ]
             }
           }
         },
@@ -621,7 +2287,90 @@
               "relevant_fates": {
                 "selected": 2
               },
-              "latency_ms": 23.8
+              "latency_ms": 22.0,
+              "selection_policy_version": "two_stage_mmr_r2:651dd4268a32",
+              "candidates": [
+                {
+                  "video_id": "chl_founderstalk_76",
+                  "proxy_relevant": true,
+                  "similarity": 0.5311,
+                  "calibrated_relevance": 1.0,
+                  "fate": "selected",
+                  "position": 0
+                },
+                {
+                  "video_id": "chl_founderstalk_58",
+                  "proxy_relevant": true,
+                  "similarity": 0.507,
+                  "calibrated_relevance": 1.0,
+                  "fate": "selected",
+                  "position": 1
+                },
+                {
+                  "video_id": "chl_practicalai_65",
+                  "proxy_relevant": false,
+                  "similarity": 0.101,
+                  "calibrated_relevance": 0.0,
+                  "fate": "below_relevance_floor",
+                  "position": null
+                },
+                {
+                  "video_id": "chl_gotime_47",
+                  "proxy_relevant": false,
+                  "similarity": 0.0939,
+                  "calibrated_relevance": 0.0,
+                  "fate": "below_relevance_floor",
+                  "position": null
+                },
+                {
+                  "video_id": "chl_practicalai_100",
+                  "proxy_relevant": false,
+                  "similarity": 0.0921,
+                  "calibrated_relevance": 0.0,
+                  "fate": "below_relevance_floor",
+                  "position": null
+                },
+                {
+                  "video_id": "chl_backstage_4",
+                  "proxy_relevant": false,
+                  "similarity": 0.0887,
+                  "calibrated_relevance": 0.0,
+                  "fate": "below_relevance_floor",
+                  "position": null
+                },
+                {
+                  "video_id": "chl_gotime_226",
+                  "proxy_relevant": false,
+                  "similarity": 0.0634,
+                  "calibrated_relevance": 0.0,
+                  "fate": "selected_exploration",
+                  "position": 2
+                },
+                {
+                  "video_id": "chl_backstage_21",
+                  "proxy_relevant": false,
+                  "similarity": 0.051,
+                  "calibrated_relevance": 0.0,
+                  "fate": "below_relevance_floor",
+                  "position": null
+                },
+                {
+                  "video_id": "chl_gotime_179",
+                  "proxy_relevant": false,
+                  "similarity": 0.0184,
+                  "calibrated_relevance": 0.0,
+                  "fate": "below_relevance_floor",
+                  "position": null
+                },
+                {
+                  "video_id": "chl_practicalai_178",
+                  "proxy_relevant": false,
+                  "similarity": 0.0173,
+                  "calibrated_relevance": 0.0,
+                  "fate": "below_relevance_floor",
+                  "position": null
+                }
+              ]
             },
             "0.3": {
               "recall@5": 1.0,
@@ -634,7 +2383,90 @@
               "relevant_fates": {
                 "selected": 2
               },
-              "latency_ms": 22.2
+              "latency_ms": 31.6,
+              "selection_policy_version": "two_stage_mmr_r2:651dd4268a32",
+              "candidates": [
+                {
+                  "video_id": "chl_founderstalk_76",
+                  "proxy_relevant": true,
+                  "similarity": 0.5311,
+                  "calibrated_relevance": 1.0,
+                  "fate": "selected",
+                  "position": 0
+                },
+                {
+                  "video_id": "chl_founderstalk_58",
+                  "proxy_relevant": true,
+                  "similarity": 0.507,
+                  "calibrated_relevance": 1.0,
+                  "fate": "selected",
+                  "position": 1
+                },
+                {
+                  "video_id": "chl_practicalai_65",
+                  "proxy_relevant": false,
+                  "similarity": 0.101,
+                  "calibrated_relevance": 0.0,
+                  "fate": "below_relevance_floor",
+                  "position": null
+                },
+                {
+                  "video_id": "chl_gotime_47",
+                  "proxy_relevant": false,
+                  "similarity": 0.0939,
+                  "calibrated_relevance": 0.0,
+                  "fate": "below_relevance_floor",
+                  "position": null
+                },
+                {
+                  "video_id": "chl_practicalai_100",
+                  "proxy_relevant": false,
+                  "similarity": 0.0921,
+                  "calibrated_relevance": 0.0,
+                  "fate": "below_relevance_floor",
+                  "position": null
+                },
+                {
+                  "video_id": "chl_backstage_4",
+                  "proxy_relevant": false,
+                  "similarity": 0.0887,
+                  "calibrated_relevance": 0.0,
+                  "fate": "below_relevance_floor",
+                  "position": null
+                },
+                {
+                  "video_id": "chl_gotime_226",
+                  "proxy_relevant": false,
+                  "similarity": 0.0634,
+                  "calibrated_relevance": 0.0,
+                  "fate": "selected_exploration",
+                  "position": 2
+                },
+                {
+                  "video_id": "chl_backstage_21",
+                  "proxy_relevant": false,
+                  "similarity": 0.051,
+                  "calibrated_relevance": 0.0,
+                  "fate": "below_relevance_floor",
+                  "position": null
+                },
+                {
+                  "video_id": "chl_gotime_179",
+                  "proxy_relevant": false,
+                  "similarity": 0.0184,
+                  "calibrated_relevance": 0.0,
+                  "fate": "below_relevance_floor",
+                  "position": null
+                },
+                {
+                  "video_id": "chl_practicalai_178",
+                  "proxy_relevant": false,
+                  "similarity": 0.0173,
+                  "calibrated_relevance": 0.0,
+                  "fate": "below_relevance_floor",
+                  "position": null
+                }
+              ]
             }
           }
         },
@@ -661,7 +2493,90 @@
               "relevant_fates": {
                 "selected": 2
               },
-              "latency_ms": 26.1
+              "latency_ms": 33.1,
+              "selection_policy_version": "two_stage_mmr_r2:651dd4268a32",
+              "candidates": [
+                {
+                  "video_id": "chl_founderstalk_58",
+                  "proxy_relevant": false,
+                  "similarity": 0.3691,
+                  "calibrated_relevance": 0.5637,
+                  "fate": "selected",
+                  "position": 0
+                },
+                {
+                  "video_id": "chl_founderstalk_76",
+                  "proxy_relevant": false,
+                  "similarity": 0.3366,
+                  "calibrated_relevance": 0.4553,
+                  "fate": "selected",
+                  "position": 1
+                },
+                {
+                  "video_id": "chl_backstage_4",
+                  "proxy_relevant": true,
+                  "similarity": 0.2721,
+                  "calibrated_relevance": 0.2403,
+                  "fate": "selected",
+                  "position": 2
+                },
+                {
+                  "video_id": "chl_backstage_21",
+                  "proxy_relevant": true,
+                  "similarity": 0.2478,
+                  "calibrated_relevance": 0.1594,
+                  "fate": "selected",
+                  "position": 3
+                },
+                {
+                  "video_id": "chl_gotime_47",
+                  "proxy_relevant": false,
+                  "similarity": 0.234,
+                  "calibrated_relevance": 0.1133,
+                  "fate": "not_selected",
+                  "position": null
+                },
+                {
+                  "video_id": "chl_practicalai_65",
+                  "proxy_relevant": false,
+                  "similarity": 0.1926,
+                  "calibrated_relevance": 0.0,
+                  "fate": "below_relevance_floor",
+                  "position": null
+                },
+                {
+                  "video_id": "chl_practicalai_100",
+                  "proxy_relevant": false,
+                  "similarity": 0.1876,
+                  "calibrated_relevance": 0.0,
+                  "fate": "below_relevance_floor",
+                  "position": null
+                },
+                {
+                  "video_id": "chl_gotime_179",
+                  "proxy_relevant": false,
+                  "similarity": 0.1425,
+                  "calibrated_relevance": 0.0,
+                  "fate": "below_relevance_floor",
+                  "position": null
+                },
+                {
+                  "video_id": "chl_practicalai_178",
+                  "proxy_relevant": false,
+                  "similarity": 0.1154,
+                  "calibrated_relevance": 0.0,
+                  "fate": "below_relevance_floor",
+                  "position": null
+                },
+                {
+                  "video_id": "chl_gotime_226",
+                  "proxy_relevant": false,
+                  "similarity": 0.0859,
+                  "calibrated_relevance": 0.0,
+                  "fate": "selected_exploration",
+                  "position": 4
+                }
+              ]
             },
             "0.3": {
               "recall@5": 0.5,
@@ -672,10 +2587,93 @@
               "exploration_slots": 1,
               "off_topic_rate_topical": 0.75,
               "relevant_fates": {
-                "selected": 1,
-                "not_selected": 1
+                "not_selected": 1,
+                "selected": 1
               },
-              "latency_ms": 21.2
+              "latency_ms": 32.2,
+              "selection_policy_version": "two_stage_mmr_r2:651dd4268a32",
+              "candidates": [
+                {
+                  "video_id": "chl_founderstalk_58",
+                  "proxy_relevant": false,
+                  "similarity": 0.3691,
+                  "calibrated_relevance": 0.5637,
+                  "fate": "selected",
+                  "position": 0
+                },
+                {
+                  "video_id": "chl_founderstalk_76",
+                  "proxy_relevant": false,
+                  "similarity": 0.3366,
+                  "calibrated_relevance": 0.4553,
+                  "fate": "selected",
+                  "position": 2
+                },
+                {
+                  "video_id": "chl_backstage_4",
+                  "proxy_relevant": true,
+                  "similarity": 0.2721,
+                  "calibrated_relevance": 0.2403,
+                  "fate": "selected",
+                  "position": 1
+                },
+                {
+                  "video_id": "chl_backstage_21",
+                  "proxy_relevant": true,
+                  "similarity": 0.2478,
+                  "calibrated_relevance": 0.1594,
+                  "fate": "not_selected",
+                  "position": null
+                },
+                {
+                  "video_id": "chl_gotime_47",
+                  "proxy_relevant": false,
+                  "similarity": 0.234,
+                  "calibrated_relevance": 0.1133,
+                  "fate": "selected",
+                  "position": 3
+                },
+                {
+                  "video_id": "chl_practicalai_65",
+                  "proxy_relevant": false,
+                  "similarity": 0.1926,
+                  "calibrated_relevance": 0.0,
+                  "fate": "below_relevance_floor",
+                  "position": null
+                },
+                {
+                  "video_id": "chl_practicalai_100",
+                  "proxy_relevant": false,
+                  "similarity": 0.1876,
+                  "calibrated_relevance": 0.0,
+                  "fate": "below_relevance_floor",
+                  "position": null
+                },
+                {
+                  "video_id": "chl_gotime_179",
+                  "proxy_relevant": false,
+                  "similarity": 0.1425,
+                  "calibrated_relevance": 0.0,
+                  "fate": "below_relevance_floor",
+                  "position": null
+                },
+                {
+                  "video_id": "chl_practicalai_178",
+                  "proxy_relevant": false,
+                  "similarity": 0.1154,
+                  "calibrated_relevance": 0.0,
+                  "fate": "below_relevance_floor",
+                  "position": null
+                },
+                {
+                  "video_id": "chl_gotime_226",
+                  "proxy_relevant": false,
+                  "similarity": 0.0859,
+                  "calibrated_relevance": 0.0,
+                  "fate": "selected_exploration",
+                  "position": 4
+                }
+              ]
             }
           }
         }

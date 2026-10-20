@@ -61,6 +61,8 @@ cd extension && npm run typecheck && npm test && npm run build
 * Research contributions (model runs, ratings, relevance judgments, reproducing a benchmark):
   [`docs/research-contributing.md`](docs/research-contributing.md) and
   [`docs/volunteer-pilot.md`](docs/volunteer-pilot.md).
+* Rating transcripts as a volunteer (no installation needed):
+  [`docs/annotation-pilot.md`](docs/annotation-pilot.md).
 * Evaluators, content sources, embeddings, rankers and exporters have documented extension
   points: [`docs/extending.md`](docs/extending.md).
 * Architecture: [`docs/architecture.md`](docs/architecture.md). Research method:

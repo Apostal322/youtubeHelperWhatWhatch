@@ -19,11 +19,12 @@ Two different milestones, which must never be confused:
 | Real AI | at least one real local-model run reported | ❌ none: model registries unreachable here; volunteer workflow ready (`docs/volunteer-pilot.md`) |
 | Extension | local and remote backends, consent, recovery | ✅ 28-step Chromium run (`scripts/e2e/full_local.py`) + 42 component tests |
 | Security | Phase 3.2 protections and regression tests | ✅ in the suite (guard, registration, imports, network guard) |
-| Privacy | no telemetry; export, deletion, backup, restore | ✅ (PostgreSQL restore is manual `pg_restore`) |
+| Privacy | no telemetry; export, deletion, backup, restore | ✅ (PostgreSQL restore is manual `pg_restore`). Phase 3.4 found and turned off ONNX Runtime's built-in telemetry (`tests/test_no_telemetry.py`) |
+| Writes are durable before success is reported | the API commits before it responds | ✅ since Phase 3.4 (`tests/test_commit_before_response.py`) |
 | Data rights | rights review per source; no transcript text in exports | ✅ Talk Python remains restricted |
 | CI | lint, types, tests (SQLite + PostgreSQL + Redis), migrations, audits, local smoke test, Docker build | ✅ |
 | Docs | install, self-hosting, privacy, security, export format, contributing | ✅ |
-| License | `LICENSE` file present | ❌ **owner decision**: draft PR #5 adds Apache-2.0 |
+| License | `LICENSE` file present | ❌ **owner decision**: draft PR #5 adds Apache-2.0; reviewed in Phase 3.4 and recommended for merge (`docs/licensing.md`) |
 | Dependencies | license compatibility reviewed | ✅ `docs/licensing.md` (psycopg is LGPL-3.0, used as a library) |
 | Status shown to users | heuristic / AI / synthetic labels; "not human-validated" | ✅ |
 | Known limitations published | README "Status", phase reports | ✅ |

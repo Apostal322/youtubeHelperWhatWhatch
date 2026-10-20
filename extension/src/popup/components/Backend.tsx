@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { DEFAULT_API_BASE, getApiBase, setApiBase, setInviteCode } from "../../lib/api";
 import {
   type Diagnosis,
+  catalogLine,
   diagnose,
   grantRemoteConsent,
   hasRemoteConsent,
@@ -41,6 +42,7 @@ export function ConnectionStatus({ base, d }: { base: string; d: Diagnosis | nul
         {d.framework ? ` · framework ${d.framework}` : ""}
       </div>
       <div>Evaluator: {evaluator}</div>
+      <div>{catalogLine(d)}</div>
       <div>
         Database: {d.database ?? "?"} · queued jobs: {d.queue?.queued ?? 0}
         {d.registration && d.registration !== "open" ? ` · registration: ${d.registration}` : ""}

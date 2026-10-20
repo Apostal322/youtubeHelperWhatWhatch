@@ -16,15 +16,34 @@ model in this repository.
 
 Fetching is explicit (``avd embeddings fetch-model``). The embedder never downloads silently and
 fails closed when the verified model is missing.
+
+**ONNX Runtime telemetry is turned off.** Release 1.31 ships a telemetry client that, on Linux too,
+connects to ``mobile.events.data.microsoft.com`` after a session is created, and tries to persist
+a device identifier (observed with ``strace`` in Phase 3.4). This project promises no telemetry,
+so ``disable_onnxruntime_telemetry`` sets ``ORT_DISABLE_TELEMETRY=1`` before onnxruntime is
+imported and calls ``disable_telemetry_events()``. ``tests/test_no_telemetry.py`` checks, at the
+system-call level, that loading and running the embedder opens no network connection.
 """
 
 from __future__ import annotations
 
 import hashlib
+import os
 import tarfile
 from pathlib import Path
+from typing import Any
 
 import numpy as np
+
+
+def disable_onnxruntime_telemetry() -> Any:
+    """Import onnxruntime with its telemetry off; returns the module."""
+    os.environ["ORT_DISABLE_TELEMETRY"] = "1"
+    import onnxruntime as ort
+
+    ort.disable_telemetry_events()
+    return ort
+
 
 ARCHIVE_URL = "https://chroma-onnx-models.s3.amazonaws.com/all-MiniLM-L6-v2/onnx.tar.gz"
 ARCHIVE_SHA256 = "913d7300ceae3b2dbc2c50d1de4baacab4be7b9380491c27fab7418616a16ec3"
@@ -94,7 +113,7 @@ class OnnxMiniLMEmbedder:
     relevance_ceiling = 0.50
 
     def __init__(self, model_dir: Path, threads: int = 2) -> None:
-        import onnxruntime as ort
+        ort = disable_onnxruntime_telemetry()
         from tokenizers import Tokenizer
 
         target = model_dir / "all-MiniLM-L6-v2-onnx"

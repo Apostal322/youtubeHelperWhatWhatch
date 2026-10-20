@@ -320,6 +320,31 @@ def install(app: FastAPI, settings: Settings) -> None:
             gauges[("avd_llm_spend_today_usd", ())] = float(llm_spent_today(session))
         return PlainTextResponse(METRICS.render(gauges), media_type="text/plain; version=0.0.4")
 
+    def _catalog_counts(session: Any) -> dict[str, int]:
+        """Aggregate counts only, so a new user can tell an empty catalog from a broken one."""
+        from avd.db.models import Evaluation, Video
+
+        evaluated = (
+            select(func.count(func.distinct(Evaluation.video_id)))
+            .where(Evaluation.is_current.is_(True), Evaluation.status.in_(("complete", "partial")))
+            .scalar_subquery()
+        )
+        videos, synthetic, done = session.execute(
+            select(
+                func.count(Video.id),
+                func.count(Video.id).filter(Video.is_synthetic.is_(True)),
+                evaluated,
+            )
+        ).one()
+        from avd.datasets.blinding import blinded_video_ids
+
+        return {
+            "videos": int(videos),
+            "synthetic": int(synthetic or 0),
+            "evaluated": int(done or 0),
+            "hidden_for_blind_annotation": len(blinded_video_ids(session)),
+        }
+
     @app.get("/v1/status")
     def status(request: Request, check_inference: bool = False) -> dict[str, Any]:
         """Operational status without secrets: database reachability, queue counts, evaluator
@@ -355,6 +380,7 @@ def install(app: FastAPI, settings: Settings) -> None:
                         select(PipelineJob.status, func.count()).group_by(PipelineJob.status)
                     ).all()
                 )
+                out["catalog"] = _catalog_counts(session)
             out["database"] = "ok"
         except Exception as exc:  # report, do not leak
             log.warning("status check failed", extra={"error": type(exc).__name__})

@@ -134,27 +134,48 @@ def pooled_grades(judgments: list[Judgment]) -> tuple[dict[tuple[str, str], floa
 
 
 def graded_metrics(ranked: list[str], grades: dict[str, float], k: int = 5) -> dict[str, float]:
+    """``grades``: pooled grade per judged item (0, 1, 2). Unjudged items count as not relevant.
+    nDCG and Recall are NaN for a query with no relevant item; aggregate them with ``nanmean``
+    and report how many queries had none, so one empty query cannot poison the mean."""
     gains = [grades.get(v, 0.0) for v in ranked[:k]]
+    relevant = {v for v, g in grades.items() if g >= 1}
     dcg = sum((2**g - 1) / math.log2(i + 2) for i, g in enumerate(gains))
     ideal = sorted(grades.values(), reverse=True)[:k]
     idcg = sum((2**g - 1) / math.log2(i + 2) for i, g in enumerate(ideal))
     first = next((i for i, v in enumerate(ranked) if grades.get(v, 0) >= 1), None)
     return {
         f"ndcg@{k}": dcg / idcg if idcg else float("nan"),
+        f"recall@{k}": sum(v in relevant for v in ranked[:k]) / len(relevant) if relevant else float("nan"),
         f"precision@{k}": sum(g >= 1 for g in gains) / k,
         "mrr": 1.0 / (first + 1) if first is not None else 0.0,
         f"off_topic@{k}": sum(g == 0 for g in gains) / max(1, len(gains)),
     }
 
 
-def index_dev(embedders: dict[str, Any]) -> dict[str, tuple[Any, dict[str, list[float]]]]:
-    """Real document vectors (transcripts, the production recipe) for every dev item."""
+def disputed_pairs(judgments: list[Judgment]) -> list[dict[str, Any]]:
+    """(query, item) pairs whose grades span the whole scale (0 and 2): kept, reported, never averaged away."""
+    by_pair: dict[tuple[str, str], list[int]] = defaultdict(list)
+    for j in judgments:
+        by_pair[(j.query_id, j.video_id)].append(j.grade)
+    return [
+        {"query_id": q, "video_id": v, "grades": sorted(g)}
+        for (q, v), g in sorted(by_pair.items())
+        if max(g) - min(g) >= 2
+    ]
+
+
+Index = tuple[Any, dict[str, list[float]], Any]  # embedder, dev vectors, session factory (or None)
+
+
+def index_dev(embedders: dict[str, Any]) -> dict[str, Index]:
+    """Real document vectors (transcripts, the production recipe) for every dev item, plus the
+    database they live in, so the full recommender can rank the same pool."""
     from sqlalchemy import select
 
     from avd.bench.recs_real import _index_split
     from avd.db.models import Video
 
-    out = {}
+    out: dict[str, Index] = {}
     for name, emb in embedders.items():
         sf, items = _index_split(PILOT, "dev", emb)
         with sf() as s:
@@ -163,14 +184,51 @@ def index_dev(embedders: dict[str, Any]) -> dict[str, tuple[Any, dict[str, list[
                 for v in s.scalars(select(Video).where(Video.id.in_(list(items)))).all()
                 if v.embedding is not None
             }
-        out[name] = (emb, vecs)
+        out[name] = (emb, vecs, sf)
+    return out
+
+
+def _cosines(emb: Any, vecs: dict[str, list[float]], text: str) -> dict[str, float]:
+    import numpy as np
+
+    qv = np.asarray(emb.embed([text])[0], dtype=float)
+    out = {}
+    for v, x in vecs.items():
+        xv = np.asarray(x, dtype=float)
+        out[v] = float(qv @ xv / ((np.linalg.norm(qv) * np.linalg.norm(xv)) or 1.0))
+    return out
+
+
+def _recommended(emb: Any, sf: Any, text: str, k: int) -> list[str]:
+    """The final recommendation list for a user whose only stated interest is the query."""
+    import hashlib
+
+    from avd.db.models import User, UserPreferences
+    from avd.recsys.recommender import recommend
+
+    with sf() as s:
+        user = User(token_hash=hashlib.sha256(f"relevance:{text}".encode()).hexdigest())
+        user.preferences = UserPreferences(interests=[text], include_synthetic=False)
+        s.add(user)
+        s.flush()
+        res = recommend(s, user.id, emb, limit=k, log_impressions=False)
+        s.rollback()
+    return [it["video"]["id"] for it in res["items"]]
+
+
+def _summarise(rows: list[dict[str, float]]) -> dict[str, Any]:
+    from avd.bench import metrics as M
+
+    if not rows:
+        return {}
+    out: dict[str, Any] = {m: round(M.nanmean([r[m] for r in rows]), 4) for m in rows[0]}
+    out["queries"] = len(rows)
+    out["queries_without_relevant_item"] = sum(1 for r in rows if math.isnan(next(iter(r.values()))))
     return out
 
 
 def evaluate(
-    judgments_path: Path | None,
-    indexes: dict[str, tuple[Any, dict[str, list[float]]]] | None = None,
-    k: int = 5,
+    judgments_path: Path | None, indexes: dict[str, Index] | None = None, k: int = 5
 ) -> dict[str, Any]:
     queries, items = load_queries(), dev_items()
     if judgments_path is None or not judgments_path.exists():
@@ -186,23 +244,41 @@ def evaluate(
         agreement["warning"] = (
             "fewer than 3 raters on some pairs: report, but do not compare retrievers on it"
         )
+    judged = {
+        q.query_id: {v: grades[(q.query_id, v)] for v in items if (q.query_id, v) in grades} for q in queries
+    }
+    judged = {q: g for q, g in judged.items() if g}
     results: dict[str, Any] = {}
-    import numpy as np
-
-    for name, (emb, raw) in (indexes or {}).items():
-        vecs = {vid: np.asarray(v, dtype=float) for vid, v in raw.items()}
-        rows = []
+    sims: dict[str, dict[str, dict[str, float]]] = {}
+    for name, (emb, vecs, sf) in (indexes or {}).items():
+        sim_rows, rec_rows = [], []
         for q in queries:
-            g = {vid: grades[(q.query_id, vid)] for vid in items if (q.query_id, vid) in grades}
-            if not g:
+            if q.query_id not in judged:
                 continue
-            qv = np.asarray(emb.embed([q.text])[0], dtype=float)
-            sims = {
-                v: float(qv @ x / ((np.linalg.norm(qv) * np.linalg.norm(x)) or 1.0)) for v, x in vecs.items()
-            }
-            rows.append(graded_metrics(sorted(sims, key=lambda v: -sims[v]), g, k))
-        results[name] = {m: round(statistics.fmean(r[m] for r in rows), 4) for m in rows[0]} if rows else {}
-    return {"status": "measured", "agreement": agreement, "judgments": len(judgments), "retrieval": results}
+            sims.setdefault(name, {})[q.query_id] = c = _cosines(emb, vecs, q.text)
+            sim_rows.append(graded_metrics(sorted(c, key=lambda v: -c[v]), judged[q.query_id], k))
+            if sf is not None:
+                rec_rows.append(graded_metrics(_recommended(emb, sf, q.text, k), judged[q.query_id], k))
+        results[name] = {"retrieval": _summarise(sim_rows)}
+        if rec_rows:
+            results[name]["final_recommendations"] = _summarise(rec_rows)
+    if {"hashing", "minilm"} <= set(sims):
+        # Score fusion (mean cosine): the stored vectors are fixed-width, so no concatenated hybrid.
+        rows = []
+        for qid, g in judged.items():
+            fused = {v: (sims["hashing"][qid][v] + sims["minilm"][qid][v]) / 2 for v in sims["minilm"][qid]}
+            rows.append(graded_metrics(sorted(fused, key=lambda v: -fused[v]), g, k))
+        results["hybrid_fusion"] = {"retrieval": _summarise(rows)}
+    return {
+        "status": "measured",
+        "label_source": "human relevance judgments (relevance_v1)",
+        "agreement": agreement,
+        "disputed_pairs": disputed_pairs(judgments),
+        "judgments": len(judgments),
+        "judged_queries": len(judged),
+        "k": k,
+        "results": results,
+    }
 
 
 def add_parser(sub: Any) -> None:

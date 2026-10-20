@@ -81,6 +81,40 @@ def _run(cmd: list[str], timeout: float = 5.0) -> str | None:
     return r.stdout if r.returncode == 0 else None
 
 
+def _windows_memory() -> tuple[float, float]:
+    """(total, available) RAM in GB on Windows through GlobalMemoryStatusEx (stdlib only)."""
+    import ctypes
+
+    class MemoryStatusEx(ctypes.Structure):
+        _fields_ = [
+            ("dwLength", ctypes.c_ulong),
+            ("dwMemoryLoad", ctypes.c_ulong),
+            ("ullTotalPhys", ctypes.c_ulonglong),
+            ("ullAvailPhys", ctypes.c_ulonglong),
+            ("ullTotalPageFile", ctypes.c_ulonglong),
+            ("ullAvailPageFile", ctypes.c_ulonglong),
+            ("ullTotalVirtual", ctypes.c_ulonglong),
+            ("ullAvailVirtual", ctypes.c_ulonglong),
+            ("ullAvailExtendedVirtual", ctypes.c_ulonglong),
+        ]
+
+    status = MemoryStatusEx()
+    status.dwLength = ctypes.sizeof(MemoryStatusEx)
+    if not ctypes.windll.kernel32.GlobalMemoryStatusEx(ctypes.byref(status)):  # type: ignore[attr-defined]
+        raise OSError("GlobalMemoryStatusEx failed")
+    return status.ullTotalPhys / GB, status.ullAvailPhys / GB
+
+
+def _windows_cpu_name() -> str | None:
+    import winreg  # type: ignore[import-not-found,unused-ignore]
+
+    with winreg.OpenKey(  # type: ignore[attr-defined,unused-ignore]
+        winreg.HKEY_LOCAL_MACHINE,  # type: ignore[attr-defined,unused-ignore]
+        r"HARDWARE\DESCRIPTION\System\CentralProcessor\0",
+    ) as key:
+        return str(winreg.QueryValueEx(key, "ProcessorNameString")[0]).strip()  # type: ignore[attr-defined,unused-ignore]
+
+
 def _meminfo() -> dict[str, float]:
     out: dict[str, float] = {}
     try:
@@ -198,8 +232,14 @@ def detect_hardware(models_dir: Path | None = None) -> Hardware:
                 GPU("apple", cpu_model, round(ram_total * 2 / 3, 1), None, None, "Metal (unified memory)")
             ]
     elif system == "Windows":
+        try:
+            ram_total, ram_avail = _windows_memory()
+        except (OSError, AttributeError, ValueError):
+            notes.append("Windows: RAM could not be read (GlobalMemoryStatusEx failed)")
+        with contextlib.suppress(OSError, ImportError):
+            cpu_model = _windows_cpu_name() or cpu_model
         gpus = _nvidia()
-        notes.append("Windows: RAM figures unavailable without psutil; GPU via nvidia-smi only")
+        notes.append("Windows: GPU detected via nvidia-smi only (AMD/Intel GPUs are not listed)")
     if not gpus:
         notes.append(
             "no supported GPU detected: inference runs on CPU (expect a few tokens/s for 4-9B models)"

@@ -1,0 +1,40 @@
+AI Video Discovery: volunteer rating, consent
+DRAFT FOR PROJECT-OWNER APPROVAL. Not yet approved; do not send packets with this text until it is.
+
+Purpose
+AI Video Discovery is an open-source research project that tries to assess videos and podcasts by what they contain (depth, accuracy, clarity, structure and similar aspects) rather than by how popular they are. Automated assessments can only be trusted if they are compared with careful, independent human judgement. Your ratings are that human judgement.
+
+What you are asked to do
+You will read transcripts of public technical podcast episodes published by Changelog Media under the Creative Commons BY-SA 4.0 licence, and rate each episode on ten aspects of content quality using the written descriptions in this file. You can always answer that the transcript does not show something instead of guessing. You may also be asked how relevant each episode is to a few search topics, and, separately and optionally, how much you enjoyed it.
+
+Time
+Each episode takes roughly 50 to 85 minutes to read and rate. This is an estimate, not a measurement. You choose how many episodes to do, and when.
+
+What is recorded
+- your ratings, the transcript passages you cite, your notes and any relevance or enjoyment answers;
+- the pseudonym the coordinator assigned to you;
+- how long each episode was open in your browser, as reported by this file.
+This file sends nothing anywhere; you send the ratings file yourself. Your name, e-mail address, IP address and device details are not part of the ratings file.
+
+Pseudonymous, not anonymous
+The coordinator knows which person uses which pseudonym, because they sent you this file. They keep that information privately, separate from the ratings, and do not publish it or put it in the project's repository.
+
+How results are stored and used
+- Ratings files are kept by the coordinator, on their own computer, for this research.
+- Results are used to measure how far raters agree with each other and, later, whether automated assessments agree with people.
+- Aggregate results (for example agreement statistics) may be published.
+- Your individual ratings, citations and notes may be published in the project's public repository under your pseudonym, as part of its benchmark data.
+- Automated assessments of these episodes are hidden from you on purpose. Please do not look for them before you have finished.
+
+Taking part is voluntary
+You can stop at any time without giving a reason, and send partial work or nothing at all.
+
+Withdrawing
+You can ask the coordinator to withdraw your ratings at any time. They are then excluded from every later analysis and export. Two limits apply. First, aggregate results that were already published cannot be recalculated retroactively. Second, if your pseudonymous ratings were already published in the public repository, they remain in that repository's history even after they are removed from its current version.
+
+Questions and contact
+Contact the coordinator through the same channel through which you received this file. Please do not post your ratings file, or this file, publicly (for example in a GitHub issue): they contain a code that identifies your packet.
+
+There is no payment, and there are no known risks beyond the time you spend. The project cannot give legal guarantees about how third parties use published open data.
+
+By ticking the box below you confirm that you are at least 18 years old, that you have read this text, and that you agree to take part on these terms.
