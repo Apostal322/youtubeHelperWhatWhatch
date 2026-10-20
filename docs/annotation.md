@@ -30,15 +30,30 @@ data beyond the pseudonym and the self-declared expertise tags is collected.
    repeat of an item they already rated. Repeats are exported separately and never count as
    independent ratings.
 5. **Annotating** (UI at `/annotate`). For each of the 10 transcript dimensions:
-   * pick a score 1–5 using the anchors (all five levels are written out), **or** choose a
-     status: `insufficient_evidence`, `not_applicable`, `ambiguous` or `abstain`. Never guess.
-     An unavailable dimension is not a low score;
+   * choose a status first. A status is required; a number never is. `scored` means you then
+     pick 1–5 using the anchors (all five levels are written out). The alternatives, each
+     explained in the UI:
+     * `insufficient_evidence`;
+     * `not_applicable`;
+     * `cannot_determine` (material exists but no justified judgement);
+     * `requires_subject_expertise`;
+     * `requires_visual_material` (needs the video or audio);
+     * `ambiguous` (the rubric is unclear here);
+     * `abstain`.
+
+     Never guess. An unavailable dimension is not a low score;
    * give a confidence from 0 to 1;
    * cite evidence by selecting words in a segment and pressing **Cite**. Citations can be
      marked as *counter* evidence. The server verifies every quote against the transcript
      (same matcher as model evidence) and rejects quotes it cannot find;
    * optional note. Also give an overall confidence and set any flags (`ambiguous_rubric`,
-     `insufficient_material`, `transcript_problem`, `sensitive_content`).
+     `insufficient_material`, `transcript_problem`, `sensitive_content`);
+   * optional **personal enjoyment** (1–5). It is stored and exported apart
+     (`enjoyment.jsonl`, `label_source=human_personal_enjoyment`) and never used as a quality
+     label. It exists to measure how far quality and enjoyment diverge.
+
+   Drafts are kept in the browser tab (`sessionStorage`) and restored after a reload. The
+   server keeps the open assignment, so a lost session resumes on the same item.
 6. **Timing.** Start and submit times are taken by the server. `duration_seconds` is not
    self-reported.
 7. **QC flags** are added automatically and recorded, not acted on:
@@ -62,9 +77,47 @@ data beyond the pseudonym and the self-declared expertise tags is collected.
       adjudicated rows (`human_adjudication`);
     * `repeats.jsonl`;
     * `pairs.jsonl`;
-    * `items.jsonl`: split, group and stratum, for grouped bootstrap.
+    * `items.jsonl`: split, group and stratum, for grouped bootstrap;
+    * `enjoyment.jsonl`: personal enjoyment, kept separate.
 
     Every row records the rubric version, split and group.
+
+## Blinding (Phase 3)
+
+* **Raters cannot look up the system's view.** While a dataset's `public_blinding` is on (the
+  default on import), every public path withholds model assessments of its items:
+  * video detail, evaluation, history and claims return 403;
+  * search, listings and recommendations skip the items.
+
+  Turn it off only when annotation is closed: `avd annotate unblind --dataset real_pilot@v1`.
+* **The rater payload carries no publisher link, popularity or model output.** Attribution
+  (required by the licence) is in a collapsed "Source and licence" section with a reminder to
+  rate the content, not the show. Speaker names inside transcripts are content and stay.
+* **Rights.** Items whose publisher has not confirmed that the text may be shown to external
+  raters are never assigned (`avd dataset rights`). Today this applies to the 7 Talk Python
+  items, all in the test split.
+
+## Recruiting and running a rating round (what the project owner must do)
+
+1. **Approve consent and pay.** Write a consent text: what raters see, that ratings are
+   pseudonymous, retention, the right to withdraw (`/v1/annotation` exclusion with a reason).
+   Set a pay rate. Budget about 1 hour per item.
+2. **Recruit at least 3 raters,** plus 1 adjudicator who rates nothing they adjudicate. People
+   comfortable with long technical English podcasts. Record self-declared expertise.
+3. **Create accounts:** `avd annotate create-rater <pseudonym> --expertise ...`. Send each
+   token privately; it is shown once.
+4. **Onboard.** Each rater does the 2 calibration items. Hold a 30-minute calibration call on
+   their disagreements before the dev items.
+5. **Rate the dev split first** (10 items x 3 raters, about 25–40 hours). Check
+   `avd annotate qc` weekly for `too_fast`, `straight_lining` and missing evidence.
+6. **Adjudicate and export:**
+   `avd annotate export --out benchmarks/labels/real_pilot_v1-dev`, then
+   `avd bench-real --labels ...`. Human–human agreement is the first result. If Krippendorff's
+   α < 0.4 on a dimension, review the rubric for that dimension (ambiguous wording versus an
+   inherently subjective dimension) before collecting more. **Do not change the rubric after
+   test labels exist.**
+7. **Only then rate the test split.** It needs the Talk Python rights confirmation for 7 of the
+   17 items.
 
 ## Rater guidance (shown in the UI)
 
@@ -85,7 +138,8 @@ data beyond the pseudonym and the self-declared expertise tags is collected.
   text and pay rate must be approved before anyone is recruited.
 * **Expertise verification.** Expertise tags are self-declared.
 * **Agreement thresholds.** Agreement is computed by the benchmark (`docs/evaluation.md`).
-  Release gates are in `benchmarks/release_gates.yaml`, fixed before any test-split labels exist.
+  Release gates are in `benchmarks/release_gates.json`, locked in `release_gates.lock` before
+  any annotation existed.
 
 ## Cost estimate (pilot)
 

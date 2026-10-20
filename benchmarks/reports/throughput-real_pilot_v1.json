@@ -1,7 +1,7 @@
 {
   "meta": {
-    "run_at": "2026-10-16T01:19:51+00:00",
-    "git_commit": "51d8424664a1a2180b12ca1b46c475015e97810a",
+    "run_at": "2026-10-19T01:35:55+00:00",
+    "git_commit": "2093bcc848f9ffcc0da06cd548831f3660516b60",
     "dataset": "real_pilot@v1 (29 long-form episodes, median ~11k words)",
     "assumptions": {
       "chars_per_token": 4.0,
@@ -18,16 +18,29 @@
           20.0
         ]
       },
-      "representativeness": "pilot items are ~1 h podcasts; typical YouTube videos are shorter, so per-video cost is likely lower"
+      "representativeness": "pilot items are ~1 h podcasts; typical YouTube videos are shorter, so per-video cost is likely lower",
+      "workers": "4 concurrent LLM requests per worker (AVD_LLM_MAX_CONCURRENCY), 1.5x headroom",
+      "completion_time": "~96 s per item at steady state (calls in sequence x latency); backlog grows without bound if workers < needed",
+      "storage": "transcript + 3x heuristic evaluation JSON (LLM evaluations carry justifications and quotes) + 384-d float32 vector; excludes media and indexes",
+      "youtube_quota": "search.list returns <= 50 results; units from the client's quota table; captions require the channel owner's OAuth, so owner captions are a per-creator grant, not a crawlable source",
+      "failure_rates": "unmeasured: no live calls; the evaluate-real runner records them per run"
     }
   },
   "measured": {
     "heuristic_pipeline_ms_per_video": {
-      "p50": 75.95,
-      "p95": 107.76
+      "p50": 85.81,
+      "p95": 122.64
     },
-    "hashing_embed_ms_per_video": 4.43,
+    "hashing_embed_ms_per_video": 5.55,
     "minilm_embed_ms_per_video": "805 (retrieval experiment, 24 windows/doc, CPU)",
+    "transcript_json_bytes": {
+      "p50": 70077.0,
+      "p95": 98969.6
+    },
+    "heuristic_evaluation_json_bytes": {
+      "p50": 14824.0,
+      "p95": 14982.6
+    },
     "llm_call_plan": {
       "B": {
         "model": "claude-opus-5-5",
@@ -65,6 +78,23 @@
   },
   "projected": [
     {
+      "videos_per_day": 100,
+      "llm_usd_per_day": 20.0,
+      "llm_usd_per_day_output_x3": 36.0,
+      "llm_usd_per_month": 591.0,
+      "tokens_per_day_millions": 3.3,
+      "llm_calls_per_minute": 0.1,
+      "concurrent_llm_requests": 0.1,
+      "heuristic_cpu_seconds_per_day": 9.0,
+      "llm_tokens_per_minute": 2307,
+      "llm_workers_needed": 1,
+      "storage_gb_per_day": 0.012,
+      "storage_gb_per_year": 4.3,
+      "youtube_units_discovery_per_day": 202,
+      "youtube_units_owner_captions_per_day": 25000,
+      "youtube_default_quota_ok": true
+    },
+    {
       "videos_per_day": 1000,
       "llm_usd_per_day": 197.0,
       "llm_usd_per_day_output_x3": 357.0,
@@ -72,7 +102,14 @@
       "tokens_per_day_millions": 33.2,
       "llm_calls_per_minute": 1.1,
       "concurrent_llm_requests": 1.1,
-      "heuristic_cpu_seconds_per_day": 79.0
+      "heuristic_cpu_seconds_per_day": 89.0,
+      "llm_tokens_per_minute": 23073,
+      "llm_workers_needed": 1,
+      "storage_gb_per_day": 0.117,
+      "storage_gb_per_year": 42.8,
+      "youtube_units_discovery_per_day": 2020,
+      "youtube_units_owner_captions_per_day": 250000,
+      "youtube_default_quota_ok": true
     },
     {
       "videos_per_day": 10000,
@@ -82,7 +119,14 @@
       "tokens_per_day_millions": 332.3,
       "llm_calls_per_minute": 11.1,
       "concurrent_llm_requests": 11.1,
-      "heuristic_cpu_seconds_per_day": 786.0
+      "heuristic_cpu_seconds_per_day": 894.0,
+      "llm_tokens_per_minute": 230735,
+      "llm_workers_needed": 5,
+      "storage_gb_per_day": 1.172,
+      "storage_gb_per_year": 427.7,
+      "youtube_units_discovery_per_day": 20200,
+      "youtube_units_owner_captions_per_day": 2500000,
+      "youtube_default_quota_ok": false
     },
     {
       "videos_per_day": 100000,
@@ -92,7 +136,14 @@
       "tokens_per_day_millions": 3322.6,
       "llm_calls_per_minute": 111.1,
       "concurrent_llm_requests": 111.1,
-      "heuristic_cpu_seconds_per_day": 7857.0
+      "heuristic_cpu_seconds_per_day": 8944.0,
+      "llm_tokens_per_minute": 2307347,
+      "llm_workers_needed": 42,
+      "storage_gb_per_day": 11.717,
+      "storage_gb_per_year": 4276.8,
+      "youtube_units_discovery_per_day": 202000,
+      "youtube_units_owner_captions_per_day": 25000000,
+      "youtube_default_quota_ok": false
     }
   ]
 }

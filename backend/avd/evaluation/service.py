@@ -334,13 +334,19 @@ def assessment_state(ev: Evaluation) -> tuple[str, list[str]]:
     ungrounded = (ev.validation or {}).get("ungrounded_dimensions") or []
     if ungrounded:
         reasons.append(f"scored without evidence: {', '.join(ungrounded)}")
+    flagged = ((ev.coverage_report or {}).get("support_audit") or {}).get("flags") or {}
+    if flagged:
+        reasons.append(f"evidence support flags on: {', '.join(sorted(flagged))}")
     if ev.overall_confidence is not None and ev.overall_confidence < 0.5:
         reasons.append("low (uncalibrated) confidence")
     if reasons:
         return (
             "insufficient_evidence" if ev.overall_score is None and len(scored) < 3 else "preliminary"
         ), reasons
-    return "grounded", ["scored judgements cite verified transcript evidence; not human-validated"]
+    return "grounded", [
+        "scored judgements cite verified transcript evidence and pass the support audit; whether each "
+        "quote semantically supports its judgement is not automated; not human-validated"
+    ]
 
 
 def summary(ev: Evaluation | None) -> dict[str, Any] | None:

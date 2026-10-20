@@ -109,7 +109,9 @@ def test_verdict_taxonomy_and_claim_types() -> None:
     }
     assert "Leaves are the best" not in r.queries
     d = out.dimensions[0]
-    assert d.status == DimensionStatus.SCORED and d.score == 2.0  # (0 + 0.5) / 2 = 0.25 -> 2
+    # v3 smoothing: 5 - 4 * min(1, 1.5 * 0.5 / (2 + 2)) = 4.25 (v2's step function gave 2.0 for one
+    # mixed claim out of two: a single disputed claim nearly sank the dimension).
+    assert d.status == DimensionStatus.SCORED and d.score == 4.25
     kinds = {e.note.split(" ")[0]: e.kind for e in d.evidence if e.note}
     assert kinds == {"supported": "supporting", "mixed": "counter"}
     src = next(c for c in out.report["claims"] if c["verdict"] == "supported")["sources"]
@@ -182,7 +184,9 @@ def test_transcript_and_passages_are_framed_as_untrusted() -> None:
     ev.evaluate(make_input(t), get_profile(Genre.SCIENCE))
     extract, judge = p.calls[0].user, p.calls[1].user
     assert "</transcript>" not in extract and "<system>" not in judge
-    assert extract.startswith("=== BEGIN UNTRUSTED TRANSCRIPT") and judge.startswith(
+    header, _, framed = judge.partition("\n")
+    assert header == "Content published: unknown"  # our metadata, outside the untrusted block
+    assert extract.startswith("=== BEGIN UNTRUSTED TRANSCRIPT") and framed.startswith(
         "=== BEGIN UNTRUSTED CLAIMS AND PASSAGES"
     )
 
@@ -289,3 +293,69 @@ def test_popularity_statements_are_never_evidence() -> None:
         for d in TEXT_DIMENSIONS
         if d != Dimension.TITLE_CONSISTENCY
     )
+
+
+def test_v3_hypotheses_outdated_claims_and_proportionate_scoring() -> None:
+    from avd.evaluation.evaluators.factual import ERROR_SLOPE, SMOOTHING_PRIOR
+
+    old = ReferencePassage(
+        passage_id="ver#0",
+        doc_id="ver",
+        title="Release notes",
+        license="CC0",
+        text="Since 2025 the default is 8.",
+        as_of="2025-03",
+    )
+    claims = [
+        claim("Chlorophyll absorbs red and blue light", 1, "Chlorophyll absorbs red and blue light"),
+        claim("RuBisCO fixes carbon", 4, "the key enzyme is RuBisCO"),
+        claim("The default is 4", 3, "roughly one percent of light is stored"),
+        claim("Maybe dark matter is axions", 2, "imagine a leaf in sunlight", "hypothesis"),
+    ]
+    r = Retriever(
+        {
+            "Chlorophyll absorbs red and blue light": [P_BIO],
+            "RuBisCO fixes carbon": [P_ENZ],
+            "The default is 4": [old],
+        }
+    )
+    ev, p = checker(
+        claims,
+        [
+            verdict("Chlorophyll absorbs red and blue light", "supported", ["bio#0"]),
+            verdict("RuBisCO fixes carbon", "supported", ["enz#0"]),
+            verdict("The default is 4", "outdated", ["ver#0"]),
+        ],
+        r,
+    )
+    out = ev.evaluate(make_input(), get_profile(Genre.SCIENCE))
+    by = {c["claim"]: c["verdict"] for c in out.report["claims"]}
+    assert by["Maybe dark matter is axions"] == "not_applicable"  # hypotheses are not checked as facts
+    assert by["The default is 4"] == "outdated" and out.report["verdict_counts"]["outdated"] == 1
+    assert "[as of 2025-03]" in p.calls[-1].user
+    d = out.dimensions[0]
+    assert d.score == 4.0  # no errors (outdated is not an error), but only 2 supported claims
+    assert "1 outdated since publication (not errors)" in d.justification
+
+    # Proportionality: one contradicted claim among many decided ones barely moves the score;
+    # many contradictions do; a contradicted high-stakes claim weighs double.
+    def score(errors: float, decided: int) -> float:
+        return round(5.0 - 4.0 * min(1.0, ERROR_SLOPE * errors / (decided + SMOOTHING_PRIOR)), 2)
+
+    assert score(1, 10) == 4.5 and score(1, 2) == 3.5 and score(2, 2) == 2.0 and score(5, 5) == 1.0
+    assert score(2, 2) < score(1, 2)  # high-stakes weight 2 == two ordinary errors
+
+
+def test_outdated_without_a_cited_passage_is_not_accepted() -> None:
+    ev, _ = checker(
+        [
+            claim("Chlorophyll absorbs red and blue light", 1, "Chlorophyll absorbs red and blue light"),
+            claim("RuBisCO fixes carbon", 4, "the key enzyme is RuBisCO"),
+        ],
+        [verdict("Chlorophyll absorbs red and blue light", "outdated", [])],
+        Retriever({"Chlorophyll absorbs red and blue light": [P_BIO], "RuBisCO fixes carbon": [P_ENZ]}),
+    )
+    out = ev.evaluate(make_input(), get_profile(Genre.SCIENCE))
+    assert {c["claim"]: c["verdict"] for c in out.report["claims"]}[
+        "Chlorophyll absorbs red and blue light"
+    ] == ("insufficient_evidence")

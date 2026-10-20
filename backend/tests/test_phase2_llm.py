@@ -511,3 +511,40 @@ def test_popularity_text_in_metadata_does_not_change_inputs_or_prompt(db: DB) ->
     assert changed.fingerprint() == base.fingerprint()
     assert build_user_prompt(changed, get_profile(g.genre), TEXT_DIMENSIONS) == base_prompt
     assert changed.sanitized_spans >= 3 and "subscribers" not in base_prompt
+
+
+def test_configuration_change_requeues_stage_b_through_the_job_path(db: DB) -> None:
+    """Phase 3 audit: the Stage B dedup key lacked the evaluator config, so a new model or prompt
+    never re-ran Stage B via Stage A (the D2 test above bypassed the dedup with hand-made keys)."""
+    from avd.ingest import load_fixture_files, seed_fixture_video
+    from avd.services import enqueue_stage_a
+
+    with db.sf() as s:
+        fx = next(f for f in load_fixture_files(db.settings.fixtures_dir) if f["video_id"] == "syn_sci_001")
+        seed_fixture_video(s, fx, db.settings.media_cache_dir)
+        enqueue_stage_a(s, "syn_sci_001")
+        s.commit()
+
+    def resp(req: LLMRequest, i: int) -> dict[str, Any]:
+        seg = fx["content"]["transcript"]["segments"][3]["text"]
+        return judgments(4, quote=" ".join(seg.split()[:8]), seg=3)
+
+    def run_with(model: str) -> None:
+        settings = db.settings.model_copy(
+            update={"llm_provider": LLMProviderName.ANTHROPIC, "llm_model_stage_b": model}
+        )
+        ctx = build_context(
+            settings, db.sf, llm=build_llm_provider(settings, db.sf, raw=ScriptedProvider(resp))
+        )
+        run_until_idle(ctx)
+
+    run_with("claude-opus-5-5")
+    with db.sf() as s:
+        enqueue_stage_a(s, "syn_sci_001", force=True)
+        s.commit()
+    run_with("claude-sonnet-5-5")
+    with db.sf() as s:
+        evs = s.scalars(
+            select(Evaluation).where(Evaluation.stage == "B").order_by(Evaluation.created_at)
+        ).all()
+        assert len(evs) == 2 and evs[-1].is_current and evs[0].config_hash != evs[1].config_hash

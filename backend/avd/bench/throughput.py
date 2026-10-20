@@ -128,10 +128,13 @@ def run(manifest_path: Path, stage_c_rate: float = 0.2, llm_latency_s: float = 6
         "B", settings.model_copy(update={"llm_provider": LLMProviderName.HEURISTIC}), None
     )
     lat = []
+    eval_bytes = []
     for vid, t in items:
         t0 = time.perf_counter()
-        heuristic.run(_input(vid, t))
+        res = heuristic.run(_input(vid, t))
         lat.append((time.perf_counter() - t0) * 1000)
+        eval_bytes.append(len(res.model_dump_json()))
+    transcript_bytes = [len(t.model_dump_json()) for _, t in items]
     hashing = HashingEmbedder()
     t0 = time.perf_counter()
     for _, t in items:
@@ -205,9 +208,22 @@ def run(manifest_path: Path, stage_c_rate: float = 0.2, llm_latency_s: float = 6
         + stage_c_rate
         * (per_stage["C"]["est_input_tokens_mean"] + per_stage["C"]["assumed_output_tokens_mean"])
     )
+    from avd.youtube.client import QUOTA_COST
+
+    per_item_s = (
+        per_stage["B"]["calls_mean"] * llm_latency_s
+        + stage_c_rate * per_stage["C"]["calls_mean"] * llm_latency_s
+    )
+    # Storage per video (bytes): measured transcript and heuristic-evaluation JSON; the LLM
+    # evaluation (justifications, quotes) is assumed 3x the heuristic one; 384-d float32 vector.
+    stored = statistics.fmean(transcript_bytes) + 3 * statistics.fmean(eval_bytes) + 384 * 4
+    per_worker = max(1, settings.llm_max_concurrency)
     projections = []
-    for n in (1_000, 10_000, 100_000):
+    for n in (100, 1_000, 10_000, 100_000):
         calls_per_min = n * calls_per_video / 1440
+        concurrent = calls_per_min * llm_latency_s / 60
+        yt_discovery = -(-n // 50) * (QUOTA_COST["search.list"] + QUOTA_COST["videos.list"])
+        yt_owner_captions = n * (QUOTA_COST["captions.list"] + QUOTA_COST["captions.download"])
         projections.append(
             {
                 "videos_per_day": n,
@@ -218,6 +234,13 @@ def run(manifest_path: Path, stage_c_rate: float = 0.2, llm_latency_s: float = 6
                 "llm_calls_per_minute": round(calls_per_min, 1),
                 "concurrent_llm_requests": round(calls_per_min * llm_latency_s / 60, 1),
                 "heuristic_cpu_seconds_per_day": round(n * statistics.fmean(lat) / 1000, 0),
+                "llm_tokens_per_minute": round(n * tokens_per_video / 1440),
+                "llm_workers_needed": max(1, -(-int(concurrent * 1.5 + 0.999) // per_worker)),
+                "storage_gb_per_day": round(n * stored / 1e9, 3),
+                "storage_gb_per_year": round(n * stored * 365 / 1e9, 1),
+                "youtube_units_discovery_per_day": yt_discovery,
+                "youtube_units_owner_captions_per_day": yt_owner_captions,
+                "youtube_default_quota_ok": yt_discovery <= 10_000,
             }
         )
     return {
@@ -234,12 +257,19 @@ def run(manifest_path: Path, stage_c_rate: float = 0.2, llm_latency_s: float = 6
                     m: price_for(m) for m in {per_stage["B"]["model"], per_stage["C"]["model"]} if m
                 },
                 "representativeness": "pilot items are ~1 h podcasts; typical YouTube videos are shorter, so per-video cost is likely lower",
+                "workers": f"{per_worker} concurrent LLM requests per worker (AVD_LLM_MAX_CONCURRENCY), 1.5x headroom",
+                "completion_time": f"~{round(per_item_s)} s per item at steady state (calls in sequence x latency); backlog grows without bound if workers < needed",
+                "storage": "transcript + 3x heuristic evaluation JSON (LLM evaluations carry justifications and quotes) + 384-d float32 vector; excludes media and indexes",
+                "youtube_quota": "search.list returns <= 50 results; units from the client's quota table; captions require the channel owner's OAuth, so owner captions are a per-creator grant, not a crawlable source",
+                "failure_rates": "unmeasured: no live calls; the evaluate-real runner records them per run",
             },
         },
         "measured": {
             "heuristic_pipeline_ms_per_video": S.percentiles(lat),
             "hashing_embed_ms_per_video": round(hash_ms, 2),
             "minilm_embed_ms_per_video": "805 (retrieval experiment, 24 windows/doc, CPU)",
+            "transcript_json_bytes": S.percentiles(transcript_bytes),
+            "heuristic_evaluation_json_bytes": S.percentiles(eval_bytes),
             "llm_call_plan": per_stage,
         },
         "projected": projections,
@@ -276,13 +306,15 @@ def render_markdown(r: dict[str, Any]) -> str:
         "",
         f"Assumptions: `{json.dumps(m['assumptions'])}`",
         "",
-        "| videos/day | LLM $/day | $/day if output ×3 | LLM $/month | tokens/day (M) | LLM calls/min | concurrent requests | heuristic CPU s/day |",
-        "|---:|---:|---:|---:|---:|---:|---:|---:|",
+        "| videos/day | LLM $/day | $/day if output ×3 | LLM $/month | tokens/day (M) | tokens/min | LLM calls/min | concurrent requests | LLM workers | heuristic CPU s/day | storage GB/day (/yr) | YouTube units/day: discovery · owner captions |",
+        "|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---|---|",
     ]
     for p in r["projected"]:
+        quota = "ok" if p["youtube_default_quota_ok"] else "**exceeds 10k default**"
         out.append(
             f"| {p['videos_per_day']:,} | {p['llm_usd_per_day']:,.0f} | {p['llm_usd_per_day_output_x3']:,.0f} | {p['llm_usd_per_month']:,.0f} | {p['tokens_per_day_millions']} | "
-            f"{p['llm_calls_per_minute']} | {p['concurrent_llm_requests']} | {p['heuristic_cpu_seconds_per_day']:,.0f} |"
+            f"{p['llm_tokens_per_minute']:,} | {p['llm_calls_per_minute']} | {p['concurrent_llm_requests']} | {p['llm_workers_needed']} | {p['heuristic_cpu_seconds_per_day']:,.0f} | "
+            f"{p['storage_gb_per_day']} ({p['storage_gb_per_year']}) | {p['youtube_units_discovery_per_day']:,} ({quota}) · {p['youtube_units_owner_captions_per_day']:,} |"
         )
     out.append("")
     return "\n".join(out)

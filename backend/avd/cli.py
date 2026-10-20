@@ -256,6 +256,34 @@ def cmd_dataset_import(args: argparse.Namespace) -> None:
     print(json.dumps({k: v for k, v in result.items() if k != "video_ids"}))
 
 
+def cmd_dataset_build_holdout(args: argparse.Namespace) -> None:
+    from avd.datasets.pilot import build_holdout, load_manifest
+
+    clones = dict(c.split("=", 1) for c in args.clone)
+    if "changelog" not in clones:
+        sys.exit("--clone changelog=<path> is required")
+    pilot = load_manifest(Path(args.pilot))
+    manifest = build_holdout({"changelog": Path(clones["changelog"])}, _fetcher(args), pilot, progress=print)
+    out = Path(args.out)
+    out.mkdir(parents=True, exist_ok=True)
+    (out / "manifest.json").write_text(
+        json.dumps(manifest, indent=2, ensure_ascii=False) + "\n", encoding="utf-8"
+    )
+    print(json.dumps({"items": len(manifest["items"]), "items_sha256": manifest["items_sha256"]}))
+
+
+def cmd_prompts(args: argparse.Namespace) -> None:
+    from avd.evaluation.prompts import describe
+
+    print(json.dumps(describe(), indent=2))
+
+
+def cmd_dataset_rights(args: argparse.Namespace) -> None:
+    from avd.datasets.rights import report
+
+    print(json.dumps(report(), indent=2))
+
+
 def cmd_dataset_revoke(args: argparse.Namespace) -> None:
     from avd.datasets.importer import revoke_video_sources
     from avd.db.session import session_scope
@@ -279,11 +307,19 @@ def cmd_annotate(args: argparse.Namespace) -> None:
             out = Path(args.out)
             out.mkdir(parents=True, exist_ok=True)
             data = svc.export_labels(s, args.dataset)
-            for name in ("labels", "repeats", "pairs", "items"):
+            for name in ("labels", "repeats", "pairs", "items", "enjoyment"):
                 with (out / f"{name}.jsonl").open("w", encoding="utf-8") as f:
                     for row in data[name]:
                         f.write(json.dumps(row, ensure_ascii=False) + "\n")
             print(json.dumps({k: len(v) for k, v in data.items()}))
+        elif args.annotate_cmd in ("blind", "unblind"):
+            from avd.db.models import Dataset
+
+            ds = s.get(Dataset, args.dataset)
+            if ds is None:
+                sys.exit(f"unknown dataset {args.dataset}")
+            ds.public_blinding = args.annotate_cmd == "blind"
+            print(json.dumps({"dataset": ds.id, "public_blinding": ds.public_blinding}))
 
 
 def cmd_bench_real(args: argparse.Namespace) -> None:
@@ -297,6 +333,31 @@ def cmd_gates(args: argparse.Namespace) -> None:
 
     if args.gates_cmd == "lock":
         print(json.dumps(lock_gates(args.statement, new_test_set=args.new_test_set), indent=2))
+    elif args.gates_cmd == "status":
+        from avd.bench.real import evaluate_gates, load_exposures
+
+        report = json.loads(Path(args.report).read_text())
+        meta = report.get("meta", {})
+        manifest = Path(args.manifest) if args.manifest else None
+        res = evaluate_gates(
+            load_gates(),
+            report,
+            meta.get("split", "dev"),
+            meta.get("evaluator", "heuristic"),
+            load_exposures(manifest),
+        )
+        out = {
+            "report": args.report,
+            "dataset": meta.get("dataset"),
+            "split": meta.get("split"),
+            "evaluator": res["evaluator"],
+            "binding": res["binding"],
+            "release_ready": res["release_ready"],
+            "counts": res["counts"],
+            "by_status": {st: [r["id"] for r in res["results"] if r["status"] == st] for st in res["counts"]},
+            "results": res["results"],
+        }
+        print(json.dumps(out, indent=2))
     else:
         g = load_gates()
         print(json.dumps({"sha256": g["sha256"], "lock_valid": g["lock_valid"], "lock": g["lock"]}, indent=2))
@@ -381,6 +442,20 @@ def main(argv: list[str] | None = None) -> None:
     for sp in (bp, di):
         sp.add_argument("--cache-dir", default=None)
         sp.add_argument("--offline", action="store_true", help="use only the local cache")
+    bh = ds.add_parser(
+        "build-holdout", help="build the sealed hold-out manifest (unseen episodes of test shows)"
+    )
+    bh.add_argument("--clone", action="append", default=[], help="changelog=<local clone>")
+    bh.add_argument(
+        "--pilot", default=str(REPO_ROOT / "benchmarks" / "datasets" / "real_pilot_v1" / "manifest.json")
+    )
+    bh.add_argument("--out", default=str(REPO_ROOT / "benchmarks" / "datasets" / "real_holdout_v2"))
+    bh.add_argument("--cache-dir", default=None)
+    bh.add_argument("--offline", action="store_true")
+    bh.set_defaults(fn=cmd_dataset_build_holdout)
+    ds.add_parser("rights", help="use-time rights review: facts, assumptions, pending uses").set_defaults(
+        fn=cmd_dataset_rights
+    )
     rv = ds.add_parser("revoke", help="revoke a video's content sources and withdraw its evaluations")
     rv.add_argument("video_id")
     rv.add_argument("--reason", required=True)
@@ -395,9 +470,13 @@ def main(argv: list[str] | None = None) -> None:
     q = an.add_parser("qc")
     ex = an.add_parser("export")
     ex.add_argument("--out", required=True)
-    for sp in (q, ex):
+    bl = an.add_parser(
+        "blind", help="withhold model assessments of the dataset's items from public endpoints"
+    )
+    ub = an.add_parser("unblind", help="annotation closed: publish model assessments of the dataset's items")
+    for sp in (q, ex, bl, ub):
         sp.add_argument("--dataset", default="real_pilot@v1")
-    for sp in (cr, q, ex):
+    for sp in (cr, q, ex, bl, ub):
         sp.set_defaults(fn=cmd_annotate)
     br = sub.add_parser("bench-real", help="benchmark on a real licensed dataset against human labels")
     br.add_argument(
@@ -420,6 +499,9 @@ def main(argv: list[str] | None = None) -> None:
     gl.add_argument("--statement", required=True)
     gl.add_argument("--new-test-set", action="store_true")
     gt.add_parser("check")
+    gs = gt.add_parser("status", help="classify every gate for a benchmark report (machine-readable)")
+    gs.add_argument("--report", required=True, help="a bench-real JSON report")
+    gs.add_argument("--manifest", default=None, help="dataset manifest (to apply its exposure ledger)")
     for sp in gt.choices.values():
         sp.set_defaults(fn=cmd_gates)
     em = sub.add_parser("embeddings", help="embedding model and index maintenance").add_subparsers(
@@ -434,12 +516,19 @@ def main(argv: list[str] | None = None) -> None:
     from avd.bench.retrieval import add_parser as add_retrieval_parser
 
     add_retrieval_parser(sub)
+    from avd.bench.recs_real import add_diagnostic_parser
     from avd.bench.recs_real import add_parser as add_recs_parser
 
     add_recs_parser(sub)
+    from avd.bench.evaluate_real import add_parser as add_evaluate_real_parser
     from avd.bench.throughput import add_parser as add_throughput_parser
 
     add_throughput_parser(sub)
+    add_evaluate_real_parser(sub)
+    add_diagnostic_parser(sub)
+    sub.add_parser("prompts", help="list registered evaluation prompts and their metadata").set_defaults(
+        fn=cmd_prompts
+    )
     b = sub.add_parser("bench", help="run the evaluation benchmark harness")
     b.add_argument("--dataset", default=str(REPO_ROOT / "benchmarks" / "datasets" / "synthetic_v1"))
     b.add_argument("--fixtures", default=str(REPO_ROOT / "data" / "fixtures"))

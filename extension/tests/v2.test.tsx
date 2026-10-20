@@ -132,6 +132,31 @@ describe("API errors", () => {
     expect(friendlyMessage(err)).toBe("Too many requests; try again in 7s.");
   });
 
+  it("explains expired sessions and blinded items, and drops a rejected token", async () => {
+    const store: Record<string, unknown> = { "avd.token": "old" };
+    vi.stubGlobal("chrome", {
+      storage: {
+        local: {
+          get: async (k: string) => ({ [k]: store[k] }),
+          set: async (o: Record<string, unknown>) => Object.assign(store, o),
+          remove: async (k: string) => {
+            delete store[k];
+          },
+        },
+      },
+    });
+    const expired = new ApiClient(async () => json(401, { detail: "invalid token", error: { code: "unauthenticated", message: "invalid token", request_id: "r1" } }));
+    const e1 = (await expired.recommendations().catch((e: unknown) => e)) as ApiError;
+    expect(friendlyMessage(e1)).toMatch(/session expired/);
+    expect(store["avd.token"]).toBeUndefined();
+    const blinded = new ApiClient(async () =>
+      json(403, { detail: "assessment withheld while blind human annotation of this item is open", error: { code: "forbidden", message: "assessment withheld while blind human annotation of this item is open", request_id: "r2" } }),
+    );
+    const e2 = (await blinded.evaluation("v1").catch((e: unknown) => e)) as ApiError;
+    expect(friendlyMessage(e2)).toMatch(/withheld while independent human raters/);
+    vi.unstubAllGlobals();
+  });
+
   it("maps network failures and timeouts to distinct codes", async () => {
     const down = new ApiClient(async () => {
       throw new TypeError("Failed to fetch");

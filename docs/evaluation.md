@@ -102,6 +102,39 @@ clipping ratio. Penalties for clipping > 0.1 % / 1 %, SNR < 25 / 15 dB, level < 
 retrieval → LLM labels each claim *only from retrieved passages*, citing passage ids. Verdicts citing
 passages that were not retrieved are discarded. Scored only when ≥ 2 claims were decided.
 
+### Phase 3 additions
+
+* **Prompt registry** (`avd prompts`, `backend/avd/evaluation/prompts.py`). Every prompt is
+  registered with its rubric version, input and output schemas, the languages it was written
+  for and verified live (none yet), compatible models and status. Variants change one thing each
+  (`evidence_first`, `strict_abstain`) for the sensitivity experiment. Choose a variant on dev
+  data for agreement, grounding and abstention, never because it scores higher.
+* **Evidence-support audit** (`backend/avd/evaluation/support.py`). Quote verification proves
+  existence; the audit flags, deterministically:
+  * quotes inside justifications that appear nowhere in the transcript;
+  * timestamps not covered by cited evidence;
+  * the same segment cited for and against;
+  * counter-evidence only;
+  * one quote serving as the sole support for 4+ dimensions.
+
+  Severe flags go to review, and any flag blocks the `grounded` state. **Semantic entailment is
+  not automated.** No validated offline model with a measured error rate on this task exists
+  here. Human evidence in annotations is the reference.
+* **Fact verification v3:**
+  * claim types gain `hypothesis`;
+  * verdict `outdated` means accurate at publication, since changed, and needs a cited passage.
+    The judge sees the publication date and passage "as of" dates;
+  * scoring uses a smoothed, severity-weighted error rate: one disputed claim of two caps at
+    3.5, not 1–2;
+  * claim centrality is not modelled.
+* **Transcript-only limits stay explicit.** Visual quality, editing, readability and real sound
+  quality are `requires_media`, never inferred from text or metadata.
+* **Confidence is not calibrated.**
+  * Model self-reports, evidence coverage and sample disagreement are shown as separate
+    indicators.
+  * None is presented as a probability until ECE and risk–coverage are measured against human
+    labels.
+
 ## 5. Benchmark design
 
 ### Dataset format (`benchmarks/datasets/<name>/`)
@@ -169,7 +202,7 @@ All intervals are 95 % percentile bootstraps that resample **whole groups** (sho
 a fixed seed. Items from one creator are not independent evidence. Non-human label sources are
 refused.
 
-**Release gates.** `benchmarks/release_gates.json` holds 12 gates (precondition, validity, safety
+**Release gates.** `benchmarks/release_gates.json` holds 12 gates (Phase 3: each is reported as `pass`, `fail`, `blocked_missing_labels`, `blocked_no_inference`, `blocked_insufficient_n`, `not_applicable_exposed` or `metric_unavailable`; a heuristic run never passes a candidate gate) (precondition, validity, safety
 and operational), each with a rationale. It is locked in `release_gates.lock` (sha256 + time)
 *before* any human annotation exists. A test-split run requires `--confirm-test`, a valid lock,
 and labels newer than the lock. Changed gates can only be re-locked together with a new test set

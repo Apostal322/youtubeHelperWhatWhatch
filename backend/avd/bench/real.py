@@ -156,7 +156,7 @@ def run_real_benchmark(
         "human_grounded": human,
         "job_outcomes": outcomes,
     }
-    report["gates"] = evaluate_gates(gates, report, split)
+    report["gates"] = evaluate_gates(gates, report, split, evaluator, load_exposures(manifest_path))
     report["meta"] = {
         "run_at": datetime.now(UTC).isoformat(timespec="seconds"),
         "dataset": f"{manifest['name']}@{manifest['version']}",
@@ -641,20 +641,63 @@ def _get(report: dict[str, Any], path: str) -> Any:
     return cur
 
 
-def evaluate_gates(gates: dict[str, Any], report: dict[str, Any], split: str) -> dict[str, Any]:
+# Gates whose metric does not depend on which evaluator is the candidate: human reliability is
+# about people, and the injection detector runs before any evaluator.
+EVALUATOR_INDEPENDENT_GATES = {"human_reliability_floor", "injection_benign_flag_rate"}
+GATE_STATUSES = (
+    "pass",
+    "fail",
+    "blocked_missing_labels",
+    "blocked_no_inference",
+    "blocked_insufficient_n",
+    "not_applicable_exposed",
+    "metric_unavailable",
+)
+
+
+def load_exposures(manifest_path: Path | None) -> dict[str, list[str]]:
+    """gate id -> exposure notes, from the dataset's exposure.json (if any)."""
+    if manifest_path is None or not (manifest_path.parent / "exposure.json").exists():
+        return {}
+    data = json.loads((manifest_path.parent / "exposure.json").read_text())
+    out: dict[str, list[str]] = {}
+    for e in data.get("exposures", []):
+        for gid in e.get("affected_gates", []):
+            out.setdefault(gid, []).append(f"{e['component']} ({e['commit']})")
+    return out
+
+
+def evaluate_gates(
+    gates: dict[str, Any],
+    report: dict[str, Any],
+    split: str,
+    evaluator: str = "configured",
+    exposures: dict[str, list[str]] | None = None,
+) -> dict[str, Any]:
+    """Every gate gets exactly one status from ``GATE_STATUSES``. Only ``pass``/``fail`` are
+    evaluations; everything else says why the gate could not be evaluated *for the candidate*.
+    A heuristic-baseline run never passes a candidate gate: its value is kept as ``baseline_value``."""
     results = []
+    exposures = exposures or {}
     for gate in gates["gates"]:
         value = _get(report, gate["metric"])
         if isinstance(value, dict):  # bootstrap result: use the requested bound
             value = value.get(gate.get("use", "value"))
         n = _get(report, gate["n_metric"]) if gate.get("n_metric") else None
         human = gate["metric"].startswith("human_grounded.")
+        missing = value is None or (isinstance(value, float) and math.isnan(value))
+        baseline: Any = None
         if human and not _get(report, "human_grounded.available"):
-            status, why = "not_evaluable", "no human labels"
+            status, why = "blocked_missing_labels", "no human labels"
+        elif split == "test" and gate["id"] in exposures:
+            status, why = "not_applicable_exposed", "test data informed " + "; ".join(exposures[gate["id"]])
+        elif evaluator != "configured" and gate["id"] not in EVALUATOR_INDEPENDENT_GATES:
+            status, why = "blocked_no_inference", f"run used the {evaluator} evaluator, not the AI candidate"
+            baseline = None if missing else value
         elif gate.get("min_n") and (n is None or n < gate["min_n"]):
-            status, why = "not_evaluable", f"n={n} < min_n={gate['min_n']}"
-        elif value is None or (isinstance(value, float) and math.isnan(value)):
-            status, why = "not_evaluable", "metric unavailable"
+            status, why = "blocked_insufficient_n", f"n={n} < min_n={gate['min_n']}"
+        elif missing:
+            status, why = "metric_unavailable", "metric unavailable"
         else:
             ok = {
                 "<=": value <= gate["threshold"],
@@ -662,18 +705,27 @@ def evaluate_gates(gates: dict[str, Any], report: dict[str, Any], split: str) ->
                 "==": value == gate["threshold"],
             }[gate["op"]]
             status, why = ("pass" if ok else "fail"), f"{value} {gate['op']} {gate['threshold']}"
-        results.append({"id": gate["id"], "status": status, "detail": why, "kind": gate["kind"]})
+        row = {
+            "id": gate["id"],
+            "status": status,
+            "evaluable": status in ("pass", "fail"),
+            "detail": why,
+            "kind": gate["kind"],
+        }
+        if baseline is not None:
+            row["baseline_value"] = baseline
+        results.append(row)
     binding = split == "test" and gates["lock_valid"]
-    evaluable = [r for r in results if r["status"] != "not_evaluable"]
+    counts = {st: sum(1 for r in results if r["status"] == st) for st in GATE_STATUSES}
     return {
         "binding": binding,
         "note": "binding only on a test-split run with a valid lock"
         if not binding
         else "binding test-split evaluation",
+        "evaluator": evaluator,
+        "counts": {k: v for k, v in counts.items() if v},
         "results": results,
-        "release_ready": binding
-        and len(evaluable) == len(results)
-        and all(r["status"] == "pass" for r in results),
+        "release_ready": binding and all(r["status"] == "pass" for r in results),
     }
 
 

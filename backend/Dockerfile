@@ -3,6 +3,11 @@ FROM python:3.12-slim
 ENV PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1 PIP_NO_CACHE_DIR=1
 WORKDIR /app
 
+# ffmpeg/ffprobe for the authorized-media path; prlimit (util-linux) bounds their resources.
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends ffmpeg util-linux \
+    && rm -rf /var/lib/apt/lists/*
+
 # The repository layout is preserved (backend/, data/, benchmarks/) because fixtures and the
 # benchmark dataset are resolved relative to the repository root.
 COPY backend/pyproject.toml backend/README.md /app/backend/

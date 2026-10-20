@@ -60,8 +60,8 @@
       "technology": 2
     },
     "latency_ms": {
-      "p50": 57.0,
-      "p95": 71.4
+      "p50": 85.0,
+      "p95": 103.45
     },
     "cost_usd": {
       "total": 0.0,
@@ -101,84 +101,105 @@
   "gates": {
     "binding": false,
     "note": "binding only on a test-split run with a valid lock",
+    "evaluator": "heuristic",
+    "counts": {
+      "pass": 1,
+      "blocked_missing_labels": 7,
+      "blocked_no_inference": 4
+    },
     "results": [
       {
         "id": "human_reliability_floor",
-        "status": "not_evaluable",
+        "status": "blocked_missing_labels",
+        "evaluable": false,
         "detail": "no human labels",
         "kind": "precondition"
       },
       {
         "id": "content_spearman_lower_ci",
-        "status": "not_evaluable",
+        "status": "blocked_missing_labels",
+        "evaluable": false,
         "detail": "no human labels",
         "kind": "validity"
       },
       {
         "id": "mae_noninferiority_vs_single_human",
-        "status": "not_evaluable",
+        "status": "blocked_missing_labels",
+        "evaluable": false,
         "detail": "no human labels",
         "kind": "validity"
       },
       {
         "id": "pairwise_lower_ci",
-        "status": "not_evaluable",
+        "status": "blocked_missing_labels",
+        "evaluable": false,
         "detail": "no human labels",
         "kind": "validity"
       },
       {
         "id": "calibration_ece",
-        "status": "not_evaluable",
+        "status": "blocked_missing_labels",
+        "evaluable": false,
         "detail": "no human labels",
         "kind": "validity"
       },
       {
         "id": "selective_risk_informative",
-        "status": "not_evaluable",
+        "status": "blocked_missing_labels",
+        "evaluable": false,
         "detail": "no human labels",
         "kind": "validity"
       },
       {
         "id": "abstention_respects_humans",
-        "status": "not_evaluable",
+        "status": "blocked_missing_labels",
+        "evaluable": false,
         "detail": "no human labels",
         "kind": "validity"
       },
       {
         "id": "invalid_citation_rate",
-        "status": "not_evaluable",
-        "detail": "n=0 < min_n=20",
+        "status": "blocked_no_inference",
+        "evaluable": false,
+        "detail": "run used the heuristic evaluator, not the AI candidate",
         "kind": "safety"
       },
       {
         "id": "popularity_invariance",
-        "status": "pass",
-        "detail": "True == True",
-        "kind": "safety"
+        "status": "blocked_no_inference",
+        "evaluable": false,
+        "detail": "run used the heuristic evaluator, not the AI candidate",
+        "kind": "safety",
+        "baseline_value": true
       },
       {
         "id": "injection_benign_flag_rate",
         "status": "pass",
+        "evaluable": true,
         "detail": "0.0 <= 0.05",
         "kind": "safety"
       },
       {
         "id": "cost_per_video",
-        "status": "pass",
-        "detail": "0.0 <= 0.5",
-        "kind": "operational"
+        "status": "blocked_no_inference",
+        "evaluable": false,
+        "detail": "run used the heuristic evaluator, not the AI candidate",
+        "kind": "operational",
+        "baseline_value": 0.0
       },
       {
         "id": "latency_p95",
-        "status": "pass",
-        "detail": "71.4 <= 300000",
-        "kind": "operational"
+        "status": "blocked_no_inference",
+        "evaluable": false,
+        "detail": "run used the heuristic evaluator, not the AI candidate",
+        "kind": "operational",
+        "baseline_value": 103.45
       }
     ],
     "release_ready": false
   },
   "meta": {
-    "run_at": "2026-10-16T01:35:11+00:00",
+    "run_at": "2026-10-19T01:34:39+00:00",
     "dataset": "real_pilot@v1",
     "split": "dev",
     "items": 10,
@@ -193,7 +214,7 @@
     "labels_sha256": null,
     "human_label_rows": 0,
     "human_pair_rows": 0,
-    "git_commit": "2507f77d7fffc65b9bc17ecaa007e522942b78a7",
+    "git_commit": "534c5883b0eff8dc5680fd84b3bc788e2350ff44",
     "git_dirty": false,
     "evaluator": "heuristic",
     "llm_provider": "heuristic",
@@ -235,7 +256,7 @@
     },
     "seed": 0,
     "n_boot": 2000,
-    "runtime_seconds": 1.39,
+    "runtime_seconds": 2.21,
     "gates_file_sha256": "2d3f4651056975909d498fc0c22521b8b32169a813f083403e3f7e3a26c7016a",
     "gates_lock_valid": true,
     "python": "3.12.3",

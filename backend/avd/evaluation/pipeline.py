@@ -33,6 +33,7 @@ from avd.evaluation.evaluators.visual import VisualSignalEvaluator
 from avd.evaluation.injection import scan as scan_injection
 from avd.evaluation.inputs import EvaluationInput
 from avd.evaluation.profiles import profile_for
+from avd.evaluation.prompts import get_prompt
 from avd.evaluation.rubric import RUBRIC
 from avd.evaluation.schema import (
     Dimension,
@@ -43,6 +44,7 @@ from avd.evaluation.schema import (
     ReasonCode,
     UsageRecord,
 )
+from avd.evaluation.support import audit as audit_support
 from avd.evaluation.validation import validate_dimensions
 from avd.llm.base import LLMBudgetExceeded, LLMError, LLMProvider
 from avd.logging import get_logger
@@ -218,8 +220,16 @@ class EvaluationPipeline:
             for d in validated
         ]
         agg = aggregate(final, profile)
+        support = audit_support(final, inp.transcript)
 
         review: list[str] = []
+        severe = sorted(
+            d
+            for d, codes in support.flags.items()
+            if {"invented_quote_in_justification", "timestamp_not_in_cited_evidence"} & set(codes)
+        )
+        if severe:
+            review.append(f"justification cites text or times not in the evidence: {', '.join(severe)}")
         if findings:
             review.append(f"suspected prompt injection ({len(findings)} finding(s))")
         if not report.passed:
@@ -267,6 +277,7 @@ class EvaluationPipeline:
                 "evaluators": evaluator_reports,
                 "modalities": sorted(m.value for m in inp.modalities),
                 "sanitized_popularity_spans": inp.sanitized_spans,
+                "support_audit": support.as_dict(),
             },
             needs_review=bool(review),
             review_reasons=review,
@@ -304,6 +315,7 @@ def build_pipeline(
                 temperature=settings.llm_temperature,
                 single_pass_max_tokens=settings.llm_single_pass_max_tokens,
                 chunk_target_tokens=settings.llm_chunk_target_tokens,
+                prompt=get_prompt(settings.llm_prompt),
             ),
             AudioSignalEvaluator(),
             VisualSignalEvaluator(),
@@ -329,6 +341,7 @@ def build_pipeline(
                 temperature=settings.llm_temperature,
                 single_pass_max_tokens=settings.llm_single_pass_max_tokens,
                 chunk_target_tokens=settings.llm_chunk_target_tokens,
+                prompt=get_prompt(settings.llm_prompt),
             ),
             AudioSignalEvaluator(),
             VisualSignalEvaluator(),

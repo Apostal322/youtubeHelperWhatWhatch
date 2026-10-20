@@ -1,27 +1,23 @@
 # Roadmap
 
-## Recommended next milestone: **M1 — real-signal validation**
+## Recommended next milestone: **M1, real-signal validation** (Phase 3 made it runnable)
 
-Before scaling anything, establish whether the evaluator agrees with people. Phase 2 built the
-tooling; what is missing is people and a live model run. Status per step:
+Phase 3 removed the engineering blockers. What remains needs people and a budget:
 
-1. **Collect real human labels.** *Tooling done* (`docs/annotation.md`: blind assignment,
-   calibration onboarding, 3 raters/item, repeats, QC, adjudication, export). *Data started*:
-   `real_pilot_v1` has 29 licensed episodes (dev 10 / test 17 / calibration 2). **Open**: recruit
-   raters (with rater consent and pay) and annotate the dev split first; then grow the corpus to
-   150–300 items stratified by genre × length × language. It is currently English-only, all
-   podcast/interview, and from 2 publishers.
-2. **Run the LLM evaluator** on the dev split (`avd bench-real --evaluator configured`) once a key
-   and budget are approved. Use `avd bench-throughput` for the expected cost first. Compare it with
-   the heuristic baseline and with human–human agreement (the ceiling).
-3. **Calibrate confidence** per dimension on dev labels (isotonic or temperature scaling); the
-   benchmark already reports ECE and risk–coverage.
-4. **Run the test split once**, with `--confirm-test`, against the gates locked in
-   `benchmarks/release_gates.lock`. Promote the framework version only if every gate is evaluable
-   and passes.
-5. **Embeddings.** English MiniLM is done (known-item R@1 0.71 vs 0.28). It is *not* the default,
-   because the held-out recommendation proxy favoured hashing (nDCG@5 0.79 vs 0.69, tiny n).
-   Re-decide with human relevance labels. Still open: a multilingual model.
+1. **Experiment A: first live run** on the 10 dev items. Needs a key and an approved ceiling;
+   $5 covers the projected worst case of $4.14. `docs/model-configuration.md`.
+2. **Experiment B: human labels** on the dev split. Needs 3 raters and 1 adjudicator, about
+   25–40 rater-hours. `docs/annotation.md`, "Recruiting".
+3. **Experiments C–E: agreement, prompt sensitivity, model comparison** on dev. Tune only on dev.
+   Then lock one candidate (model, prompt key, rubric, aggregation).
+4. **Experiment I: one confirmatory run** on `real_holdout_v2` (sealed) with `--confirm-test`
+   against the locked gates.
+5. **Data breadth:** licensed corpora beyond English software podcasts (lectures, tutorials,
+   documentaries; other languages) before any cross-genre claim. The Talk Python rights
+   confirmation unblocks 7 test items.
+6. **Recommendation relevance labels** (topical search, related items, personalised relevance)
+   before changing the embedding default. The dev diagnostic suggests the relevance floor and
+   blend, not the embedder, are the weak point.
 
 ## M2 — Content coverage
 
@@ -58,3 +54,17 @@ tooling; what is missing is people and a live model run. Status per step:
 * Account linking and sync; shareable curated lists.
 * Creator dashboard: their evaluations, evidence, and a dispute flow.
 * Public methodology page generated from `FRAMEWORK_VERSION`, profiles and benchmark reports.
+
+## Phase 4: multimodal (after M1)
+
+See `docs/phase3.md` §8: authorised media sources, audio signal validation, a vision-language
+`FrameJudge` with frame-index evidence, genre-specific multimodal rubrics, and the same blinding,
+gate and hold-out discipline.
+
+## Phase 5: continuous scale
+
+See `docs/phase3.md` §9:
+- acquisition through creator opt-in and licensed corpora (YouTube quota and caption OAuth are
+  the binding limits);
+- cheap-first routing validated against human agreement;
+- batching, caching, media isolation and coverage audits.

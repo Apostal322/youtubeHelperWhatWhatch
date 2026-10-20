@@ -9,6 +9,8 @@ from sqlalchemy.orm import Session
 from avd.api.deps import db, embedder
 from avd.config import Settings, get_settings
 from avd.content.store import active_sources
+from avd.datasets.blinding import WITHHELD_MESSAGE, blinded_video_ids, is_blinded
+from avd.datasets.rights import WITHHELD, video_pending_uses, withhold_quotes
 from avd.db.models import Evaluation, FactualClaim, Video
 from avd.embeddings.base import Embedder
 from avd.evaluation.profiles import PROFILES
@@ -25,6 +27,11 @@ from avd.recsys.recommender import video_card
 from avd.recsys.search import search as search_videos
 
 router = APIRouter(prefix="/v1")
+
+
+def _refuse_if_blinded(session: Session, video_id: str) -> None:
+    if is_blinded(session, video_id):
+        raise HTTPException(403, WITHHELD_MESSAGE)
 
 
 @router.get("/meta")
@@ -70,7 +77,10 @@ def list_videos(
     if evaluated:
         q = q.where(Video.status == "evaluated")
     items = []
+    blinded = blinded_video_ids(session)
     for v in session.scalars(q).all():
+        if v.id in blinded:
+            continue
         items.append(
             {"video": video_card(session, v), "intrinsic_quality": summary(current_evaluation(session, v.id))}
         )
@@ -79,6 +89,7 @@ def list_videos(
 
 @router.get("/videos/{video_id}")
 def get_video(video_id: str, session: Session = Depends(db)) -> dict[str, Any]:
+    _refuse_if_blinded(session, video_id)
     v = session.get(Video, video_id)
     if v is None:
         raise HTTPException(404, "video not in catalog")
@@ -106,6 +117,7 @@ def get_video(video_id: str, session: Session = Depends(db)) -> dict[str, Any]:
 
 @router.get("/videos/{video_id}/evaluation")
 def get_evaluation(video_id: str, session: Session = Depends(db)) -> dict[str, Any]:
+    _refuse_if_blinded(session, video_id)
     ev = current_evaluation(session, video_id)
     if ev is None:
         v = session.get(Video, video_id)
@@ -113,11 +125,15 @@ def get_evaluation(video_id: str, session: Session = Depends(db)) -> dict[str, A
             404,
             "video not in catalog" if v is None else f"no evaluation yet (status: {v.status})",
         )
-    return serialize_evaluation(ev)
+    payload = serialize_evaluation(ev)
+    if "public_quotes" in video_pending_uses(session, video_id):
+        payload = withhold_quotes(payload)
+    return payload
 
 
 @router.get("/videos/{video_id}/evaluations")
 def evaluation_history(video_id: str, session: Session = Depends(db)) -> dict[str, Any]:
+    _refuse_if_blinded(session, video_id)
     rows = session.scalars(
         select(Evaluation).where(Evaluation.video_id == video_id).order_by(Evaluation.created_at.desc())
     ).all()
@@ -138,21 +154,25 @@ def evaluation_history(video_id: str, session: Session = Depends(db)) -> dict[st
 @router.get("/videos/{video_id}/claims")
 def claims(video_id: str, session: Session = Depends(db)) -> dict[str, Any]:
     """Claims from the video's current evaluation(s). ``verdict`` is one of supported,
-    contradicted, mixed, unverifiable, insufficient_evidence, not_applicable, or ``unchecked``
+    contradicted, mixed, outdated (accurate when published, since changed), unverifiable,
+    insufficient_evidence, not_applicable, or ``unchecked``
     (extracted but not verified against references). Verdicts come only from licensed reference
     passages, never from model knowledge."""
+    _refuse_if_blinded(session, video_id)
     rows = session.execute(
         select(FactualClaim, Evaluation.stage)
         .join(Evaluation, Evaluation.id == FactualClaim.evaluation_id)
         .where(Evaluation.video_id == video_id, Evaluation.is_current.is_(True))
         .order_by(FactualClaim.segment_index)
     ).all()
+    quotes_ok = "public_quotes" not in video_pending_uses(session, video_id)
     return {
         "video_id": video_id,
+        "quotes_withheld": not quotes_ok,
         "items": [
             {
                 "segment_index": c.segment_index,
-                "quote": c.quote,
+                "quote": c.quote if quotes_ok or not c.quote else WITHHELD,
                 "claim": c.claim,
                 "claim_type": c.claim_type,
                 "verdict": c.verdict,

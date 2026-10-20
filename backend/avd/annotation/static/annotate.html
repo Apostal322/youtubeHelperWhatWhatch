@@ -47,13 +47,16 @@
 <main>
   <section id="intro" class="muted">
     <p>Rate each dimension <strong>independently</strong> using the rubric anchors. You will not see other raters' scores or the system's assessment.
-    Judge only what the transcript supports; choose <em>insufficient evidence</em>, <em>not applicable</em>, <em>ambiguous</em> or <em>abstain</em> rather than guessing.
+    Judge only what the transcript supports. Every dimension needs a status; you never have to give a number. Choose <em>insufficient evidence</em>, <em>not applicable</em>, <em>cannot determine</em>, <em>requires subject expertise</em> or <em>requires visual material</em> rather than guessing.
     Cite evidence: select words in a segment, then press <em>Cite</em> to attach them to the highlighted dimension. Do not use views, likes or the creator's fame.</p>
   </section>
 
   <section id="item" hidden>
     <h2 id="title" style="font-size:17px;margin:4px 0"></h2>
-    <p class="muted"><span id="badge"></span> <span id="attribution"></span> <a id="prov" target="_blank" rel="noopener noreferrer">source</a></p>
+    <p class="muted"><span id="badge"></span></p>
+    <p id="blinding" class="muted"></p>
+    <details><summary class="muted">Source and licence (shown for licence compliance; rate the content, not the show)</summary>
+      <p class="muted"><span id="attribution"></span> <a id="prov" target="_blank" rel="noopener noreferrer">transcript source</a></p></details>
     <p id="timing" class="muted"></p>
     <div class="grid">
       <div class="pane" id="transcript" aria-label="Transcript" tabindex="0"></div>
@@ -68,6 +71,8 @@
             <label><input type="checkbox" name="flag" value="transcript_problem"> transcript problem</label>
             <label><input type="checkbox" name="flag" value="sensitive_content"> sensitive content</label>
           </div>
+          <label for="enjoy" id="enjoy-q">Optional: personal enjoyment</label>
+          <select id="enjoy"><option value="">no answer</option><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option></select>
           <label for="notes">Notes</label><textarea id="notes" rows="3" style="width:100%"></textarea>
         </fieldset>
         <button type="submit" class="primary">Submit annotation</button>
@@ -121,6 +126,8 @@ function renderItem(it) {
   $("title").textContent = it.title + " (" + it.words.toLocaleString() + " words)";
   $("badge").textContent = it.is_calibration ? "Calibration item (onboarding)." : "";
   $("attribution").textContent = (it.attribution || "") + (it.license ? " · " + it.license : "");
+  $("blinding").textContent = it.blinding || "";
+  $("enjoy-q").textContent = it.enjoyment_question || "Optional: personal enjoyment";
   $("prov").href = it.provenance_url || "#";
   $("timing").textContent = it.timing_note || "";
   const tr = $("transcript"); tr.replaceChildren();
@@ -144,23 +151,50 @@ function renderItem(it) {
     for (const [k, v] of Object.entries(r.anchors)) {
       const id = r.dimension + "-" + k, lab = el("label", { class: "anchor", for: id });
       const radio = el("input", { type: "radio", name: "score-" + r.dimension, value: k, id: id });
-      radio.addEventListener("change", () => { fs.querySelector("select").value = "scored"; });
+      radio.addEventListener("change", () => { const sel = fs.querySelector("select"); sel.value = "scored"; sel.dispatchEvent(new Event("change")); });
       lab.append(radio, el("span", {}, k + " — " + v)); fs.append(lab);
     }
     if (r.exclusions) fs.append(el("p", { class: "muted" }, "Note: " + r.exclusions));
     const row = el("div", { class: "row" });
     const st = el("select", { "aria-label": r.dimension + " status" });
+    st.append(el("option", { value: "" }, "choose a status"));
     for (const s of it.statuses) st.append(el("option", { value: s }, s.replace(/_/g, " ")));
-    st.value = "abstain";
+    st.value = "";
+    const guide = el("p", { class: "muted guide", style: "margin:2px 0" }, "");
+    st.addEventListener("change", () => { guide.textContent = (it.status_guide || {})[st.value] || ""; saveDraft(); });
     const cf = el("input", { type: "number", min: "0", max: "1", step: "0.1", value: "0.7", "aria-label": r.dimension + " confidence" });
     row.append(el("span", { class: "muted" }, "status"), st, el("span", { class: "muted" }, "confidence"), cf, pick);
     const ev = el("div", { class: "evidence" });
     const note = el("textarea", { rows: "1", placeholder: "note (optional)", "aria-label": r.dimension + " note", style: "width:100%" });
-    fs.append(row, ev, note); dims.append(fs);
+    fs.append(row, guide, ev, note); dims.append(fs);
   }
   setActive(it.rubric[0].dimension);
   say("Loaded. Started " + new Date(it.started_at).toLocaleTimeString() + " (timed by the server).");
+  restoreDraft(it);
 }
+// Drafts survive a reload or a lost connection (sessionStorage, this tab only, keyed by annotation).
+function collect() {
+  const it = state.item;
+  return { dims: it.rubric.map((r) => { const fs = $("fs-" + r.dimension), c = fs.querySelector("input[type=radio]:checked");
+      return { dimension: r.dimension, status: fs.querySelector("select").value, score: c ? c.value : null,
+        confidence: fs.querySelector("input[type=number]").value, note: fs.querySelector("textarea").value }; }),
+    evidence: state.evidence, conf: $("conf").value, enjoy: $("enjoy").value, notes: $("notes").value };
+}
+function saveDraft() { if (state.item) store("avd_draft_" + state.item.annotation_id, JSON.stringify(collect())); }
+function restoreDraft(it) {
+  let d = null; try { d = JSON.parse(recall("avd_draft_" + it.annotation_id) || "null"); } catch (e) { d = null; }
+  $("enjoy").value = ""; if (!d) return;
+  for (const x of d.dims || []) {
+    const fs = $("fs-" + x.dimension); if (!fs) continue;
+    const sel = fs.querySelector("select"); sel.value = x.status || ""; sel.dispatchEvent(new Event("change"));
+    if (x.score) { const r = fs.querySelector("input[type=radio][value='" + x.score + "']"); if (r) r.checked = true; }
+    fs.querySelector("input[type=number]").value = x.confidence; fs.querySelector("textarea").value = x.note || "";
+  }
+  state.evidence = d.evidence || {}; Object.keys(state.evidence).forEach(renderEvidence);
+  $("conf").value = d.conf; $("enjoy").value = d.enjoy || ""; $("notes").value = d.notes || "";
+  say("Restored your unsaved draft for this item.");
+}
+document.addEventListener("input", (e) => { if (e.target && e.target.closest && e.target.closest("#form")) saveDraft(); });
 function setActive(dim) {
   state.active = dim;
   document.querySelectorAll("#dims fieldset").forEach((f) => f.classList.toggle("active", f.id === "fs-" + dim));
@@ -172,7 +206,7 @@ function addEvidence(seg) {
   const list = state.evidence[state.active] = state.evidence[state.active] || [];
   if (list.length >= 10) return say("At most 10 citations per dimension.", "warn");
   list.push({ segment_index: seg.index, quote: quote.slice(0, 600) || null, kind: "supporting" });
-  renderEvidence(state.active);
+  renderEvidence(state.active); saveDraft();
 }
 function renderEvidence(dim) {
   const box = document.querySelector("#fs-" + dim + " .evidence"); box.replaceChildren();
@@ -200,12 +234,16 @@ $("form").addEventListener("submit", async (ev) => {
       confidence: Number(fs.querySelector("input[type=number]").value), evidence: state.evidence[r.dimension] || [],
       note: fs.querySelector("textarea").value || null };
   });
+  const unset = scores.find((s) => !s.status);
+  if (unset) { setActive(unset.dimension); return say(unset.dimension + ": choose a status (a number is never required).", "warn"); }
   const bad = scores.find((s) => s.status === "scored" && s.score == null);
   if (bad) { setActive(bad.dimension); return say(bad.dimension + ": choose a score or another status.", "warn"); }
   try {
     const res = await api("/v1/annotation/annotations/" + it.annotation_id + "/submit", { method: "POST", body: JSON.stringify({
       scores: scores, confidence: Number($("conf").value),
-      flags: [...document.querySelectorAll("input[name=flag]:checked")].map((x) => x.value), notes: $("notes").value || null }) });
+      flags: [...document.querySelectorAll("input[name=flag]:checked")].map((x) => x.value), notes: $("notes").value || null,
+      enjoyment: $("enjoy").value ? Number($("enjoy").value) : null }) });
+    try { sessionStorage.removeItem("avd_draft_" + it.annotation_id); } catch (e) { /* storage unavailable */ }
     say("Submitted (" + Math.round(res.duration_seconds / 60) + " min)" + (res.flags.length ? " · QC flags: " + res.flags.join(", ") : ""), "ok");
     $("item").hidden = true; $("intro").hidden = false; document.querySelectorAll("input[name=flag]").forEach((x) => { x.checked = false; }); $("notes").value = "";
   } catch (e) { say(e.message, "warn"); }

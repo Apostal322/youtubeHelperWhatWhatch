@@ -74,6 +74,8 @@ class Settings(BaseSettings):
     # Optional sampling temperature. Leave unset for models that reject sampling parameters
     # (e.g. claude-opus-5-5); OpenAI-compatible servers usually accept it.
     llm_temperature: float | None = None
+    # Registered prompt key (avd.evaluation.prompts); variants exist for the sensitivity experiment.
+    llm_prompt: str = "rubric_prompt_v2"
     llm_timeout_seconds: float = 180.0
     llm_max_retries: int = 3  # bounded retries for transient errors, exponential backoff
     llm_retry_base_seconds: float = 2.0
@@ -120,6 +122,10 @@ class Settings(BaseSettings):
     max_media_upload_mb: int = 500
     api_rate_limit_per_minute: int = 300
     api_rate_limit_burst: int = 60
+    # Every request also draws from a per-client-IP bucket, so rotating (even invalid) bearer
+    # tokens cannot multiply a caller's allowance.
+    api_rate_limit_per_ip_per_minute: int = 600
+    api_rate_limit_ip_burst: int = 120
     metrics_public: bool = False
     cors_allow_origins: list[str] = Field(
         default_factory=lambda: ["http://localhost:5173", "http://127.0.0.1:5173"]

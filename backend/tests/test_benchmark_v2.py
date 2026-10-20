@@ -215,11 +215,38 @@ def test_gates_without_labels_are_not_evaluable_and_never_release_ready(gates: t
     by = {r["id"]: r for r in res["results"]}
     assert by["content_spearman_lower_ci"] == {
         **by["content_spearman_lower_ci"],
-        "status": "not_evaluable",
+        "status": "blocked_missing_labels",
+        "evaluable": False,
         "detail": "no human labels",
     }
     assert by["popularity_invariance"]["status"] == "pass"
     assert res["binding"] and not res["release_ready"]
+
+
+def test_a_heuristic_run_never_passes_candidate_gates(gates: tuple[Path, Path]) -> None:
+    g = load_gates(*gates)
+    report = {
+        "human_grounded": {"available": False},
+        "label_free": {
+            "popularity_invariance": {"passed": True},
+            "injection": {"items_flagged_rate": 0.0},
+            "cost": {"per_video_mean": 0.0},
+            "latency_ms": {"p95": 80.0},
+        },
+    }
+    res = evaluate_gates(g, report, "dev", evaluator="heuristic")
+    by = {r["id"]: r for r in res["results"]}
+    assert by["popularity_invariance"]["status"] == "blocked_no_inference"
+    assert by["popularity_invariance"]["baseline_value"] is True
+    assert by["injection_benign_flag_rate"]["status"] == "pass"  # evaluator-independent
+    assert "pass" not in {r["status"] for r in res["results"] if r["id"] != "injection_benign_flag_rate"}
+    exposed = evaluate_gates(
+        g, report, "test", exposures={"injection_benign_flag_rate": ["injection_v2 (db9126f)"]}
+    )
+    assert {r["id"]: r for r in exposed["results"]}["injection_benign_flag_rate"][
+        "status"
+    ] == "not_applicable_exposed"
+    assert not exposed["release_ready"]
 
 
 # ------------------------------------------------------------------------------ real harness

@@ -2,9 +2,12 @@ from __future__ import annotations
 
 import secrets
 import uuid
+from datetime import UTC, datetime, timedelta
 from typing import Any
 
 from fastapi import APIRouter, Depends, Header, HTTPException, Query, Request
+from fastapi.responses import JSONResponse
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from avd.api.deps import current_user, db, embedder, hash_token
@@ -16,6 +19,8 @@ from avd.recsys.recommender import recommend
 from avd.services import TranscriptSubmissionError, submit_user_transcript
 
 router = APIRouter(prefix="/v1")
+
+MAX_FEEDBACK_PER_DAY = 500  # per user; far above honest use, bounds spam from one token
 
 
 @router.post("/users", status_code=201)
@@ -86,10 +91,10 @@ def recommendations(
     return recommend(session, user.id, emb, limit=limit)
 
 
-@router.post("/feedback", status_code=201)
+@router.post("/feedback", status_code=201, response_model=None)
 def feedback(
     body: FeedbackIn, user: User = Depends(current_user), session: Session = Depends(db)
-) -> dict[str, Any]:
+) -> dict[str, Any] | JSONResponse:
     if session.get(Video, body.video_id) is None:
         raise HTTPException(404, "video not in catalog")
     if body.impression_id is not None:
@@ -102,13 +107,39 @@ def feedback(
             raise HTTPException(400, "evaluation does not belong to this video")
     if body.kind == "evaluation_incorrect" and body.evaluation_id is None:
         raise HTTPException(400, "evaluation_id is required when reporting an incorrect evaluation")
+    dim = body.dimension.value if body.dimension else None
+    # Idempotent: a retried or double-clicked submission does not create a second event.
+    dup = session.scalar(
+        select(Feedback).where(
+            Feedback.user_id == user.id,
+            Feedback.video_id == body.video_id,
+            Feedback.kind == body.kind,
+            Feedback.impression_id.is_(None)
+            if body.impression_id is None
+            else Feedback.impression_id == body.impression_id,
+            Feedback.evaluation_id.is_(None)
+            if body.evaluation_id is None
+            else Feedback.evaluation_id == body.evaluation_id,
+            Feedback.dimension.is_(None) if dim is None else Feedback.dimension == dim,
+        )
+    )
+    if dup is not None:
+        return JSONResponse({"id": dup.id, "status": "duplicate"}, status_code=200)
+    since = datetime.now(UTC) - timedelta(days=1)
+    recent = session.scalar(
+        select(func.count())
+        .select_from(Feedback)
+        .where(Feedback.user_id == user.id, Feedback.created_at >= since)
+    )
+    if (recent or 0) >= MAX_FEEDBACK_PER_DAY:
+        raise HTTPException(429, f"feedback limit reached ({MAX_FEEDBACK_PER_DAY} per day)")
     fb = Feedback(
         user_id=user.id,
         video_id=body.video_id,
         impression_id=body.impression_id,
         evaluation_id=body.evaluation_id,
         kind=body.kind,
-        dimension=body.dimension.value if body.dimension else None,
+        dimension=dim,
         suggested_score=body.suggested_score,
         comment=body.comment,
     )

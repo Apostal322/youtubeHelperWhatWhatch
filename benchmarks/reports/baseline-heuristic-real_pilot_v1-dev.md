@@ -7,8 +7,8 @@
 
 | key | value |
 |---|---|
-| run_at | `2026-10-16T01:35:11+00:00` |
-| git_commit | `2507f77d7fffc65b9bc17ecaa007e522942b78a7` |
+| run_at | `2026-10-19T01:34:39+00:00` |
+| git_commit | `534c5883b0eff8dc5680fd84b3bc788e2350ff44` |
 | git_dirty | `False` |
 | dataset | `real_pilot@v1` |
 | split | `dev` |
@@ -21,7 +21,7 @@
 | pipeline_config_hash | `463df1cd5bb086318ad094c96de5df8274cfe5866d6af2df0c9b0411984c14df` |
 | seed | `0` |
 | n_boot | `2000` |
-| runtime_seconds | `1.39` |
+| runtime_seconds | `2.21` |
 | gates_file_sha256 | `2d3f4651056975909d498fc0c22521b8b32169a813f083403e3f7e3a26c7016a` |
 | gates_lock_valid | `True` |
 | python | `3.12.3` |
@@ -34,7 +34,7 @@
 * Evidence: {'citations_claimed': 0, 'citations_verified': 0, 'invalid_citation_rate': None, 'ungrounded_scored_dimensions': 0}
 * Injection flags (presumed-benign data): 0 items, 0 findings
 * Predicted genre: {'interview_podcast': 8, 'technology': 2}
-* Latency (ms): {'p50': 57.0, 'p95': 71.4}; cost (USD): {'total': 0.0, 'per_video_mean': 0.0, 'p50': 0.0, 'p95': 0.0}; tokens/video: {'input': {'p50': 0.0, 'p95': 0.0}, 'output': {'p50': 0.0, 'p95': 0.0}}; LLM calls: {'total': 0, 'errors': 0, 'cached': 0}
+* Latency (ms): {'p50': 85.0, 'p95': 103.45}; cost (USD): {'total': 0.0, 'per_video_mean': 0.0, 'p50': 0.0, 'p95': 0.0}; tokens/video: {'input': {'p50': 0.0, 'p95': 0.0}, 'output': {'p50': 0.0, 'p95': 0.0}}; LLM calls: {'total': 0, 'errors': 0, 'cached': 0}
 * Popularity invariance: PASSED ({'videos_checked': 10, 'fingerprint_changes': 0, 'max_score_delta': 0.0, 'passed': True})
 
 ### Dimension status (scored / abstained:reason)
@@ -58,15 +58,15 @@
 
 | gate | kind | status | detail |
 |---|---|---|---|
-| human_reliability_floor | precondition | not_evaluable | no human labels |
-| content_spearman_lower_ci | validity | not_evaluable | no human labels |
-| mae_noninferiority_vs_single_human | validity | not_evaluable | no human labels |
-| pairwise_lower_ci | validity | not_evaluable | no human labels |
-| calibration_ece | validity | not_evaluable | no human labels |
-| selective_risk_informative | validity | not_evaluable | no human labels |
-| abstention_respects_humans | validity | not_evaluable | no human labels |
-| invalid_citation_rate | safety | not_evaluable | n=0 < min_n=20 |
-| popularity_invariance | safety | pass | True == True |
+| human_reliability_floor | precondition | blocked_missing_labels | no human labels |
+| content_spearman_lower_ci | validity | blocked_missing_labels | no human labels |
+| mae_noninferiority_vs_single_human | validity | blocked_missing_labels | no human labels |
+| pairwise_lower_ci | validity | blocked_missing_labels | no human labels |
+| calibration_ece | validity | blocked_missing_labels | no human labels |
+| selective_risk_informative | validity | blocked_missing_labels | no human labels |
+| abstention_respects_humans | validity | blocked_missing_labels | no human labels |
+| invalid_citation_rate | safety | blocked_no_inference | run used the heuristic evaluator, not the AI candidate |
+| popularity_invariance | safety | blocked_no_inference | run used the heuristic evaluator, not the AI candidate |
 | injection_benign_flag_rate | safety | pass | 0.0 <= 0.05 |
-| cost_per_video | operational | pass | 0.0 <= 0.5 |
-| latency_p95 | operational | pass | 71.4 <= 300000 |
+| cost_per_video | operational | blocked_no_inference | run used the heuristic evaluator, not the AI candidate |
+| latency_p95 | operational | blocked_no_inference | run used the heuristic evaluator, not the AI candidate |

@@ -147,3 +147,22 @@ def test_media_upload_end_to_end(api: TestClient, tmp_path: Path) -> None:
     )
     bad = api.put("/v1/videos/user_media_03/media", content=b"definitely not an mp4 file", headers=h)
     assert bad.status_code == 422 and bad.json()["error"]["code"] == "validation_error"
+
+
+@pytest.mark.skipif(not media.limits_enforced(), reason="prlimit not installed")
+def test_processes_run_under_os_resource_limits(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    cmd = media.limited(["ffprobe", "x"], 30)
+    assert cmd[0].endswith("prlimit") and "--" in cmd and cmd[-2:] == ["ffprobe", "x"]
+    assert any(c.startswith("--as=") for c in cmd) and any(c.startswith("--fsize=") for c in cmd)
+    f = make_media(tmp_path / "a.mp4", seconds=1)
+    # A 16 MB address-space cap is too small for ffprobe: it must fail closed, not run unbounded.
+    monkeypatch.setattr(media, "LIMIT_ADDRESS_SPACE", 16 * 1024**2)
+    with pytest.raises(media.MediaError):
+        media.probe(f, root=tmp_path)
+
+
+def test_overlong_media_is_refused(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    f = make_media(tmp_path / "b.mp4", seconds=2)
+    monkeypatch.setattr(media, "MAX_MEDIA_SECONDS", 1)
+    with pytest.raises(media.MediaError, match="longer than"):
+        media.probe(f, root=tmp_path)

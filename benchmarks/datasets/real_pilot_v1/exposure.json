@@ -1,0 +1,57 @@
+{
+  "dataset": "real_pilot@v1",
+  "split": "test",
+  "audited": "2026-10-19",
+  "summary": "The 17-item test split influenced four Phase 2 decisions. It remains usable for model-vs-human quality agreement (no labels exist, and no prompt, rubric or aggregation was tuned on test outputs). It is NOT a clean hold-out for the components listed below; use real_holdout@v2 for confirmatory claims about them.",
+  "exposures": [
+    {
+      "component": "genre classifier (keyword_lexicon_v2)",
+      "commit": "4c85e31",
+      "what_was_seen": "Classifier outputs on all 29 pilot items, test split included (21/29 interview_podcast; 0/7 Talk Python).",
+      "decision_influenced": "Speaker-turn format cue and interview_podcast genre were designed with the pilot format in view.",
+      "affected_claims": [
+        "genre accuracy / macro-F1 on real content",
+        "interview_podcast detection rate"
+      ],
+      "affected_gates": []
+    },
+    {
+      "component": "prompt-injection detector (injection_v2)",
+      "commit": "db9126f",
+      "what_was_seen": "v1 flagged 5/29 pilot episodes (test split included) and 24/104 other episodes; v2 patterns were written from those false positives.",
+      "decision_influenced": "Benign-phrase handling in injection_v2.",
+      "affected_claims": [
+        "injection_benign_flag_rate gate on real_pilot test",
+        "the '24/104 -> 1/104 held-out' figure: those 104 episodes informed the design, so they are development data, not a hold-out"
+      ],
+      "affected_gates": [
+        "injection_benign_flag_rate"
+      ]
+    },
+    {
+      "component": "embedding default (hashing vs MiniLM)",
+      "commit": "35fb6a6",
+      "what_was_seen": "nDCG@5 of both embedders on the 17 test items with topical proxy labels.",
+      "decision_influenced": "Keeping hashing as the recommendation default (docs cite the test-split result).",
+      "affected_claims": [
+        "any confirmatory claim that one embedder recommends better"
+      ],
+      "affected_gates": []
+    },
+    {
+      "component": "MiniLM relevance floor/ceiling (0.20 / 0.50)",
+      "commit": "3b319ff (constants), ceb0b77 (experiment)",
+      "what_was_seen": "Similarity distributions in the 100-transcript Talk Python retrieval experiment, which included 5 of the 7 Talk Python test items.",
+      "decision_influenced": "The cosine-to-relevance mapping MiniLM uses inside the recommender.",
+      "affected_claims": [
+        "any test-split recommendation comparison involving MiniLM"
+      ],
+      "affected_gates": []
+    }
+  ],
+  "not_exposed": [
+    "LLM rubric prompts and rubric anchors (no live model was run on any pilot item)",
+    "Aggregation weights and genre profiles (not changed in response to test outputs)",
+    "Release gate thresholds (locked before any annotation; unchanged)"
+  ]
+}

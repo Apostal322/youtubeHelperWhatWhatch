@@ -32,3 +32,4 @@ benchmarks/reports/*
 !benchmarks/reports/retrieval-*
 !benchmarks/reports/recs-*
 !benchmarks/reports/throughput-*
+benchmarks/runs/

@@ -8,6 +8,7 @@ from typing import Any
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from avd.datasets.blinding import blinded_video_ids
 from avd.db.models import Evaluation, Video
 from avd.embeddings.base import Embedder
 from avd.evaluation.service import summary
@@ -50,9 +51,10 @@ def search(
     }
     q_tokens = {t for t in _TOK.findall(query.lower()) if len(t) > 2}
     results: list[dict[str, Any]] = []
+    blinded = blinded_video_ids(session)
     for vid, sim in hits:
         v, ev = videos.get(vid), evals.get(vid)
-        if v is None or ev is None:
+        if v is None or ev is None or vid in blinded:
             continue
         q = intrinsic_value(ev)
         if min_quality is not None and (q is None or q < min_quality):
