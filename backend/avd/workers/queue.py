@@ -143,7 +143,7 @@ def claim(
             continue
         # Claim with a conditional update: of two workers that read the same job (SQLite has no
         # SKIP LOCKED), only the one whose update still sees the old state wins.
-        won = session.execute(
+        won = session.execute(  # type: ignore[attr-defined]  # rowcount: a CursorResult at runtime
             update(PipelineJob)
             .where(
                 PipelineJob.id == job.id,
