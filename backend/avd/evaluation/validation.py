@@ -35,34 +35,52 @@ _ELLIPSIS = re.compile(r"\.\.\.|…")
 GROUNDING_INVALIDATION_THRESHOLD = 0.5
 MIN_CLAIMS_FOR_INVALIDATION = 4
 FUZZY_THRESHOLD = 0.85
+MIN_QUOTE_WORDS = 3  # "at", "not", "e" occur in almost any segment and prove nothing
+MIN_FUZZY_WORDS = 6  # near-matches (transcription noise) only for quotes long enough to be specific
+_NEGATIONS = frozenset({"not", "no", "never", "nothing", "none", "nobody", "neither", "nor", "t", "without"})
 
 
 def _norm(s: str) -> str:
     return " ".join(_NON_WORD.sub(" ", s.lower()).split())
 
 
-def _fuzzy_contains(needle: str, hay: str) -> bool:
+def _negations(s: str) -> int:
+    return sum(1 for w in s.split() if w in _NEGATIONS)
+
+
+def _fuzzy_contains(needle: str, hay: str, whole_words: bool = True) -> bool:
+    """Whole-word containment; for long quotes, a near match that keeps every negation."""
     if not needle:
         return False
-    if needle in hay:
+    if (f" {needle} " in f" {hay} ") if whole_words else (needle in hay):
         return True
+    if len(needle.split()) < MIN_FUZZY_WORDS:
+        return False
     n = len(needle)
     if n > len(hay) + 10:
         return SequenceMatcher(None, needle, hay).ratio() >= FUZZY_THRESHOLD
-    best = 0.0
     step = max(1, n // 4)
     for i in range(0, max(1, len(hay) - n + 1), step):
-        best = max(best, SequenceMatcher(None, needle, hay[i : i + n]).ratio())
-        if best >= FUZZY_THRESHOLD:
+        window = hay[i : i + n]
+        # "does not depend" must never verify against "does depend": negations have to agree.
+        if SequenceMatcher(None, needle, window).ratio() >= FUZZY_THRESHOLD and _negations(
+            needle
+        ) == _negations(window):
             return True
     return False
 
 
-def verify_quote(ref: EvidenceRef, transcript: Transcript) -> EvidenceRef | None:
+def verify_quote(ref: EvidenceRef, transcript: Transcript, *, strict: bool = True) -> EvidenceRef | None:
+    """Locate a quote at (or next to) its cited segment. ``strict`` (model output): whole words,
+    at least MIN_QUOTE_WORDS words. Not strict (a person's text selection, which may start or end
+    mid-word): any normalised substring of the segment."""
     if ref.segment_index is None or not ref.quote:
         return None
-    parts = [_norm(p) for p in _ELLIPSIS.split(ref.quote)]
-    parts = [p for p in parts if len(p.split()) >= 3] or [_norm(ref.quote)]
+    parts = [p for p in (_norm(x) for x in _ELLIPSIS.split(ref.quote)) if p]
+    # Every part of an elided quote must be found (short parts exactly, as whole words); the
+    # quote as a whole must be long enough to be specific to this transcript.
+    if not parts or (strict and sum(len(p.split()) for p in parts) < MIN_QUOTE_WORDS):
+        return None
     n = len(transcript.segments)
 
     def located(idx: int) -> EvidenceRef:
@@ -79,15 +97,33 @@ def verify_quote(ref: EvidenceRef, transcript: Transcript) -> EvidenceRef | None
     # 1) the quote lies within a single segment: the cited one, else an immediate neighbour
     #    (models are often off by one); the timestamp is that of the segment that contains it.
     for idx in (ref.segment_index, ref.segment_index - 1, ref.segment_index + 1):
-        if 0 <= idx < n and all(_fuzzy_contains(p, _norm(transcript.segments[idx].text)) for p in parts):
+        if 0 <= idx < n and all(
+            _fuzzy_contains(p, _norm(transcript.segments[idx].text), strict) for p in parts
+        ):
             return located(idx)
     # 2) the quote spans a segment boundary around the cited segment.
     if 0 <= ref.segment_index < n:
         lo, hi = max(0, ref.segment_index - 1), min(n, ref.segment_index + 2)
         window = _norm(" ".join(s.text for s in transcript.segments[lo:hi]))
-        if all(_fuzzy_contains(p, window) for p in parts):
+        if all(_fuzzy_contains(p, window, strict) for p in parts):
             return located(ref.segment_index)
     return None
+
+
+def _draws_on_blocked(e: EvidenceRef, transcript: Transcript, blocked: frozenset[int]) -> bool:
+    """A quote attributed to a clean segment that is (partly) the text of a neighbouring
+    injection-flagged segment: matched across the boundary, it would launder the injection."""
+    if not blocked or e.segment_index is None or not e.quote:
+        return False
+    parts = [p for p in (_norm(x) for x in _ELLIPSIS.split(e.quote)) if len(p.split()) >= MIN_QUOTE_WORDS]
+    for idx in (e.segment_index - 1, e.segment_index, e.segment_index + 1):
+        if idx in blocked and 0 <= idx < len(transcript.segments):
+            seg = _norm(transcript.segments[idx].text)
+            words = [w for p in parts for w in p.split()]
+            grams = {" ".join(words[i : i + 4]) for i in range(max(0, len(words) - 3))}
+            if any(f" {g} " in f" {seg} " for g in grams):
+                return True
+    return False
 
 
 def validate_dimensions(
@@ -111,7 +147,7 @@ def validate_dimensions(
         v = verify_quote(e, transcript)
         if v is None:
             return None
-        if v.segment_index in blocked_segments:
+        if v.segment_index in blocked_segments or _draws_on_blocked(e, transcript, blocked_segments):
             injection_rejected += 1
             return None
         if e.quote and is_popularity_statement(e.quote):
@@ -124,7 +160,18 @@ def validate_dimensions(
         if d.status != DimensionStatus.SCORED:
             out.append(d)
             continue
-        pending = [e for e in d.evidence if not e.verified]
+        pending, seen, dupes = [], set(), 0
+        for e in d.evidence:
+            if e.verified:
+                continue
+            key = (e.kind, e.segment_index, _norm(e.quote or ""))
+            if key in seen:  # one quote cited four times is one piece of evidence, not four
+                dupes += 1
+                continue
+            seen.add(key)
+            pending.append(e)
+        if dupes:
+            warnings.append(f"{d.dimension.value}: {dupes} duplicate citation(s) ignored")
         already = [
             e.model_copy(update={"segment_id": f"{seg_prefix}#{e.segment_index}"})
             if seg_prefix and e.segment_index is not None and e.segment_id is None

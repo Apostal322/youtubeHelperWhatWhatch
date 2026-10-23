@@ -391,7 +391,7 @@ def _verify_rater_evidence(e: dict[str, Any], transcript: Transcript, dim: str) 
     if not 0 <= idx < len(transcript.segments):
         raise AnnotationError(f"{dim}: segment {idx} does not exist")
     if quote:
-        v = verify_quote(EvidenceRef(segment_index=idx, quote=quote[:600]), transcript)
+        v = verify_quote(EvidenceRef(segment_index=idx, quote=quote[:600]), transcript, strict=False)
         if v is None:
             raise AnnotationError(f"{dim}: quote not found in segment {idx} or its neighbours")
         idx = v.segment_index if v.segment_index is not None else idx

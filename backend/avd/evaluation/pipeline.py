@@ -83,6 +83,7 @@ class EvaluationPipeline:
             "aggregation": _schema.AGGREGATION_VERSION,
             "preprocessing": _schema.PREPROCESSING_VERSION,
             "injection_detector": _schema.INJECTION_DETECTOR_VERSION,
+            "evidence_validation": _schema.EVIDENCE_VALIDATION_VERSION,
         }
 
     def config(self) -> dict[str, Any]:

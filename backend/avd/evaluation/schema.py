@@ -25,7 +25,10 @@ PREPROCESSING_VERSION = (
     "prep_v2"  # normalisation (keeps shared source spans), language id, chunking, sanitisation
 )
 INJECTION_DETECTOR_VERSION = "injection_v2"  # v2: no flags on talk *about* AI; see docs/phase2.md
-FRAMEWORK_VERSION = "2026.10.1"
+# v2: whole-word quotes of >=3 words, negation-aware near matches, duplicates counted once,
+# quotes drawing on injection-flagged neighbours rejected (audit 2026-10-23)
+EVIDENCE_VALIDATION_VERSION = "evidence_v2"
+FRAMEWORK_VERSION = "2026.10.2"
 
 SCORE_MIN = 1.0
 SCORE_MAX = 5.0
