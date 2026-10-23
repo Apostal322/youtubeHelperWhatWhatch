@@ -341,7 +341,9 @@ class OllamaProvider:
             latency_ms=latency,
             runtime={
                 "load_s": round((payload.get("load_duration") or 0) / 1e9, 3),
-                "prompt_tokens_per_s": round(prompt_reported / prompt_s, 2) if prompt_s and prompt_reported else None,
+                "prompt_tokens_per_s": round(prompt_reported / prompt_s, 2)
+                if prompt_s and prompt_reported
+                else None,
                 "output_tokens_per_s": round(out_n / eval_s, 2) if eval_s else None,
                 "num_ctx": ctx,
             },
