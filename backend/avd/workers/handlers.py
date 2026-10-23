@@ -187,6 +187,19 @@ def handle_stage_a(ctx: WorkerContext, session: Session, job: PipelineJob) -> Ha
 # ----------------------------------------------------------------------------- stage B / C
 
 
+def _would_regress(session: Session, video_id: str, result: Any) -> bool:
+    """A result with failed dimensions must not replace a usable evaluation that scored more of
+    them (a small model that left most dimensions out would otherwise overwrite a full one)."""
+    if not any(d.status.value == "failed" for d in result.dimensions):
+        return False
+    ev = current_evaluation(session, video_id)
+    if ev is None or ev.status == "failed":
+        return False
+    scored_now = sum(1 for d in result.dimensions if d.status.value == "scored")
+    scored_before = sum(1 for d in ev.dimensions if d.status == "scored")
+    return scored_now < scored_before
+
+
 def _has_usable_evaluation(session: Session, video_id: str) -> bool:
     ev = current_evaluation(session, video_id)
     return ev is not None and ev.status != "failed"
@@ -242,6 +255,12 @@ def _evaluate(ctx: WorkerContext, session: Session, job: PipelineJob, stage: str
     session.commit()
 
     result = ctx.pipeline(stage).run(inp)
+    if result.status != "failed" and _would_regress(session, video.id, result):
+        failed = [d.dimension.value for d in result.dimensions if d.status.value == "failed"]
+        raise EvaluationFailed(
+            f"incomplete evaluation ({len(failed)} dimension(s) failed: {', '.join(failed[:5])}); "
+            "the previous, more complete evaluation stays current"
+        )
     if result.status == "failed":
         failures = sorted(
             {d.justification for d in result.dimensions if d.status.value == "failed" and d.justification}

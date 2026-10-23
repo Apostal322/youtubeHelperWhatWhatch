@@ -25,7 +25,7 @@ avd evaluations import evals.json --origin "alice's instance"   # validated, sto
     "mode": "llm",                     // llm | heuristic_baseline | synthetic_demo
     "evaluator_source": "local_ai",    // local_ai | hosted_ai | heuristic | synthetic
     "status": "complete",              // complete | partial | abstained | failed
-    "framework_version": "2026.10.2",
+    "framework_version": "2026.10.3",
     "versions": {"framework": "…", "rubric": "rubric_v2", "prompt": "…", …},
     "models": ["ollama:qwen3.5:4b@ab12cd34ef56:Q4_K_M"],   // served model with weights digest
     "config_hash": "…",                // evaluator configuration (incl. local model revision)

@@ -253,11 +253,14 @@ class EvaluationPipeline:
             review.append(f"suspected prompt injection ({len(findings)} finding(s))")
         if not report.passed:
             review.append("evidence grounding failed")
-        short = next((d.uncertainty for d in final if "samples_succeeded" in d.uncertainty), None)
+        short = [d for d in final if "samples_succeeded" in d.uncertainty]
         if short:
+            detail = ", ".join(
+                f"{d.dimension.value} ({d.uncertainty['samples_succeeded']} of {d.uncertainty['samples_requested']})"
+                for d in short[:5]
+            )
             review.append(
-                f"only {short['samples_succeeded']} of {short['samples_requested']} model samples succeeded; "
-                "confidence lowered accordingly"
+                f"fewer model samples than configured for: {detail}; confidence lowered accordingly"
             )
         disagreeing = [d.dimension.value for d in final if d.uncertainty.get("disagreement")]
         if disagreeing:
@@ -276,6 +279,21 @@ class EvaluationPipeline:
             review.append(
                 f"part notes are poorly grounded: {mapped.get('map_citations_verified')} of "
                 f"{mapped.get('map_citations_claimed')} quoted points found in the transcript"
+            )
+        failed_dims = [d.dimension.value for d in final if d.status == DimensionStatus.FAILED]
+        if failed_dims:
+            review.append(
+                f"{len(failed_dims)} dimension(s) could not be evaluated: {', '.join(failed_dims[:5])}"
+            )
+        if mapped.get("map_parts_ungrounded"):
+            parts = mapped["map_parts_ungrounded"]
+            review.append(
+                f"{len(parts)} transcript part(s) had mostly unverifiable quotes; their summaries were withheld "
+                f"({', '.join(parts[:3])})"
+            )
+        if mapped.get("map_unquoted"):
+            review.append(
+                "no part note quoted the transcript verifiably: the judgment rests on unverified summaries"
             )
         high_stakes = (evaluator_reports.get("fact_check") or {}).get("high_stakes_contradicted", 0)
         if high_stakes:

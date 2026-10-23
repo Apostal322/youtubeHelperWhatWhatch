@@ -327,7 +327,7 @@ def _errors_summary(exc: ValidationError) -> str:
 
 # How part notes are presented to the final judgement (long transcripts). Part of the config hash:
 # v2 states that part summaries are unverified model wording (only quoted points are verified).
-MAP_NOTES_FORMAT = "map_notes_v2"
+MAP_NOTES_FORMAT = "map_notes_v3"
 
 
 class LLMErrorAggregate(LLMTransientError):
@@ -490,9 +490,10 @@ class LLMRubricEvaluator:
                     body=body,
                     body_label="TRANSCRIPT NOTES",
                     preface=(
-                        "The transcript is too long to show in full. You see verified notes from every "
-                        "part (each with its segment index and verbatim quote) plus the verbatim opening "
-                        "and closing. Judge the whole video, including its overall structure, "
+                        "The transcript is too long to show in full. You see notes from every part: "
+                        "quoted points (verified verbatim, with their segment index) and short summaries "
+                        "in another model's own, unverified words, plus the verbatim opening and closing. "
+                        "Rely on quotes over summaries. Judge the whole video, including its overall structure, "
                         "progression, repetition and conclusions. Cite only segment indices shown."
                     ),
                 )
@@ -548,25 +549,9 @@ class LLMRubricEvaluator:
             for d in self.dimensions
         ]
         if errors:
+            # Later samples are not attempted after a permanent failure; _combine lowers each
+            # dimension's confidence for the samples it is missing.
             notes.append(f"{len(errors)} of {self.samples} samples failed: {errors[0]}")
-            # Fewer samples than configured: the spread no longer bounds the confidence. Lower it
-            # in proportion and mark the dimension, so the result is reviewed (pipeline).
-            share = len(outputs) / self.samples
-            results = [
-                r.model_copy(
-                    update={
-                        "confidence": round((r.confidence or 0.0) * share, 4),
-                        "uncertainty": {
-                            **r.uncertainty,
-                            "samples_succeeded": len(outputs),  # later samples are not attempted
-                            "samples_requested": self.samples,
-                        },
-                    }
-                )
-                if r.status == DimensionStatus.SCORED
-                else r
-                for r in results
-            ]
         report["samples_succeeded"] = len(outputs)
         return EvaluatorOutput(
             dimensions=results, usage=usage, notes=notes, models=sorted(served), report=report
@@ -611,6 +596,8 @@ class LLMRubricEvaluator:
         failed, claimed, verified, issues = 0, 0, 0, []
         evaluated_segments = 0
         failed_parts: list[str] = []
+        ungrounded_parts: list[str] = []
+        unquoted_parts = 0
         for c in chunks:
             body = render_segments(t, c.first_segment, c.last_segment, c.context_from)
             user = (
@@ -640,9 +627,8 @@ class LLMRubricEvaluator:
                 )
                 continue
             evaluated_segments += c.last_segment - c.first_segment + 1
-            lines = [
-                f"Part {c.index + 1} ({_fmt_ts(c.start_seconds)}-{_fmt_ts(c.end_seconds)}, segments {c.first_segment}-{c.last_segment}): {neutralize(notes.summary)}"
-            ]
+            part_claimed, part_verified = claimed, verified
+            lines: list[str] = []
             for p in notes.points:
                 claimed += 1
                 ok = verify_quote(EvidenceRef(segment_index=p.segment_index, quote=p.quote), t)
@@ -675,6 +661,19 @@ class LLMRubricEvaluator:
                     }
                 )
                 lines.append(f'  - [{ok.segment_index}] (claim: {cl.claim_type}) "{neutralize(cl.quote)}"')
+            part_claimed, part_verified = claimed - part_claimed, verified - part_verified
+            label = f"Part {c.index + 1} ({_fmt_ts(c.start_seconds)}-{_fmt_ts(c.end_seconds)}, segments {c.first_segment}-{c.last_segment})"
+            # Judged per part, not only over the whole video: one part with invented quotes is
+            # enough to make its summary untrustworthy, so that summary is not shown.
+            if part_claimed >= 2 and part_verified * 2 < part_claimed:
+                ungrounded_parts.append(f"segments {c.first_segment}-{c.last_segment}")
+                summary = "(summary withheld: most of this part's quoted points were not in the transcript)"
+            elif part_claimed == 0:
+                unquoted_parts += 1
+                summary = f"(no quoted points) {neutralize(notes.summary)}"
+            else:
+                summary = neutralize(notes.summary)
+            lines.insert(0, f"{label}: {summary}")
             issues.extend(notes.detected_issues)
             sections.append("\n".join(lines))
         if chunks and failed / len(chunks) > self.max_failed_chunk_fraction:
@@ -702,6 +701,11 @@ class LLMRubricEvaluator:
             "map_grounding_failed": claimed >= 4 and verified / claimed < 0.5,
             "map_citations_claimed": claimed,
             "map_citations_verified": verified,
+            "map_parts_ungrounded": ungrounded_parts,
+            # Every analysed part came back without a single verified quote: the final judgment
+            # would rest on unverified summaries alone.
+            "map_unquoted": bool(chunks) and verified == 0 and failed < len(chunks),
+            "map_parts_unquoted": unquoted_parts,
             "claims_extracted": claims[:200],
             "map_detected_issues": issues[:50],
             "chunk_boundaries": [c.boundary for c in chunks],
@@ -740,6 +744,12 @@ class LLMRubricEvaluator:
         reported = statistics.fmean(j.confidence for j in assessable)
         std = statistics.pstdev(scores) if len(scores) > 1 else 0.0
         conf = reported * (max(0.2, 1.0 - std / 1.5) if len(scores) > 1 else 1.0)
+        # A dimension judged by fewer samples than configured (a sample failed, or left this
+        # dimension out): the spread no longer bounds the confidence, so lower it in proportion
+        # and mark it, so the result is reviewed (pipeline).
+        short = len(present) < self.samples
+        if short:
+            conf *= len(present) / self.samples
         evidence = [
             EvidenceRef(
                 kind="supporting",
@@ -775,6 +785,7 @@ class LLMRubricEvaluator:
                 "sample_std": round(std, 4),
                 "samples_assessable": f"{len(assessable)}/{len(present)}",
                 "disagreement": std >= 1.0,
+                **({"samples_succeeded": len(present), "samples_requested": self.samples} if short else {}),
             },
         )
 

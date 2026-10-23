@@ -81,3 +81,58 @@ def test_cleared_evaluations_are_recomputed_when_stage_a_is_forced(db: DB) -> No
         assert s.scalar(select(func.count()).select_from(Evaluation)) == s.scalar(
             select(func.count()).select_from(Video)
         )
+
+
+def test_a_model_that_leaves_most_dimensions_out_does_not_replace_a_full_evaluation(db: DB) -> None:
+    from avd.content.store import load_bundle
+    from avd.db.models import DimensionScoreRow
+    from avd.evaluation.evaluators.llm_rubric import TEXT_DIMENSIONS
+
+    _seeded(db)
+    with db.sf() as s:
+        good = s.scalar(select(Evaluation).where(Evaluation.video_id == VID, Evaluation.is_current.is_(True)))
+        assert good is not None and good.overall_score is not None
+        good_id = good.id
+        quote = load_bundle(s, VID).transcript.segments[0].text[:60]  # type: ignore[union-attr]
+
+    def two_dimensions(req: object, i: int) -> dict[str, object]:
+        return {
+            "content_summary": "",
+            "detected_issues": [],
+            "judgments": [
+                {
+                    "dimension": d.value,
+                    "assessable": True,
+                    "score": 4,
+                    "confidence": 0.8,
+                    "justification": "ok",
+                    "evidence": [{"segment_index": 0, "quote": quote}],
+                    "counter_evidence": [],
+                    "unassessable_reason": "",
+                }
+                for d in TEXT_DIMENSIONS[:2]  # a small local model that skipped the rest
+            ],
+        }
+
+    with db.sf() as s:
+        enqueue_stage_a(s, VID, force=True)
+        s.commit()
+    run_until_idle(
+        build_context(settings=db.settings, session_factory=db.sf, llm=ScriptedProvider(two_dimensions))
+    )  # type: ignore[arg-type]
+    with db.sf() as s:
+        current = s.scalars(
+            select(Evaluation).where(Evaluation.video_id == VID, Evaluation.is_current.is_(True))
+        ).all()
+        assert [e.id for e in current] == [good_id]  # before: the partial evaluation replaced it
+        job = s.scalar(
+            select(PipelineJob)
+            .where(PipelineJob.video_id == VID, PipelineJob.job_type == "stage_b")
+            .order_by(PipelineJob.created_at.desc())
+        )
+        assert job is not None and job.status != "succeeded" and "incomplete" in (job.last_error or "")
+        assert s.scalar(
+            select(func.count())
+            .select_from(DimensionScoreRow)
+            .where(DimensionScoreRow.evaluation_id == good_id)
+        )

@@ -121,3 +121,57 @@ class TestLongTranscripts:
         assert r.needs_review and any("poorly grounded" in x for x in r.review_reasons)  # was not reviewed
         reduce_prompt = provider.calls[-1].user
         assert "summaries are unverified model wording" in reduce_prompt
+
+
+def test_a_dimension_left_out_by_some_samples_is_not_reported_as_unanimous() -> None:
+    def respond(req: LLMRequest, i: int) -> Any:
+        out = _judgments(4, "Chlorophyll absorbs red and blue light", 1)
+        if req.sample_index % 1000 != 0:  # samples 2 and 3 leave "depth" out
+            out["judgments"] = [j for j in out["judgments"] if j["dimension"] != "depth"]
+        return out
+
+    ev = LLMRubricEvaluator(ScriptedProvider(respond), "m", samples=3)
+    r = EvaluationPipeline([ev], "C", EvaluationMode.LLM).run(make_input(make_transcript(LECTURE)))
+    d = r.dimension(Dimension.DEPTH)
+    assert d.confidence == pytest.approx(0.8 / 3, abs=1e-3)  # before: 0.8, as if three samples agreed
+    assert r.needs_review and any("depth (1 of 3)" in x for x in r.review_reasons)
+    assert r.dimension(Dimension.CLARITY).confidence == pytest.approx(
+        0.8, abs=1e-3
+    )  # complete ones unchanged
+
+
+def _points(req: LLMRequest, fabricate: bool) -> Any:
+    first = int(re.search(r"segments (\d+)-(\d+)", req.user).group(1))  # type: ignore[union-attr]
+    quote = TOPIC_A[:50] if first < 200 else TOPIC_B[:50]
+    if fabricate:
+        quote = "invented sentence about an unrelated miracle cure"
+    pts = [{"segment_index": first, "quote": quote, "kind": "explanation", "note": "n"} for _ in range(3)]
+    return {"summary": f"summary of part from {first}", "points": pts, "claims": [], "detected_issues": []}
+
+
+class TestPartGrounding:
+    def test_one_part_with_invented_quotes_is_flagged_and_its_summary_withheld(self) -> None:
+        r, provider = _long(
+            lambda req: _points(req, fabricate=" 0-" in req.user or "segments 0-" in req.user)
+        )
+        rep = r.coverage_report["evaluators"]["llm_rubric"]
+        assert not rep["map_grounding_failed"]  # one part out of many: the video-wide ratio is fine
+        assert len(rep["map_parts_ungrounded"]) == 1  # before: not detected
+        assert r.needs_review and any("summaries were withheld" in x for x in r.review_reasons)
+        reduce_prompt = provider.calls[-1].user
+        assert "summary of part from 0" not in reduce_prompt and "summary withheld" in reduce_prompt
+
+    def test_notes_with_summaries_but_no_quotes_are_flagged(self) -> None:
+        r, provider = _long(
+            lambda req: {
+                "summary": "the speaker endorses a miracle cure",
+                "points": [],
+                "claims": [],
+                "detected_issues": [],
+            }
+        )
+        assert r.coverage_report["evaluators"]["llm_rubric"]["map_unquoted"]
+        assert r.needs_review and any(
+            "unverified summaries" in x for x in r.review_reasons
+        )  # before: no review
+        assert "You see verified notes" not in provider.calls[-1].user  # the preface no longer claims that
