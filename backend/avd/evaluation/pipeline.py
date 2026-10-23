@@ -248,11 +248,28 @@ class EvaluationPipeline:
             review.append(f"suspected prompt injection ({len(findings)} finding(s))")
         if not report.passed:
             review.append("evidence grounding failed")
+        short = next((d.uncertainty for d in final if "samples_succeeded" in d.uncertainty), None)
+        if short:
+            review.append(
+                f"only {short['samples_succeeded']} of {short['samples_requested']} model samples succeeded; "
+                "confidence lowered accordingly"
+            )
         disagreeing = [d.dimension.value for d in final if d.uncertainty.get("disagreement")]
         if disagreeing:
             review.append(f"model samples disagree on: {', '.join(disagreeing)}")
         if transcript_report and transcript_report["language_mismatch"]:
             review.append("declared transcript language differs from detected language")
+        mapped = evaluator_reports.get("llm_rubric") or {}
+        if mapped.get("chunks_failed"):
+            review.append(
+                f"{mapped['chunks_failed']} of {mapped.get('chunks')} transcript parts could not be analysed "
+                f"({', '.join(mapped.get('failed_parts', [])[:3])}): the evaluation is partial"
+            )
+        if mapped.get("map_grounding_failed"):
+            review.append(
+                f"part notes are poorly grounded: {mapped.get('map_citations_verified')} of "
+                f"{mapped.get('map_citations_claimed')} quoted points found in the transcript"
+            )
         high_stakes = (evaluator_reports.get("fact_check") or {}).get("high_stakes_contradicted", 0)
         if high_stakes:
             review.append(f"contradicted high-stakes claims (health/finance/legal/safety): {high_stakes}")

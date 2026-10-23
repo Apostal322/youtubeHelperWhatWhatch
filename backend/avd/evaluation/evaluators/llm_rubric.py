@@ -307,6 +307,11 @@ def _errors_summary(exc: ValidationError) -> str:
     return "; ".join(parts)[:600]
 
 
+# How part notes are presented to the final judgement (long transcripts). Part of the config hash:
+# v2 states that part summaries are unverified model wording (only quoted points are verified).
+MAP_NOTES_FORMAT = "map_notes_v2"
+
+
 class LLMErrorAggregate(LLMTransientError):
     def __init__(self, errors: list[str]) -> None:
         super().__init__("; ".join(errors))
@@ -358,6 +363,7 @@ class LLMRubricEvaluator:
             "max_tokens": self.max_tokens,
             "single_pass_max_tokens": self.single_pass_max_tokens,
             "chunk_target_tokens": self.chunk_target_tokens,
+            "map_notes_format": MAP_NOTES_FORMAT,
         }
         return with_model_revision(d, self.provider, self.model)
 
@@ -508,9 +514,11 @@ class LLMRubricEvaluator:
                 last_exc = exc
                 if not exc.retryable:
                     break  # refusals / invalid output won't improve with more samples
+        if transient:
+            # Even with some samples back: a result from fewer samples would look more certain
+            # (no spread) than a complete one. Retry the job; successful calls are cached.
+            raise LLMErrorAggregate(errors)
         if not outputs:
-            if transient:
-                raise LLMErrorAggregate(errors)
             return self._all_failed("; ".join(errors) or "no output", usage, report, self._reason(last_exc))
         model_label = ",".join(sorted(served))
         results = [
@@ -523,6 +531,24 @@ class LLMRubricEvaluator:
         ]
         if errors:
             notes.append(f"{len(errors)} of {self.samples} samples failed: {errors[0]}")
+            # Fewer samples than configured: the spread no longer bounds the confidence. Lower it
+            # in proportion and mark the dimension, so the result is reviewed (pipeline).
+            share = len(outputs) / self.samples
+            results = [
+                r.model_copy(
+                    update={
+                        "confidence": round((r.confidence or 0.0) * share, 4),
+                        "uncertainty": {
+                            **r.uncertainty,
+                            "samples_succeeded": len(outputs),  # later samples are not attempted
+                            "samples_requested": self.samples,
+                        },
+                    }
+                )
+                if r.status == DimensionStatus.SCORED
+                else r
+                for r in results
+            ]
         report["samples_succeeded"] = len(outputs)
         return EvaluatorOutput(
             dimensions=results, usage=usage, notes=notes, models=sorted(served), report=report
@@ -565,6 +591,8 @@ class LLMRubricEvaluator:
         sections: list[str] = []
         claims: list[dict[str, Any]] = []
         failed, claimed, verified, issues = 0, 0, 0, []
+        evaluated_segments = 0
+        failed_parts: list[str] = []
         for c in chunks:
             body = render_segments(t, c.first_segment, c.last_segment, c.context_from)
             user = (
@@ -588,10 +616,12 @@ class LLMRubricEvaluator:
                 if exc.retryable:
                     raise
                 failed += 1
+                failed_parts.append(f"segments {c.first_segment}-{c.last_segment}")
                 sections.append(
                     f"Part {c.index + 1} ({_fmt_ts(c.start_seconds)}-{_fmt_ts(c.end_seconds)}): NOTES UNAVAILABLE"
                 )
                 continue
+            evaluated_segments += c.last_segment - c.first_segment + 1
             lines = [
                 f"Part {c.index + 1} ({_fmt_ts(c.start_seconds)}-{_fmt_ts(c.end_seconds)}, segments {c.first_segment}-{c.last_segment}): {neutralize(notes.summary)}"
             ]
@@ -637,7 +667,9 @@ class LLMRubricEvaluator:
         body = (
             "VERBATIM OPENING:\n"
             + render_segments(t, 0, opening_end)
-            + "\n\nNOTES FROM EVERY PART:\n"
+            # Summaries are the model's own wording and cannot be checked against the transcript;
+            # only quoted points were verified. Said once, so long transcripts still fit the window.
+            + "\n\nNOTES FROM EVERY PART (summaries are unverified model wording; quoted points were verified):\n"
             + "\n\n".join(sections)
             + "\n\nVERBATIM CLOSING:\n"
             + render_segments(t, max(closing_start, opening_end + 1), n - 1)
@@ -645,7 +677,11 @@ class LLMRubricEvaluator:
         report = {
             "chunks": len(chunks),
             "chunks_failed": failed,
-            "segments_evaluated": sum(c.last_segment - c.first_segment + 1 for c in chunks),
+            # Only parts whose notes were produced count as evaluated (a failed part is not).
+            "segments_evaluated": evaluated_segments,
+            "failed_parts": failed_parts,
+            # Same rule as for dimension evidence: at least 4 citations and fewer than half verified.
+            "map_grounding_failed": claimed >= 4 and verified / claimed < 0.5,
             "map_citations_claimed": claimed,
             "map_citations_verified": verified,
             "claims_extracted": claims[:200],
