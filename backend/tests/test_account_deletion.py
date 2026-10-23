@@ -105,3 +105,131 @@ def test_uploaded_media_files_are_deleted(api: tuple[TestClient, Path, Path]) ->
     out = c.delete("/v1/users/me", headers=h).json()
     assert out["media_files"] >= 1
     assert not any(p.is_file() for p in (tmp / "media").rglob("*"))
+
+
+def test_resubmitting_text_whose_first_submitter_was_deleted_works(
+    api: tuple[TestClient, Path, Path],
+) -> None:
+    c, _, _ = api
+    a = {"Authorization": "Bearer " + c.post("/v1/users").json()["token"]}
+    b = {"Authorization": "Bearer " + c.post("/v1/users").json()["token"]}
+    body = {"format": "text", "content": TEXT, "attestation": ATT}
+    assert c.post("/v1/videos/abcdefghijk/transcripts", json=body, headers=a).json()["created"]
+    assert c.delete("/v1/users/me", headers=a).status_code == 200
+    r = c.post("/v1/videos/abcdefghijk/transcripts", json=body, headers=b).json()
+    assert r["created"] is True  # before: the revoked row came back, "already on file", and stayed revoked
+
+
+def _evaluated_source(tmp_path: Path) -> tuple[object, str, str]:
+    from avd.db.models import Channel, ContentSource, Evaluation, LLMCache, Video
+    from tests.conftest import _make_db
+
+    db = _make_db(tmp_path, None)
+    with db.sf() as s:
+        s.add(Channel(id="ch1", title="c"))
+        s.add(Video(id="vid_one_123", title="t", channel_id="ch1", status="evaluated"))
+        src = ContentSource(
+            video_id="vid_one_123",
+            source_type="user_provided_transcript",
+            authorization_basis="attested",
+            content_hash="h1",
+            modalities=["transcript"],
+            status="revoked",
+        )
+        s.add(src)
+        s.flush()
+        s.add(
+            Evaluation(
+                video_id="vid_one_123",
+                stage="B",
+                framework_version="x",
+                mode="llm",
+                genre="science",
+                genre_confidence=1.0,
+                input_fingerprint="f",
+                content_source_ids=[src.id],
+                status="complete",
+                coverage_report={
+                    "evaluators": {
+                        "llm_rubric": {
+                            "chunks": 3,
+                            "claims_extracted": [
+                                {"segment_index": 2, "quote": f"the {MARKER} quote", "claim": "c"}
+                            ],
+                            "map_detected_issues": [f"issue about {MARKER}"],
+                        }
+                    }
+                },
+                validation={
+                    "passed": True,
+                    "evidence_claimed": 4,
+                    "warnings": [f"model-detected issue: {MARKER}"],
+                },
+            )
+        )
+        # A part summary paraphrases the transcript: it shares no quote with the evidence.
+        s.add(
+            LLMCache(
+                key="k1",
+                provider="ollama",
+                model="m",
+                response={"data": {"summary": f"{MARKER} paraphrase"}, "video_id": "vid_one_123"},
+            )
+        )
+        s.add(
+            LLMCache(
+                key="k2",
+                provider="ollama",
+                model="m",
+                response={"data": {"summary": "other"}, "video_id": "other_video"},
+            )
+        )
+        s.commit()
+        return db, src.id, "vid_one_123"
+
+
+def test_paraphrases_and_copies_of_deleted_content_are_erased(tmp_path: Path) -> None:
+    import json
+
+    from sqlalchemy import select
+
+    from avd.datactl import erase_derived_content
+    from avd.db.models import Evaluation, LLMCache
+
+    db, source_id, _ = _evaluated_source(tmp_path)
+    with db.sf() as s:  # type: ignore[attr-defined]
+        erase_derived_content(s, {source_id}, tmp_path / "media")
+        s.commit()
+        ev = s.scalars(select(Evaluation)).one()
+        dumped = json.dumps([ev.coverage_report, ev.validation])
+        assert MARKER not in dumped  # before: claims, model issues and warnings kept the text
+        assert ev.coverage_report["evaluators"]["llm_rubric"]["chunks"] == 3  # counts stay for audit
+        assert [r.key for r in s.scalars(select(LLMCache))] == ["k2"]  # before: the paraphrase stayed
+
+
+def test_audio_still_used_by_another_source_is_kept(tmp_path: Path) -> None:
+    from avd.datactl import erase_derived_content
+    from avd.db.models import ContentSource
+
+    db, source_id, vid = _evaluated_source(tmp_path)
+    media = tmp_path / "media"
+    media.mkdir()
+    wav = media / "abc.audio.wav"
+    wav.write_bytes(b"RIFF")
+    with db.sf() as s:  # type: ignore[attr-defined]
+        revoked = s.get(ContentSource, source_id)
+        revoked.preprocessing = {"audio_wav": str(wav)}
+        s.add(
+            ContentSource(
+                video_id=vid,
+                source_type="user_provided_media",
+                authorization_basis="attested",
+                content_hash="h2",
+                modalities=["audio"],
+                status="active",
+                preprocessing={"audio_wav": str(wav)},  # the same clip, uploaded again
+            )
+        )
+        s.commit()
+        erase_derived_content(s, {source_id}, media)
+    assert wav.exists()  # before: deleted, though an active source still needed it

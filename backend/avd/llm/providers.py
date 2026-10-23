@@ -365,6 +365,9 @@ class CachedProvider:
                             "output_tokens": resp.output_tokens,
                             "stop_reason": resp.stop_reason,
                             "request_id": resp.request_id,
+                            # Which video's content the prompt carried, so deleting that
+                            # content can delete its cached responses too (they paraphrase it).
+                            "video_id": request.metadata.get("video_id"),
                         },
                     )
                 )

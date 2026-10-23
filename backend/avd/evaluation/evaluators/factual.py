@@ -284,7 +284,13 @@ class FactualVerificationEvaluator:
         return with_model_revision(d, self.provider, self.model)
 
     def _ask(
-        self, system: str, user: str, schema: dict[str, Any], name: str, usage: list[UsageRecord]
+        self,
+        system: str,
+        user: str,
+        schema: dict[str, Any],
+        name: str,
+        usage: list[UsageRecord],
+        video_id: str,
     ) -> dict[str, Any]:
         resp = self.provider.complete_json(
             LLMRequest(
@@ -294,6 +300,7 @@ class FactualVerificationEvaluator:
                 schema_name=name,
                 model=self.model,
                 max_tokens=8000,
+                metadata={"video_id": video_id},
             )
         )
         usage.append(
@@ -330,6 +337,7 @@ class FactualVerificationEvaluator:
                         CLAIMS_SCHEMA,
                         "claim_extraction",
                         usage,
+                        inp.video_id,
                     )
                 )
             except ValidationError as exc:
@@ -408,6 +416,7 @@ class FactualVerificationEvaluator:
                         VERDICTS_SCHEMA,
                         "claim_verification",
                         usage,
+                        inp.video_id,
                     )
                 ).verdicts
             except ValidationError as exc:

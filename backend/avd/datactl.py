@@ -171,6 +171,15 @@ def user_export(session: Session, user_id: str) -> dict[str, Any]:
     }
 
 
+def _without_text(value: Any) -> Any:
+    """``value`` with every string removed (numbers, booleans and structure stay)."""
+    if isinstance(value, dict):
+        return {k: _without_text(v) for k, v in value.items() if not isinstance(v, str)}
+    if isinstance(value, list):
+        return [_without_text(v) for v in value if not isinstance(v, str)]
+    return value
+
+
 def erase_derived_content(session: Session, source_ids: set[str], media_dir: Path) -> dict[str, int]:
     """After content sources are revoked (account deletion), erase what was derived from them.
 
@@ -230,25 +239,37 @@ def erase_derived_content(session: Session, source_ids: set[str], media_dir: Pat
         counts["claims_deleted"] += (
             session.execute(delete(FactualClaim).where(FactualClaim.evaluation_id == ev.id)).rowcount or 0  # type: ignore[attr-defined]
         )
+        # Copies of claims, model-reported issues and warnings: keep only counts and flags.
+        ev.coverage_report = _without_text(ev.coverage_report or {})
+        ev.validation = _without_text(ev.validation or {})
+    # Cached responses for these videos' prompts (part summaries, claims, judgments) paraphrase the
+    # revoked content, so they go whole. Rows cached before responses recorded their video are
+    # matched on erased quotes instead.
+    affected = videos | {
+        s.video_id for s in session.scalars(select(ContentSource).where(ContentSource.id.in_(source_ids)))
+    }
     probes = [q for q in erased_quotes if len(q) >= 20]
-    if probes:
-        for row in session.scalars(select(LLMCache)).all():
-            text = json.dumps(row.response, ensure_ascii=False)
-            if any(q in text for q in probes):
-                session.delete(row)
-                counts["cache_entries"] += 1
+    for row in session.scalars(select(LLMCache)).all():
+        resp = row.response or {}
+        text = json.dumps(resp, ensure_ascii=False) if probes else ""
+        if resp.get("video_id") in affected or any(q in text for q in probes):
+            session.delete(row)
+            counts["cache_entries"] += 1
     root = media_dir.resolve()
     revoked = session.scalars(select(ContentSource).where(ContentSource.id.in_(source_ids))).all()
+    # Files are content-addressed, so an active source can share either the upload or the
+    # audio derived from it (the same clip submitted for two videos).
+    in_use = {
+        p
+        for src in session.scalars(select(ContentSource).where(ContentSource.status == "active")).all()
+        for p in (src.media_uri, (src.preprocessing or {}).get("audio_wav"))
+        if p
+    }
     for src in revoked:
         paths = [p for p in (src.media_uri, (src.preprocessing or {}).get("audio_wav")) if p]
         for raw in paths:
-            still_used = session.scalar(
-                select(func.count())
-                .select_from(ContentSource)
-                .where(ContentSource.status == "active", ContentSource.media_uri == raw)
-            )
             path = Path(raw).resolve()
-            if still_used or not path.is_relative_to(root):
+            if raw in in_use or not path.is_relative_to(root):
                 continue
             if path.is_file():
                 path.unlink()
