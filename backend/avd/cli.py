@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import logging
 import sys
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
@@ -594,6 +595,46 @@ def cmd_annotate(args: argparse.Namespace) -> None:
                     }
                 )
             )
+        elif args.annotate_cmd == "usability-packet":
+            from avd.annotation import usability
+
+            consent = Path(args.consent_file).read_text(encoding="utf-8")
+            try:
+                pid, data = usability.issue_usability_packet(
+                    s, args.dataset, args.label, consent_text=consent, max_words=args.words
+                )
+            except svc.AnnotationError as exc:
+                sys.exit(str(exc))
+            out = Path(args.out or f"usability-{args.label}-{pid[len(usability.PACKET_PREFIX) :][:8]}.html")
+            out.write_text(usability.render_usability_packet(data), encoding="utf-8")
+            item = data["items"][0]
+            print(
+                json.dumps(
+                    {
+                        "packet_id": pid,
+                        "scope": usability.SCOPE,
+                        "item": item["video_id"],
+                        "excerpt_words": item["excerpt_words"],
+                        "episode_words": item["episode_words"],
+                        "stored": "nothing (the return can never be imported as a rating)",
+                        "file": str(out),
+                    }
+                )
+            )
+        elif args.annotate_cmd == "usability-report":
+            from avd.annotation import usability
+
+            consent = Path(args.consent_file).read_text(encoding="utf-8")
+            try:
+                report = usability.usability_report(
+                    s,
+                    json.loads(Path(args.file).read_text(encoding="utf-8")),
+                    consent_text=consent,
+                    max_words=args.words,
+                )
+            except (svc.AnnotationError, ValueError) as exc:
+                sys.exit(f"refused: {exc}")
+            print(json.dumps(report, indent=2, ensure_ascii=False))
         elif args.annotate_cmd == "import-packet":
             from avd.annotation import offline
 
@@ -674,6 +715,9 @@ def cmd_bench(args: argparse.Namespace) -> None:
 def main(argv: list[str] | None = None) -> None:
     settings = get_settings()
     configure_logging(settings.log_level, settings.log_json)
+    # One INFO line per HTTP request buries the commands' own output; failures still log as warnings.
+    for noisy in ("httpx", "httpcore"):
+        logging.getLogger(noisy).setLevel(max(logging.WARNING, logging.getLogger().level))
     p = argparse.ArgumentParser(prog="avd", description="AI Video Discovery")
     sub = p.add_subparsers(dest="cmd", required=True)
     sub.add_parser("migrate").set_defaults(fn=cmd_migrate)
@@ -820,13 +864,27 @@ def main(argv: list[str] | None = None) -> None:
         required=True,
         help="consent text approved by the project owner (template: docs/templates/rating-consent.txt)",
     )
+    up = an.add_parser(
+        "usability-packet",
+        help="a short labelled excerpt to test the packet with a volunteer (never a rating)",
+    )
+    up.add_argument("--label", required=True, help="a name for the file, e.g. pilot-1 (not stored)")
+    up.add_argument("--consent-file", required=True)
+    up.add_argument("--words", type=int, default=1500, help="excerpt length (whole segments)")
+    up.add_argument("--out", default=None)
+    ur = an.add_parser(
+        "usability-report", help="timing, choices and citation checks from a usability-pilot return"
+    )
+    ur.add_argument("file")
+    ur.add_argument("--consent-file", required=True)
+    ur.add_argument("--words", type=int, default=1500, help="the excerpt length the packet was issued with")
     ip = an.add_parser("import-packet", help="validate and record a returned ratings file")
     ip.add_argument("file")
     rp = an.add_parser("release-packet", help="withdraw a packet's unreturned assignments")
     rp.add_argument("packet_id")
-    for sp in (q, ex, bl, ub, pk):
+    for sp in (q, ex, bl, ub, pk, up):
         sp.add_argument("--dataset", default="real_pilot@v1")
-    for sp in (cr, q, ex, bl, ub, pk, ip, rp):
+    for sp in (cr, q, ex, bl, ub, pk, up, ur, ip, rp):
         sp.set_defaults(fn=cmd_annotate)
     br = sub.add_parser("bench-real", help="benchmark on a real licensed dataset against human labels")
     br.add_argument(

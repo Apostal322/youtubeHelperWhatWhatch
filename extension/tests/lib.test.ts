@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { ApiClient, ApiError, setApiBase, setInviteCode } from "../src/lib/api";
 import { catalogLine, diagnose, grantRemoteConsent, hasRemoteConsent, isLocalBase, validateBackendUrl } from "../src/lib/backend";
-import { badgeText, band, duration, fmtScore, modelLabel, timeLink, timestamp } from "../src/lib/format";
+import { badgeText, band, displayTitle, duration, fmtScore, modelLabel, timeLink, timestamp } from "../src/lib/format";
 import { parseVideoId } from "../src/lib/youtube";
 
 describe("parseVideoId", () => {
@@ -23,6 +23,11 @@ describe("parseVideoId", () => {
 });
 
 describe("format", () => {
+  it("names untitled videos instead of rendering a blank title", () => {
+    expect(displayTitle({ id: "own_1", title: "" })).toBe("Untitled video (own_1)");
+    expect(displayTitle({ id: "own_1", title: "  " })).toBe("Untitled video (own_1)");
+    expect(displayTitle({ id: "x", title: "Hash tables" })).toBe("Hash tables");
+  });
   it("formats scores and bands", () => {
     expect(fmtScore(null)).toBe("—");
     expect(fmtScore(3.456)).toBe("3.5");

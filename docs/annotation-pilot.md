@@ -39,6 +39,46 @@ each rating 5 items** gives every item 3 ratings, at about 6–7 hours plus cali
 spread over a few weeks. Tell volunteers the honest figure. The first real packets will measure the
 actual time: `avd annotate qc` reports reported durations.
 
+## Start small: the usability pilot (15–20 minutes, never a rating)
+
+Before asking anyone for an hour or more, test the packet itself with one or two volunteers:
+
+```bash
+avd annotate usability-packet --label pilot-1 --consent-file rating-consent.txt
+# → usability-pilot-1-xxxxxxxx.html: the first ~1,500 words (whole segments) of the
+#   shortest calibration episode, labelled "Usability pilot (excerpt, not a rating)"
+avd annotate usability-report ratings-pilot-1-xxxxxxxx.json --consent-file rating-consent.txt
+```
+
+The report covers what the pilot is meant to find out:
+
+| Question | What the report shows |
+|---|---|
+| Are the rubric and status choices understandable? | statuses chosen, unanswered dimensions, the rater's notes and per-dimension notes, `ambiguous_rubric` flags |
+| Can evidence be selected accurately? | citations made, and how many were found at the cited place in the excerpt |
+| Does partial work survive? Does consent work? | the return exists only after consent; drafts survive a reload (tested in the E2E) |
+| How long does it take? | the time the page was open and visible, as reported by the browser |
+
+It is kept apart from every label. Issuing it stores nothing, `import-packet` refuses its
+return ("never a rating"), and the report stores nothing either. An excerpt rating must never be
+compared with, or substituted for, a full-episode rating. Full episodes stay the scientific
+task: calibration, then development items, as below.
+
+**Message to send with the pilot file (template):**
+
+> Thank you for trying this. The attached file opens in any browser and works offline: it
+> cannot send anything anywhere. It holds the opening part of one podcast episode (about 1,500
+> words), so expect 15–20 minutes. Please read the consent text at the top first; you can
+> download your answers only after agreeing. Then rate the ten aspects as best you can, and
+> write down anything that was unclear or slow, in the box at the end: that is what this trial
+> is for. Your answers are never used as a rating of the episode. When you are done, press
+> **Mark this item complete**, then **Download ratings file**, and send that file back to me
+> privately (not in a public GitHub issue).
+
+Also send [`templates/query-elicitation.txt`](templates/query-elicitation.txt) **before** the
+first packet. It collects one search written by someone who has not seen the catalog
+(`benchmarks/datasets/relevance_v1/README.md`).
+
 ## How it works without a central server
 
 ```
@@ -87,7 +127,8 @@ avd annotate export --out benchmarks/labels/…
    machine. Blinding of model assessments is on by default.
 3. For each volunteer: `avd annotate create-rater <pseudonym> --expertise <self-declared tags>`.
    Ignore the printed token; packets do not need it.
-4. `avd annotate packet --rater <pseudonym> --consent-file rating-consent.txt`. The first packet
+4. Optional, recommended for the first one or two volunteers: a usability pilot (above). Then
+   `avd annotate packet --rater <pseudonym> --consent-file rating-consent.txt`. The first packet
    holds the 2 calibration items, shortest first. For a lighter start, `--items 1` holds only the
    shorter one (10,769 words, about 50–65 minutes). Items are always whole episodes.
    Send the file with the instructions below.

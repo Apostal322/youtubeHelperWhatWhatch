@@ -50,6 +50,9 @@ def search(
         ).all()
     }
     q_tokens = {t for t in _TOK.findall(query.lower()) if len(t) > 2}
+    # Below the embedder's calibrated floor a similarity means "unrelated" (the recommender uses
+    # the same floor). Without it every query, even nonsense, returned the whole catalog.
+    floor = float(getattr(embedder, "relevance_floor", 0.0))
     results: list[dict[str, Any]] = []
     blinded = blinded_video_ids(session)
     for vid, sim in hits:
@@ -61,6 +64,8 @@ def search(
             continue
         title_tokens = set(_TOK.findall(v.title.lower()))
         lexical = len(q_tokens & title_tokens) / len(q_tokens) if q_tokens else 0.0
+        if sim < floor and lexical == 0.0:
+            continue
         quality_norm = 0.0 if q is None else (q - 1) / 4
         score = sim + TITLE_BOOST * lexical + QUALITY_TIEBREAK * quality_norm
         results.append(

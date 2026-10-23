@@ -39,6 +39,8 @@ def main() -> None:
     ap.add_argument("--avd", default="avd")
     ap.add_argument("--chromium", required=True)
     args = ap.parse_args()
+    if os.sep in args.avd:  # a relative path must survive the working-directory change below
+        args.avd = str(Path(args.avd).resolve())
     tmp = Path(tempfile.mkdtemp(prefix="avd-packet-"))
     env = {
         **os.environ,
@@ -195,6 +197,86 @@ def main() -> None:
         "a forged return is refused",
         r.returncode != 0 and "secret" in r.stderr,
         r.stderr.strip()[:80],
+    )
+
+    # Usability pilot: a labelled excerpt to test the packet itself; it can never become a rating.
+    pilot = json.loads(
+        avd(
+            "annotate",
+            "usability-packet",
+            "--label",
+            "pilot-a",
+            "--out",
+            str(tmp / "pilot.html"),
+            "--consent-file",
+            str(consent),
+        )
+    )
+    step(
+        "usability pilot: an excerpt of the shortest calibration episode",
+        pilot["excerpt_words"] < pilot["episode_words"] and pilot["excerpt_words"] >= 1500,
+        f"{pilot['item']}: {pilot['excerpt_words']} of {pilot['episode_words']} words",
+    )
+    with sync_playwright() as p:
+        browser = p.chromium.launch(executable_path=args.chromium)
+        page = browser.new_page(accept_downloads=True)
+        requests = []
+        page.on("request", lambda r: requests.append(r.url))
+        page.goto((tmp / "pilot.html").as_uri())
+        page.wait_for_selector(".seg")
+        body = page.inner_text("body")
+        step(
+            "usability pilot: labelled as an excerpt, never a rating, on screen",
+            "Usability pilot (excerpt, not a rating)" in body and "never a rating of the episode" in body,
+        )
+        page.locator(".dim").first.locator("select[aria-label^='Status for']").select_option("scored")
+        page.locator(".dim").first.locator("input[type=radio][value='2']").check()
+        page.evaluate(
+            """() => {
+              const seg = document.querySelector('.seg[data-index="1"]');
+              const text = [...seg.childNodes].find(n => n.nodeType === 3);
+              const words = text.textContent.trim().split(/\\s+/).slice(0, 5).join(' ');
+              const start = text.textContent.indexOf(words);
+              const r = document.createRange();
+              r.setStart(text, start); r.setEnd(text, start + words.length);
+              const s = window.getSelection(); s.removeAllRanges(); s.addRange(r);
+            }"""
+        )
+        page.locator(".dim").first.get_by_role("button", name="Cite selection").click()
+        dims = page.locator(".dim select[aria-label^='Status for']")
+        for i in range(1, dims.count()):
+            dims.nth(i).select_option("insufficient_evidence")
+        page.locator("textarea[placeholder^='What was unclear']").fill("Test note: statuses were clear.")
+        page.get_by_role("button", name="Mark this item complete").click()
+        page.locator("#consent-box").check()
+        with page.expect_download() as dl:
+            page.get_by_role("button", name="Download ratings file").click()
+        pilot_out = tmp / "pilot-return.json"
+        dl.value.save_as(pilot_out)
+        step("usability pilot: no network request", all(u.startswith(("file:", "blob:")) for u in requests))
+        browser.close()
+    r = subprocess.run(
+        [args.avd, "annotate", "import-packet", str(pilot_out)],
+        env=env,
+        capture_output=True,
+        text=True,
+        check=False,
+        cwd=ROOT / "backend",
+    )
+    step(
+        "usability pilot: the return is refused as a rating",
+        r.returncode != 0 and "never a rating" in r.stderr,
+        r.stderr.strip()[:90],
+    )
+    rep = json.loads(avd("annotate", "usability-report", str(pilot_out), "--consent-file", str(consent)))
+    it = rep["items"][0]
+    step(
+        "usability pilot: report reads timing, answers, citations and notes; stores nothing",
+        rep["is_rating"] is False
+        and it["dimensions_answered"] == 10
+        and it["citations"]["found_in_excerpt"] == 1
+        and it["notes"] == "Test note: statuses were clear.",
+        json.dumps({k: it[k] for k in ("minutes_reported", "dimensions_answered", "citations")})[:160],
     )
     print(json.dumps(results))
     sys.exit(1 if results["FAIL"] else 0)

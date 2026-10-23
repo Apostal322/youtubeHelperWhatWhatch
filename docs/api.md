@@ -54,7 +54,7 @@ Popularity statistics are never returned by public endpoints.
 | GET | `/v1/videos/{id}/evaluation` | Full current evaluation (below) — 404 with the video status if not evaluated |
 | GET | `/v1/videos/{id}/evaluations` | Evaluation history (all framework versions/stages) |
 | GET | `/v1/videos/{id}/claims` | Claims from the current evaluation(s): quote, claim, `claim_type`, `verdict` (`supported`, `contradicted`, `mixed`, `unverifiable`, `insufficient_evidence`, `not_applicable`, or `unchecked` = extracted, not verified), `domain_risk`, cited reference passages with licences, explanation |
-| GET | `/v1/search?q=&genre=&language=&min_quality=&include_synthetic=` | Topic search over analyzed videos; `match` = semantic similarity, title match, score |
+| GET | `/v1/search?q=&genre=&language=&min_quality=&include_synthetic=` | Topic search over analyzed videos; `match` = semantic similarity, title match, score. Videos below the embedder's relevance floor without a title match are left out, so an unmatched query returns an empty list. The default `hashing` embedder is a keyword-hash fallback whose collisions can still surface unrelated videos; `AVD_EMBEDDING_PROVIDER=onnx_minilm` is much more precise |
 
 ### Evaluation object (abridged)
 

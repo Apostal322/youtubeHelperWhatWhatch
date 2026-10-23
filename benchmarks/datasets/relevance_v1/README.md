@@ -27,6 +27,15 @@ Before the benchmark is used to compare retrievers, add queries written by rater
 seen the catalog**. Each rater writes one information need before receiving a packet. Keep both
 sets, and report them separately.
 
+**How (since 2026-10-20).** Every query carries a `source`: the 10 above are
+`catalog_aware_author`. Send each volunteer
+[`docs/templates/query-elicitation.txt`](../../../docs/templates/query-elicitation.txt) before
+any packet or episode list, and add their answer as the next `qNN` with
+`"source": "blind_rater"`, unedited. New queries reach packets issued after they are added.
+`avd bench-relevance` reports `results` over all judged queries and `results_by_query_source`
+for each source. Only the `blind_rater` results say anything about retrieval beyond these
+shows' topics; with a handful of queries they are anecdotes, not estimates.
+
 ## Collection
 
 Relevance is judged by the same volunteers who rate quality, at the end of each development item

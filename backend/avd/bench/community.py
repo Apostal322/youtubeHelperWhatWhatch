@@ -495,7 +495,18 @@ def verify(source: Path, manifest_path: Path | None = None, cache_dir: Path | No
         report.get("format") == REPORT_FORMAT and str(report.get("format_version", "")).startswith("1."),
     )
     real = meta.get("transport_kind") == "real" and "NOT real" not in str(meta.get("transport", ""))
-    check("real inference (not a mock)", real, str(meta.get("transport")))
+    # An HTTP mock is a "real" transport; it is recognised by the runtime that reports itself as one.
+    mock_runtimes = [
+        str(((entry or {}).get("runtime") or {}).get("ollama_version"))
+        for entry in (report.get("models") or {}).values()
+        if "mock" in str(((entry or {}).get("runtime") or {}).get("ollama_version", "")).lower()
+    ]
+    check(
+        "real inference (not a mock)",
+        real and not mock_runtimes,
+        str(meta.get("transport"))
+        + (f"; runtime reports itself as a mock: {mock_runtimes[0]}" if mock_runtimes else ""),
+    )
     check("development split only", meta.get("split") == "dev", f"split={meta.get('split')!r}")
     manifest = load_manifest(manifest_path)
     check(

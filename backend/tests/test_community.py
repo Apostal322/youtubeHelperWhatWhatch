@@ -203,6 +203,16 @@ class TestVerify:
         assert "real inference (not a mock)" in failed
         assert any("runtime version" in c for c in failed)  # the mock's version says so
 
+    def test_http_mock_fails_the_real_inference_check_itself(self, bench: Bench) -> None:
+        # A mock served over HTTP is a "real" transport; its runtime version is what gives it away.
+        _as_real(bench)
+        _edit(
+            bench, "report.json", lambda r: r["models"][MODEL]["runtime"].update(ollama_version="0.0.0-mock")
+        )
+        v = cm.verify(bench.dir / "report.json")
+        real = next(c for c in v["checks"] if c["check"] == "real inference (not a mock)")
+        assert v["accepted"] is False and real["ok"] is False and "mock" in real["detail"]
+
     def test_structurally_valid_real_report_is_accepted_as_contributor_reported(
         self, bench: Bench, tmp_path: Path
     ) -> None:

@@ -9,33 +9,35 @@ Two different milestones, which must never be confused:
   judgment on data not used for tuning, within the pre-registered gates. Until then, no score
   may be described as validated, accurate or objective.
 
-## Technical beta (status 2026-10-19, commit on the Phase 3.3 branch)
+## Experimental alpha (status 2026-10-20, `main` after Phase 3.5)
 
 | Area | Requirement | Status |
 |---|---|---|
-| Install | one-command local start on Linux | ✅ `avd start`, verified end to end |
-| Install | Windows / macOS | ❌ untested (instructions written, not verified) |
-| Install | self-hosted Docker Compose | ⚠️ config validated and image built in CI; `up` not run in the dev environment |
-| Real AI | at least one real local-model run reported | ❌ none: model registries unreachable here; volunteer workflow ready (`docs/volunteer-pilot.md`) |
-| Extension | local and remote backends, consent, recovery | ✅ 28-step Chromium run (`scripts/e2e/full_local.py`) + 42 component tests |
-| Security | Phase 3.2 protections and regression tests | ✅ in the suite (guard, registration, imports, network guard) |
-| Privacy | no telemetry; export, deletion, backup, restore | ✅ (PostgreSQL restore is manual `pg_restore`). Phase 3.4 found and turned off ONNX Runtime's built-in telemetry (`tests/test_no_telemetry.py`) |
-| Writes are durable before success is reported | the API commits before it responds | ✅ since Phase 3.4 (`tests/test_commit_before_response.py`) |
+| Install | one-command local start on Linux | ✅ fresh public clone of `main`: install 35 s, dataset import 6 s, `avd start` ready in ~2 s |
+| Install | Windows / macOS | ❌ untested (instructions written; Windows hardware detection exists but never ran on Windows) |
+| Install | self-hosted Docker Compose | ⚠️ `docker compose config` valid and images built in CI; `up` not run in the dev environment |
+| Real AI | at least one real local-model run reported | ❌ **zero real model calls**: no GPU, runtime or weights here, model registries unreachable. Volunteer workflow tested up to the model call (`docs/first-experiment.md`) |
+| Extension | local and remote backends, consent, recovery, empty catalog, unreachable model | ✅ 34-step Chromium run (`scripts/e2e/full_local.py`) + 44 component tests |
+| Search | an unmatched query returns nothing | ✅ since Phase 3.5 (relevance floor). ⚠️ default `hashing` embedder still lets collisions through; MiniLM recommended |
+| Security | protections and regression tests; host validation, CORS, loopback binding | ✅ suite + live checks (Phase 3.5 report) |
+| Privacy | no telemetry; export, deletion, backup, restore | ✅ (PostgreSQL restore is manual `pg_restore`) |
+| Writes are durable before success is reported | the API commits before it responds | ✅ |
 | Data rights | rights review per source; no transcript text in exports | ✅ Talk Python remains restricted |
-| CI | lint, types, tests (SQLite + PostgreSQL + Redis), migrations, audits, local smoke test, Docker build | ✅ |
-| Docs | install, self-hosting, privacy, security, export format, contributing | ✅ |
-| License | `LICENSE` file present | ❌ **owner decision**: draft PR #5 adds Apache-2.0; reviewed in Phase 3.4 and recommended for merge (`docs/licensing.md`) |
-| Dependencies | license compatibility reviewed | ✅ `docs/licensing.md` (psycopg is LGPL-3.0, used as a library) |
+| CI | lint, types, tests (SQLite + PostgreSQL + Redis), migrations, audits, Docker build | ✅ green on `main` |
+| License | `LICENSE` file present | ✅ Apache-2.0 (PR #5, merged with owner approval). Data, transcripts and model weights keep their own licences (`docs/licensing.md`) |
 | Status shown to users | heuristic / AI / synthetic labels; "not human-validated" | ✅ |
-| Known limitations published | README "Status", phase reports | ✅ |
+| Branch protection on `main` | reviews required, status checks required | ❌ **owner setting**: `main` is unprotected |
+| Release artefacts | tag, release notes, changelog | ❌ none yet; nothing is published automatically |
 
-**Verdict:** not yet a technical beta. The blocking items are the license file (owner) and one
-real model run (volunteer hardware). Everything else needed for an experimental beta is in
-place.
+**Verdict:** the engineering system qualifies for a clearly labelled **experimental alpha** (Linux,
+heuristic baseline by default, local models supported but unmeasured). It does not qualify as a
+beta: there is no real model run, Windows and macOS are untested, and Compose `up` has not been
+exercised. Publishing a release is the owner's decision. The release notes must say "experimental,
+not scientifically validated, zero real model evaluations, zero human ratings".
 
 ## Scientific validation
 
-| Gate group (`benchmarks/gates.json`) | Status |
+| Gate group (`benchmarks/release_gates.json`) | Status |
 |---|---|
 | Human reliability (precondition) | blocked: no human labels |
 | Validity: Spearman, MAE non-inferiority, pairwise, calibration, selective risk, abstention vs humans | blocked: no human labels |

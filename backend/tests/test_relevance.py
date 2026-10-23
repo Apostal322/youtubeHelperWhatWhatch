@@ -116,3 +116,37 @@ def test_graded_metrics_recall() -> None:
     g = {"a": 2.0, "b": 1.0, "c": 0.0, "d": 1.0}
     m = rv.graded_metrics(["a", "c", "b", "x", "y"], g, k=2)
     assert m["recall@2"] == pytest.approx(1 / 3) and m["off_topic@2"] == 0.5 and m["mrr"] == 1.0
+
+
+def test_blind_rater_queries_are_reported_apart(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """Catalog-aware queries favour lexical retrieval; blind-rater queries get their own results."""
+    from avd.embeddings.base import HashingEmbedder
+
+    authored = rv.load_queries()
+    assert {q.source for q in authored} == {"catalog_aware_author"}  # the relevance_v1 audit
+    blind = rv.Query(
+        query_id="q11",
+        text="how open-source maintainers avoid burning out",
+        language="en",
+        audience="anyone",
+        depth="any",
+        source="blind_rater",
+    )
+    monkeypatch.setattr(rv, "load_queries", lambda: [*authored, blind])
+    items = sorted(rv.dev_items())
+    rows = [
+        {"query_id": q, "video_id": v, "rater": r, "grade": 2 if v == items[0] else 0}
+        for q in ("q01", "q11")
+        for v in items
+        for r in ("r1", "r2", "r3")
+    ]
+    emb = HashingEmbedder()
+    vecs = {v: emb.embed([v.replace("_", " ")])[0] for v in items}  # test vectors, not the real index
+    out = rv.evaluate(
+        _write(tmp_path / "j.jsonl", rows), {"hashing": (emb, vecs, None), "minilm": (emb, vecs, None)}
+    )
+    assert out["judged_queries_by_source"] == {"blind_rater": 1, "catalog_aware_author": 1}
+    by = out["results_by_query_source"]
+    assert by["blind_rater"]["hashing"]["retrieval"]["queries"] == 1
+    assert by["catalog_aware_author"]["hybrid_fusion"]["retrieval"]["queries"] == 1
+    assert out["results"]["hashing"]["retrieval"]["queries"] == 2

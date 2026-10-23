@@ -31,6 +31,9 @@ class Query(BaseModel):
     language: str = Field(max_length=8)
     audience: str = Field(max_length=40)
     depth: str = Field(max_length=20)
+    # Who wrote it: the project author, who knew the shows' topics (relevance_v1 audit), or a rater
+    # who wrote the need before seeing anything of the catalog. Results are reported per source.
+    source: Literal["catalog_aware_author", "blind_rater"] = "catalog_aware_author"
 
 
 class Judgment(BaseModel):
@@ -248,9 +251,34 @@ def evaluate(
         q.query_id: {v: grades[(q.query_id, v)] for v in items if (q.query_id, v) in grades} for q in queries
     }
     judged = {q: g for q, g in judged.items() if g}
+    results = _rankings(queries, judged, indexes or {}, k)
+    by_source = {
+        src: _rankings([q for q in queries if q.source == src], judged, indexes or {}, k)
+        for src in sorted({q.source for q in queries if q.query_id in judged})
+    }
+    return {
+        "status": "measured",
+        "label_source": "human relevance judgments (relevance_v1)",
+        "agreement": agreement,
+        "disputed_pairs": disputed_pairs(judgments),
+        "judgments": len(judgments),
+        "judged_queries": len(judged),
+        "judged_queries_by_source": {
+            src: sum(1 for q in queries if q.source == src and q.query_id in judged) for src in by_source
+        },
+        "k": k,
+        "results": results,
+        # Catalog-aware queries favour lexical retrieval; only blind-rater queries test generalisation.
+        "results_by_query_source": by_source,
+    }
+
+
+def _rankings(
+    queries: list[Query], judged: dict[str, dict[str, float]], indexes: dict[str, Index], k: int
+) -> dict[str, Any]:
     results: dict[str, Any] = {}
     sims: dict[str, dict[str, dict[str, float]]] = {}
-    for name, (emb, vecs, sf) in (indexes or {}).items():
+    for name, (emb, vecs, sf) in indexes.items():
         sim_rows, rec_rows = [], []
         for q in queries:
             if q.query_id not in judged:
@@ -265,20 +293,11 @@ def evaluate(
     if {"hashing", "minilm"} <= set(sims):
         # Score fusion (mean cosine): the stored vectors are fixed-width, so no concatenated hybrid.
         rows = []
-        for qid, g in judged.items():
+        for qid in sims["minilm"]:  # the judged queries of this subset
             fused = {v: (sims["hashing"][qid][v] + sims["minilm"][qid][v]) / 2 for v in sims["minilm"][qid]}
-            rows.append(graded_metrics(sorted(fused, key=lambda v: -fused[v]), g, k))
+            rows.append(graded_metrics(sorted(fused, key=lambda v: -fused[v]), judged[qid], k))
         results["hybrid_fusion"] = {"retrieval": _summarise(rows)}
-    return {
-        "status": "measured",
-        "label_source": "human relevance judgments (relevance_v1)",
-        "agreement": agreement,
-        "disputed_pairs": disputed_pairs(judgments),
-        "judgments": len(judgments),
-        "judged_queries": len(judged),
-        "k": k,
-        "results": results,
-    }
+    return results
 
 
 def add_parser(sub: Any) -> None:

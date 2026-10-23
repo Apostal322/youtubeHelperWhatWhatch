@@ -1,0 +1,29 @@
+AI Video Discovery: one search, before you see anything
+
+Send this to a volunteer BEFORE any rating packet, list of episodes or link to the catalog.
+
+---
+
+Before you rate anything, please write down one or two things you might genuinely want to
+learn about from a technical podcast (software, AI, open source, product work, careers). Write
+them the way you would type them into a search box, in your own words.
+
+Please do not look at the project's episode list or repository first: the point is to have
+searches that were not written with these episodes in mind.
+
+1.
+
+2. (optional)
+
+For each one, if you like: who is it for (beginners, developers, managers, anyone), and how deep
+should the answer be (introductory, intermediate, advanced, any)?
+
+These searches are used to test whether the software finds relevant episodes. They are stored
+without your name; you may later be asked to judge how relevant some episodes are to them.
+
+---
+
+Coordinator: add each search to benchmarks/datasets/relevance_v1/queries.jsonl with the next
+free query id and "source": "blind_rater", before you send that volunteer any packet. Do not
+edit the wording beyond fixing an obvious typo. Do not add or reword a query after seeing any
+retrieval or recommendation output for it.
