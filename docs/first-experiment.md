@@ -224,6 +224,28 @@ three are back, the raters' development packets (`avd annotate packet --rater vo
 --items 2 --consent-file rating-consent.txt`) produce the first human labels and relevance
 judgments.
 
+## Part C: one real YouTube check (owner, about 30 minutes; never done yet)
+
+Every extension test so far used a simulated YouTube page. This is the first check on
+youtube.com itself. Use **one video whose transcript you have the right to submit** (for example
+one of your own uploads); nothing is downloaded from YouTube.
+
+1. In `backend/`: `avd start --provider ollama` (after Part A, so the model is installed), or
+   `avd start` for the heuristic evaluator.
+2. `cd ../extension && npm ci && npm run build`, then `chrome://extensions` → *Developer mode* →
+   *Load unpacked* → `extension/dist/`.
+3. Open the video on `https://www.youtube.com/watch?v=…`, open the popup, submit the transcript
+   (text, VTT or SRT) with your attestation.
+4. Wait for the badge (CPU inference can take many minutes), then check, and write down:
+   * the badge and popup show the score with its "AI" or "heuristic" label, and the evidence quotes
+     are really in your transcript;
+   * clicking to another video in the page (YouTube's in-page navigation), Back, Forward and a
+     reload each update the badge to the right video, never the previous one's;
+   * a Short (`/shorts/…`) and a video opened from a playlist are recognised;
+   * stopping `avd` turns the badge to an error, and restarting recovers it.
+5. Report what you saw (screenshots welcome), including anything that did not work. `youtu.be`,
+   `m.youtube.com` and `music.youtube.com` links are outside the extension's permissions by design.
+
 ## Nothing here needs an official server or a paid API
 
 | Workflow | Network use | Paid service |
