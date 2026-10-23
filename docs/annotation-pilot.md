@@ -211,7 +211,8 @@ reference.
 > * the coordinator knows who uses which pseudonym and keeps that private;
 > * the reported time I spent on each item is recorded;
 > * ratings files and the pseudonym list are deleted at the latest three years after my last
->   submission (period proposed, to be confirmed by the project owner);
+>   submission (long enough to analyse, publish and check published results; period to be
+>   confirmed by the project owner);
 > * I can withdraw at any time; my file is then deleted and excluded from later analyses, but
 >   aggregates already published are not recalculated;
 > * this is unpaid, voluntary work.

@@ -34,7 +34,7 @@ Even without your name, individual records can sometimes be linked back to a per
 
 How long data is kept
 - The coordinator keeps ratings files on their own computer, not on any shared service, for this research.
-- Ratings files, and the list that links pseudonyms to people, are deleted at the latest three years after your last submission, or sooner if the research ends. Aggregate results that were already published are not deleted.
+- Ratings files, and the list that links pseudonyms to people, are deleted at the latest three years after your last submission, or sooner if the research ends. Three years is long enough to finish the analysis, publish it, and check or correct published results against the original ratings if someone questions them; it is not kept longer than that. Aggregate results that were already published are not deleted.
 - If you agreed separately to publication, what was published follows the terms you agreed to then.
 
 Taking part is voluntary
