@@ -110,6 +110,7 @@ class EvaluationPipeline:
         models: list[str] = []
         notes: list[str] = []
         evaluator_reports: dict[str, Any] = {}
+        fallbacks: list[str] = []
         transcript_report = validate_transcript(inp.transcript).as_dict() if inp.transcript else None
         findings = scan_injection(
             [s.text for s in inp.transcript.segments] if inp.transcript else [],
@@ -197,6 +198,9 @@ class EvaluationPipeline:
             options = sorted(candidates[d], key=lambda x: -x[0])
             scored = [o for _, o in options if o.status == DimensionStatus.SCORED]
             if scored:
+                if options[0][1].status == DimensionStatus.FAILED:
+                    # e.g. retrieval-backed fact checking failed and the rubric judgement is used
+                    fallbacks.append(f"{d.value}: {options[0][1].method} failed, used {scored[0].method}")
                 merged.append(scored[0])
             elif options:
                 merged.append(options[0][1])
@@ -260,6 +264,8 @@ class EvaluationPipeline:
             review.append(f"model samples disagree on: {', '.join(disagreeing)}")
         if transcript_report and transcript_report["language_mismatch"]:
             review.append("declared transcript language differs from detected language")
+        if fallbacks:
+            review.append("a preferred evaluator failed; fallback used: " + "; ".join(fallbacks[:3]))
         mapped = evaluator_reports.get("llm_rubric") or {}
         if mapped.get("chunks_failed"):
             review.append(

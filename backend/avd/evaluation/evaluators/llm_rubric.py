@@ -28,7 +28,16 @@ from __future__ import annotations
 import statistics
 from typing import Any, Literal
 
-from pydantic import BaseModel, ConfigDict, Field, ValidationError, field_validator, model_validator
+from pydantic import (
+    BaseModel,
+    ConfigDict,
+    Field,
+    StrictBool,
+    StrictInt,
+    ValidationError,
+    field_validator,
+    model_validator,
+)
 
 from avd.content.models import Transcript
 from avd.content.processing import chunk_transcript, estimate_tokens
@@ -237,8 +246,9 @@ class LLMEvidence(_Strict):
 
 class LLMJudgment(_Strict):
     dimension: Dimension
-    assessable: bool
-    score: int
+    # Strict: "5" or true is not a score (lax parsing would turn them into 5 and 1).
+    assessable: StrictBool
+    score: StrictInt
     confidence: float = Field(ge=0.0, le=1.0)
     justification: str
     evidence: list[LLMEvidence] = Field(default_factory=list, max_length=8)
@@ -265,6 +275,14 @@ class LLMEvaluationOutput(_Strict):
     content_summary: str
     judgments: list[LLMJudgment]
     detected_issues: list[str] = Field(default_factory=list)
+
+    @model_validator(mode="after")
+    def _one_judgment_per_dimension(self) -> LLMEvaluationOutput:
+        dims = [j.dimension for j in self.judgments]
+        dupes = sorted({d.value for d in dims if dims.count(d) > 1})
+        if dupes:  # two scores for one dimension: which is the model's judgement? Ask again.
+            raise ValueError(f"each dimension must be judged once; repeated: {', '.join(dupes)}")
+        return self
 
 
 class ChunkPoint(_Strict):

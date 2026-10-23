@@ -297,7 +297,8 @@ class OllamaProvider:
             raise LLMConfigurationError(
                 f"model {request.model!r} is not installed: run `ollama pull {request.model}`"
             )
-        if r.status_code in (429, 500, 502, 503):
+        # 408/504: a reverse proxy or the runtime timed out; retrying is the right response.
+        if r.status_code in (408, 429, 500, 502, 503, 504):
             raise LLMTransientError(f"Ollama HTTP {r.status_code}: {r.text[:200]}")
         if r.status_code != 200:
             raise LLMError(f"Ollama HTTP {r.status_code}: {r.text[:300]}")
@@ -306,7 +307,10 @@ class OllamaProvider:
             content = payload["message"]["content"]
         except (ValueError, KeyError, TypeError) as exc:
             raise LLMOutputError(f"malformed Ollama response: {exc}") from exc
-        prompt_n = int(payload.get("prompt_eval_count") or 0)
+        # Ollama omits prompt_eval_count when the prompt came from its cache; fall back to the
+        # pre-flight estimate so the truncation check below still applies.
+        prompt_reported = int(payload.get("prompt_eval_count") or 0)
+        prompt_n = prompt_reported or prompt_tokens_est
         out_n = int(payload.get("eval_count") or 0)
         if payload.get("done_reason") == "length":
             raise LLMOutputError(f"output cut off at num_predict={num_predict}")
@@ -330,14 +334,14 @@ class OllamaProvider:
             provider=self.name,
             requested_model=request.model,
             served_model=f"ollama:{info.fingerprint}",
-            input_tokens=prompt_n,
+            input_tokens=prompt_reported,  # as reported; 0 when Ollama did not report it
             output_tokens=out_n,
             stop_reason=payload.get("done_reason"),
             request_id=None,
             latency_ms=latency,
             runtime={
                 "load_s": round((payload.get("load_duration") or 0) / 1e9, 3),
-                "prompt_tokens_per_s": round(prompt_n / prompt_s, 2) if prompt_s else None,
+                "prompt_tokens_per_s": round(prompt_reported / prompt_s, 2) if prompt_s and prompt_reported else None,
                 "output_tokens_per_s": round(out_n / eval_s, 2) if eval_s else None,
                 "num_ctx": ctx,
             },
