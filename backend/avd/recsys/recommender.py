@@ -427,8 +427,15 @@ def recommend(
             }
         )
     notes = [hidden] if hidden else []
+    empty_reason = None
+    if not scored:
+        # Every candidate was dropped by a filter. Without a note the popup took this for an
+        # empty catalog and suggested importing videos.
+        empty_reason = "no_match"
+        reasons = ", ".join(f"{k.replace('_', ' ')}: {n}" for k, n in sorted(ineligible.items()))
+        notes.append(f"All {len(relevance)} analyzed candidates were filtered out ({reasons}).")
     topical_shown = sum(1 for c in selected if not c.get("exploration"))
-    if prof.interests and topical_shown < limit:
+    if prof.interests and scored and topical_shown < limit:
         notes.append(
             f"{topical_shown} of {len(scored)} analyzed candidates match your interests closely enough; "
             "the list is not filled up with unrelated videos."
@@ -446,6 +453,7 @@ def recommend(
         "selection_policy_version": version,
         "items": items,
         "eligibility": {"candidates": len(relevance), "eligible": len(scored), "ineligible": ineligible},
+        "empty_reason": empty_reason,
         "notes": notes,
     }
 
