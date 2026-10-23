@@ -25,7 +25,7 @@ from avd.embeddings import documents as emb_docs
 from avd.evaluation.genre import apply_override
 from avd.evaluation.inputs import build_evaluation_input
 from avd.evaluation.schema import FRAMEWORK_VERSION, EvaluationResult, Genre
-from avd.evaluation.service import is_up_to_date, persist_evaluation
+from avd.evaluation.service import current_evaluation, is_up_to_date, persist_evaluation
 from avd.evaluation.topics import extract_topics
 from avd.ingest import apply_channel_metadata, apply_video_metadata, register_discovered
 from avd.llm.pricing import estimate_cost
@@ -45,6 +45,11 @@ FACT_CRITICAL = {
     Genre.DOCUMENTARY.value,
 }
 CHANNEL_STATS_TTL = timedelta(days=7)
+
+
+class EvaluationFailed(RuntimeError):
+    """Every evaluator failed permanently (e.g. the configured model is not installed). The job
+    fails with this reason instead of reporting success; an earlier usable evaluation stays current."""
 
 
 @dataclass
@@ -169,8 +174,10 @@ def handle_stage_a(ctx: WorkerContext, session: Session, job: PipelineJob) -> Ha
         estimated_cost_usd=est,
         payload={"priority_parts": parts},
         max_attempts=ctx.settings.job_max_attempts,
-        # e.g. after a manual genre correction: re-run Stage B even though the content is unchanged
-        requeue_terminal=bool((job.payload or {}).get("force_stage_b")),
+        # Re-run a finished Stage B job after a manual genre correction, or when the video has no
+        # usable evaluation (e.g. its earlier attempt failed because the model was not installed).
+        requeue_terminal=bool((job.payload or {}).get("force_stage_b"))
+        or not _has_usable_evaluation(session, video.id),
     )
     return HandlerResult(
         {"modalities": sorted(modalities), "stage_b_enqueued": created, "priority": priority}
@@ -178,6 +185,11 @@ def handle_stage_a(ctx: WorkerContext, session: Session, job: PipelineJob) -> Ha
 
 
 # ----------------------------------------------------------------------------- stage B / C
+
+
+def _has_usable_evaluation(session: Session, video_id: str) -> bool:
+    ev = current_evaluation(session, video_id)
+    return ev is not None and ev.status != "failed"
 
 
 def should_escalate(ctx: WorkerContext, session: Session, result: EvaluationResult) -> tuple[bool, str]:
@@ -230,6 +242,16 @@ def _evaluate(ctx: WorkerContext, session: Session, job: PipelineJob, stage: str
     session.commit()
 
     result = ctx.pipeline(stage).run(inp)
+    if result.status == "failed":
+        failures = sorted(
+            {d.justification for d in result.dimensions if d.status.value == "failed" and d.justification}
+        )
+        reason = "; ".join([*result.validation.warnings, *failures][:3]) or "every evaluator failed"
+        if not _has_usable_evaluation(session, video.id):
+            # Nothing usable to lose: keep the failed evaluation as a diagnosable record.
+            persist_evaluation(session, result, job.id)
+            session.commit()
+        raise EvaluationFailed(reason)
     ev = persist_evaluation(session, result, job.id)
     if emb_docs.is_stale(ctx.embedder, video, bundle.transcript):
         emb_docs.apply(video, emb_docs.embed_video(ctx.embedder, video, bundle.transcript))
