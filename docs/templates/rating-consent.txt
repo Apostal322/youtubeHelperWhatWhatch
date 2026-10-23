@@ -20,23 +20,32 @@ This file sends nothing anywhere; you send the ratings file yourself. Your name,
 Pseudonymous, not anonymous
 The coordinator knows which person uses which pseudonym, because they sent you this file. They keep that information privately, separate from the ratings, and do not publish it or put it in the project's repository.
 
-How results are stored and used
-- Ratings files are kept by the coordinator, on their own computer, for this research.
-- Results are used to measure how far raters agree with each other and, later, whether automated assessments agree with people.
-- Aggregate results (for example agreement statistics) may be published.
-- Notes from a usability trial may be quoted, without your pseudonym, when the instructions are revised.
-- Your individual ratings, citations and notes may be published in the project's public repository under your pseudonym, as part of its benchmark data.
+Your individual ratings stay private
+- Your individual ratings, citations and notes are not published. Only the coordinator, and anyone helping them analyse the results under the same terms, sees them.
+- What may be published are aggregate results computed from several raters, for example how far raters agree with each other, or whether automated assessments agree with people. Aggregates are only published when at least three raters contributed to them.
+- Notes from a usability trial may be quoted, without your pseudonym, when the instructions are revised. If you do not want a note quoted, write "do not quote" in it.
 - Automated assessments of these episodes are hidden from you on purpose. Please do not look for them before you have finished.
+
+Publishing individual ratings needs your separate agreement
+Agreeing to this text does not allow anyone to publish your individual ratings. If the project later wants to publish individual ratings as open benchmark data, the coordinator will ask you separately, in writing, and will say exactly what would be published, under what licence and under what name. Only if you say yes in writing are your ratings published, and saying no changes nothing else about your participation.
+
+Re-identification risk
+Even without your name, individual records can sometimes be linked back to a person: through the wording of free-text notes, through when files were sent, or because only a few people took part. This is one reason individual records are kept private by default. Please do not put your name, contact details or other personal information in your notes.
+
+How long data is kept
+- The coordinator keeps ratings files on their own computer, not on any shared service, for this research.
+- Ratings files, and the list that links pseudonyms to people, are deleted at the latest three years after your last submission, or sooner if the research ends. Three years is long enough to finish the analysis, publish it, and check or correct published results against the original ratings if someone questions them; it is not kept longer than that. Aggregate results that were already published are not deleted.
+- If you agreed separately to publication, what was published follows the terms you agreed to then.
 
 Taking part is voluntary
 You can stop at any time without giving a reason, and send partial work or nothing at all.
 
 Withdrawing
-You can ask the coordinator to withdraw your ratings at any time. They are then excluded from every later analysis and export. Two limits apply. First, aggregate results that were already published cannot be recalculated retroactively. Second, if your pseudonymous ratings were already published in the public repository, they remain in that repository's history even after they are removed from its current version.
+You can ask the coordinator to withdraw your ratings at any time. Your ratings file and your entry in the pseudonym list are then deleted, and your ratings are excluded from every later analysis. One limit applies: aggregate results that were already published cannot be recalculated retroactively.
 
 Questions and contact
 Contact the coordinator through the same channel through which you received this file. Please do not post your ratings file, or this file, publicly (for example in a GitHub issue): they contain a code that identifies your packet.
 
-There is no payment, and there are no known risks beyond the time you spend. The project cannot give legal guarantees about how third parties use published open data.
+There is no payment, and there are no known risks beyond the time you spend and the re-identification risk described above. The project cannot give legal guarantees about how third parties use published aggregate results.
 
 By ticking the box below you confirm that you are at least 18 years old, that you have read this text, and that you agree to take part on these terms.

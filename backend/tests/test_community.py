@@ -8,6 +8,7 @@ as a result.
 
 from __future__ import annotations
 
+import hashlib
 import io
 import json
 import os
@@ -459,3 +460,102 @@ class TestReview:
         _edit(bench, f"{_run_dir(bench)}/review.json", paste)
         with pytest.raises(cm.CommunityError, match="quotes too much transcript text"):
             cm.pack(bench.dir, tmp_path / "p.zip")
+
+
+def _repack(src: Path, out: Path, edit: Any = None, pack_extra: dict[str, Any] | None = None) -> Path:
+    """Rebuild an accepted pack with edited members and a consistent PACK.json, so only the
+    content checks (not the integrity check) can refuse it."""
+    with zipfile.ZipFile(src) as z:
+        members = {n: z.read(n) for n in z.namelist() if n != "PACK.json"}
+        pack = json.loads(z.read("PACK.json"))
+    if edit:
+        members = edit(members)
+    pack["files"] = {n: hashlib.sha256(d).hexdigest() for n, d in members.items()}
+    pack.update(pack_extra or {})
+    with zipfile.ZipFile(out, "w") as z:
+        for n, d in members.items():
+            z.writestr(n, d)
+        z.writestr("PACK.json", json.dumps(pack))
+    return out
+
+
+class TestArchiveHardening:
+    """Audit 2026-10-23: each case was accepted (or crashed verify) before."""
+
+    @pytest.fixture
+    def packed(self, bench: Bench, tmp_path: Path) -> Path:
+        _as_real(bench)
+        cm.pack(bench.dir, tmp_path / "p.zip")
+        assert cm.verify(tmp_path / "p.zip")["accepted"]
+        return tmp_path / "p.zip"
+
+    def test_pack_manifest_cannot_carry_extra_content(self, packed: Path, tmp_path: Path) -> None:
+        out = _repack(
+            packed, tmp_path / "x.zip", pack_extra={"status": "verified", "contact": "alice@example.com"}
+        )
+        assert not cm.verify(out)["accepted"]
+
+    @pytest.mark.parametrize(
+        "value",
+        [
+            "alice\\u0040example.com",  # JSON escape hiding an e-mail address
+            "http:\\/\\/192.168.1.20:11434\\/",  # escaped slashes hiding a LAN address
+            "HTTP://192.168.1.5:11434/api",  # upper-case scheme
+            "http://user:hunter2pass@10.0.0.2/x",  # credentials in the URL
+            "ws://192.168.1.9:1/",  # another scheme
+            "ollama at 10.0.0.5:11434",  # a bare private address
+            "title\\u001b]0;pwned\\u0007",  # terminal escape sequence for `community review`
+        ],
+    )
+    def test_hidden_or_unusual_private_content_is_found(
+        self, packed: Path, tmp_path: Path, value: str
+    ) -> None:
+        def edit(m: dict[str, bytes]) -> dict[str, bytes]:
+            raw = m["report.json"].decode()
+            m["report.json"] = raw.replace('"meta": {', f'"meta": {{"note": "{value}", ', 1).encode()
+            return m
+
+        assert not cm.verify(_repack(packed, tmp_path / "x.zip", edit))["accepted"], value
+
+    def test_a_review_item_without_a_video_id_is_refused(self, packed: Path, tmp_path: Path) -> None:
+        name = next(n for n in zipfile.ZipFile(packed).namelist() if n.endswith("review.json"))
+
+        def edit(m: dict[str, bytes]) -> dict[str, bytes]:
+            doc = json.loads(m[name])
+            doc["items"].append({"evaluation": {"rights": {"quotes_included": True}, "dimensions": []}})
+            m[name] = json.dumps(doc).encode()
+            return m
+
+        v = cm.verify(_repack(packed, tmp_path / "x.zip", edit))
+        assert not v["accepted"] and "without a video_id" in json.dumps(v["checks"])
+
+    def test_without_the_transcript_cache_nothing_is_accepted(
+        self, packed: Path, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        monkeypatch.setattr(cm, "default_cache_dir", lambda: tmp_path / "no-cache")
+        v = cm.verify(packed)
+        assert not v["accepted"] and any(
+            c["check"] == "transcript-text check ran" and not c["ok"] for c in v["checks"]
+        )
+
+    def test_a_model_without_measurements_is_refused(self, packed: Path, tmp_path: Path) -> None:
+        def edit(m: dict[str, bytes]) -> dict[str, bytes]:
+            doc = json.loads(m["report.json"])
+            for entry in doc["models"].values():
+                entry["windows"] = {}
+            m["report.json"] = json.dumps(doc).encode()
+            return m
+
+        assert not cm.verify(_repack(packed, tmp_path / "x.zip", edit))["accepted"]
+
+    @pytest.mark.parametrize(
+        "report",
+        [
+            "[]",
+            '{"format": "avd-local-bench", "format_version": "1.0", "meta": {}, "models": {"m": null}}',
+            '{"format": "avd-local-bench", "format_version": "1.0", "meta": {}, "models": {"m": {"windows": {"8": {"structured_validity": "0.5"}}}}}',
+        ],
+    )
+    def test_malformed_reports_get_a_verdict_not_a_crash(self, tmp_path: Path, report: str) -> None:
+        (tmp_path / "r.json").write_text(report)
+        assert cm.verify(tmp_path / "r.json")["accepted"] is False

@@ -186,3 +186,87 @@ def test_empty_catalog_and_no_match_are_told_apart(tmp_path: Path, demo: DB) -> 
     assert out["empty_reason"] == "empty_catalog" and "catalog is empty" in out["notes"][0]
     filtered, _ = _recommend(demo, 5, interests=["science"], languages=["xx"])
     assert filtered["items"] == [] and filtered["empty_reason"] == "no_match"
+
+
+def test_a_list_emptied_by_filters_says_so(demo: DB) -> None:
+    out, _ = _recommend(demo, 5, min_quality=4.99)
+    assert out["items"] == [] and out["empty_reason"] == "no_match"  # before: None and no note
+    assert "filtered out" in out["notes"][0] and "below min quality" in out["notes"][0]
+
+
+def _ids(rows: list[dict[str, Any]]) -> list[str]:
+    return [r["video"]["id"] for r in rows]
+
+
+@pytest.mark.parametrize("query", ["science", "how computers work", "history and culture"])
+def test_search_results_do_not_depend_on_the_page_size(demo: DB, query: str) -> None:
+    from avd.recsys.search import search
+
+    with demo.sf() as s:
+        for mq in (3.0, 3.5):
+            full = _ids(search(s, HashingEmbedder(), query, limit=100, min_quality=mq))
+            for k in (1, 2, 3):
+                # Before: filtered-out videos used up the limit*4 window, so small pages came back empty.
+                assert set(_ids(search(s, HashingEmbedder(), query, limit=k, min_quality=mq))) <= set(full)
+                assert len(search(s, HashingEmbedder(), query, limit=k, min_quality=mq)) == min(k, len(full))
+
+
+def test_search_lists_a_video_once_and_ignores_function_words(demo: DB) -> None:
+    from sqlalchemy import inspect as sa_inspect
+    from sqlalchemy import select
+
+    from avd.db.models import Evaluation
+    from avd.recsys.search import search
+
+    with demo.sf() as s:
+        ev = s.scalars(select(Evaluation).where(Evaluation.is_current.is_(True))).first()
+        assert ev is not None
+        cols = {
+            a.key: getattr(ev, a.key) for a in sa_inspect(Evaluation).mapper.column_attrs if a.key != "id"
+        }
+        s.add(Evaluation(**cols))  # two "current" evaluations for one video
+        s.flush()
+        ids = _ids(search(s, HashingEmbedder(), "science history technology", limit=20))
+        assert len(ids) == len(set(ids))  # before: the video was listed twice
+        rows = search(s, HashingEmbedder(), "what and the", limit=20)
+        assert all(r["match"]["title_match"] == 0 for r in rows)  # before: matched most titles
+        s.rollback()
+
+
+def test_videos_indexed_with_another_model_are_reported(demo: DB) -> None:
+    from avd.db.models import User, UserPreferences
+    from avd.recsys.recommender import recommend
+
+    class OtherModel(HashingEmbedder):
+        model_id = "another-model"
+
+    with demo.sf() as s:
+        u = User(token_hash="stale-index")
+        u.preferences = UserPreferences(interests=["science"])
+        s.add(u)
+        s.flush()
+        out = recommend(s, u.id, OtherModel(), limit=5, log_impressions=False)
+        s.rollback()
+    assert any("different embedding model" in n for n in out["notes"])  # before: a thin list, no reason
+
+
+def test_a_title_match_just_outside_the_first_window_still_ranks_first(
+    demo: DB, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from sqlalchemy import select
+
+    from avd.db.models import Evaluation, Video
+    from avd.recsys import search as search_mod
+
+    with demo.sf() as s:
+        ids = list(s.scalars(select(Evaluation.video_id).where(Evaluation.is_current.is_(True))))[:6]
+        target = s.get(Video, ids[5])
+        assert target is not None
+        query = target.title
+        # Fixed similarities, best first: the target is 6th, outside the limit*4 = 4 window for
+        # limit=1, but its full title match (+0.2) lifts it above every video inside the window.
+        ranked = [(vid, 0.50 - 0.001 * i) for i, vid in enumerate(ids)]
+        monkeypatch.setattr(search_mod, "vector_search", lambda sess, q, k, model, f: ranked[:k])
+        full = _ids(search_mod.search(s, HashingEmbedder(), query, limit=100))
+        assert full[0] == target.id
+        assert _ids(search_mod.search(s, HashingEmbedder(), query, limit=1)) == full[:1]  # before: missed

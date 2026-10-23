@@ -52,7 +52,7 @@ def reevaluate_stale(session: Session = Depends(db, scope="function")) -> dict[s
 
 
 @router.post("/worker/run")
-def run_worker(max_jobs: int = Query(200, le=5000)) -> dict[str, Any]:
+def run_worker(max_jobs: int = Query(200, ge=1, le=5000)) -> dict[str, Any]:
     """Drain the queue synchronously (inline mode / demos). Use Celery workers in production."""
     from avd.workers.context import build_context
     from avd.workers.runner import run_until_idle
@@ -89,7 +89,7 @@ def control_worker(action: str, request: Request) -> dict[str, Any]:
 @router.get("/jobs")
 def jobs(
     status: str | None = None,
-    limit: int = Query(50, le=500),
+    limit: int = Query(50, ge=1, le=500),
     session: Session = Depends(db, scope="function"),
 ) -> dict[str, Any]:
     q = select(PipelineJob).order_by(PipelineJob.updated_at.desc()).limit(limit)
@@ -209,7 +209,7 @@ def override_genre(
 
 @router.get("/dead-letters")
 def dead_letters(
-    limit: int = Query(50, le=500), session: Session = Depends(db, scope="function")
+    limit: int = Query(50, ge=1, le=500), session: Session = Depends(db, scope="function")
 ) -> dict[str, Any]:
     """Jobs that exhausted their retries, grouped by type and error class, newest first."""
     rows = session.scalars(

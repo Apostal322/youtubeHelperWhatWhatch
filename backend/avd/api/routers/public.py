@@ -11,7 +11,7 @@ from avd.config import LLMProviderName, Settings, get_settings
 from avd.content.store import active_sources
 from avd.datasets.blinding import WITHHELD_MESSAGE, blinded_video_ids, is_blinded
 from avd.datasets.rights import WITHHELD, video_pending_uses, withhold_quotes
-from avd.db.models import Annotation, Evaluation, FactualClaim, Video
+from avd.db.models import Annotation, Evaluation, FactualClaim, PipelineJob, Video
 from avd.embeddings.base import Embedder
 from avd.evaluation.profiles import PROFILES
 from avd.evaluation.rubric import RUBRIC
@@ -71,8 +71,8 @@ def meta(settings: Settings = Depends(get_settings), emb: Embedder = Depends(emb
 def list_videos(
     genre: str | None = None,
     evaluated: bool = True,
-    limit: int = Query(50, le=200),
-    offset: int = 0,
+    limit: int = Query(50, ge=1, le=200),
+    offset: int = Query(0, ge=0),
     session: Session = Depends(db, scope="function"),
 ) -> dict[str, Any]:
     q = select(Video).order_by(Video.discovered_at.desc()).limit(limit).offset(offset)
@@ -125,10 +125,23 @@ def get_evaluation(video_id: str, session: Session = Depends(db, scope="function
     ev = current_evaluation(session, video_id)
     if ev is None:
         v = session.get(Video, video_id)
-        raise HTTPException(
-            404,
-            "video not in catalog" if v is None else f"no evaluation yet (status: {v.status})",
-        )
+        if v is None:
+            raise HTTPException(404, "video not in catalog")
+        # A job that gave up is the reason there is no evaluation; "content_available" alone read
+        # as if one were still on its way.
+        jobs = session.scalars(
+            select(PipelineJob)
+            .where(PipelineJob.video_id == video_id)
+            .order_by(PipelineJob.updated_at.desc())
+        ).all()
+        detail = f"no evaluation yet (status: {v.status})"
+        pending = any(j.status in ("queued", "running") for j in jobs)
+        dead = next((j for j in jobs if j.status == "dead"), None)
+        if dead is not None and not pending:
+            # Only the error type: the message can name the model server's address.
+            kind = (dead.last_error or "unknown error").split(":", 1)[0][:80]
+            detail += f"; the {dead.job_type} job gave up after {dead.attempts} attempts ({kind})"
+        raise HTTPException(404, detail)
     payload = serialize_evaluation(ev)
     # Independent human ratings of this video (released only once annotation is unblinded, which
     # _refuse_if_blinded enforces). They are a separate judgement, never merged into the AI scores.
@@ -223,7 +236,7 @@ def search(
     language: list[str] | None = Query(None),
     min_quality: float | None = Query(None, ge=1, le=5),
     include_synthetic: bool = True,
-    limit: int = Query(20, le=100),
+    limit: int = Query(20, ge=1, le=100),
     session: Session = Depends(db, scope="function"),
     emb: Embedder = Depends(embedder),
 ) -> dict[str, Any]:

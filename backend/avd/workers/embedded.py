@@ -13,7 +13,7 @@ import logging
 import threading
 from typing import Any
 
-from sqlalchemy import update
+from sqlalchemy import select
 
 from avd.db.models import PipelineJob
 
@@ -22,15 +22,24 @@ log = logging.getLogger(__name__)
 
 def release_stale_leases(session_factory: Any) -> int:
     """Single-process local mode only: jobs left ``running`` by a previous process cannot still be
-    running, so they are re-queued without consuming an attempt."""
+    running, so they are re-queued without consuming an attempt (stopping the app is not the
+    job's fault). Interruptions are counted, though: a job that keeps taking the process down
+    (out of memory, a crashing runtime) goes dead instead of looping forever."""
     with session_factory() as s:
-        n = s.execute(
-            update(PipelineJob)
-            .where(PipelineJob.status == "running")
-            .values(status="queued", lease_expires_at=None, attempts=PipelineJob.attempts - 1)
-        ).rowcount
+        n = 0
+        for job in s.scalars(select(PipelineJob).where(PipelineJob.status == "running")).all():
+            interrupted = int((job.payload or {}).get("interrupted", 0)) + 1
+            job.payload = {**(job.payload or {}), "interrupted": interrupted}
+            job.lease_expires_at = None
+            if interrupted >= job.max_attempts:
+                job.status = "dead"
+                job.last_error = f"the process stopped {interrupted} times while running this job"
+            else:
+                job.status = "queued"
+                job.attempts = max(0, job.attempts - 1)
+            n += 1
         s.commit()
-    return int(n or 0)
+    return n
 
 
 class EmbeddedWorker:

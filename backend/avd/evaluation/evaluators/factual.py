@@ -61,7 +61,7 @@ from avd.evaluation.schema import (
     Modality,
     UsageRecord,
 )
-from avd.evaluation.validation import verify_quote
+from avd.evaluation.validation import _norm, verify_quote
 from avd.llm.base import LLMOutputError, LLMProvider, LLMRequest
 from avd.llm.pricing import cost_usd
 
@@ -284,7 +284,13 @@ class FactualVerificationEvaluator:
         return with_model_revision(d, self.provider, self.model)
 
     def _ask(
-        self, system: str, user: str, schema: dict[str, Any], name: str, usage: list[UsageRecord]
+        self,
+        system: str,
+        user: str,
+        schema: dict[str, Any],
+        name: str,
+        usage: list[UsageRecord],
+        video_id: str,
     ) -> dict[str, Any]:
         resp = self.provider.complete_json(
             LLMRequest(
@@ -294,6 +300,7 @@ class FactualVerificationEvaluator:
                 schema_name=name,
                 model=self.model,
                 max_tokens=8000,
+                metadata={"video_id": video_id},
             )
         )
         usage.append(
@@ -330,6 +337,7 @@ class FactualVerificationEvaluator:
                         CLAIMS_SCHEMA,
                         "claim_extraction",
                         usage,
+                        inp.video_id,
                     )
                 )
             except ValidationError as exc:
@@ -343,6 +351,12 @@ class FactualVerificationEvaluator:
                     rejected += 1  # the quote is not in the transcript: not a claim the video made
                     continue
                 found.append(c.model_copy(update={"segment_index": ok.segment_index}))
+        # The same quoted claim extracted twice (overlapping chunks, or a repetitive model) is one
+        # claim: counted twice, a single contradiction would weigh double in the score.
+        unique: dict[tuple[int | None, str], Any] = {}
+        for c in found:
+            unique.setdefault((c.segment_index, _norm(c.quote)), c)
+        found = list(unique.values())
         # Factual assertions first, then spread across the video, capped.
         found.sort(key=lambda c: (c.claim_type != "factual_assertion", c.segment_index))
         factual = [c for c in found if c.claim_type == "factual_assertion"]
@@ -402,6 +416,7 @@ class FactualVerificationEvaluator:
                         VERDICTS_SCHEMA,
                         "claim_verification",
                         usage,
+                        inp.video_id,
                     )
                 ).verdicts
             except ValidationError as exc:

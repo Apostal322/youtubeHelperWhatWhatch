@@ -82,6 +82,14 @@ _PATTERNS: list[tuple[str, re.Pattern[str]]] = [
         ),
     ),
     ("json_spoofing", re.compile(r"[\"'](judgments|assessable|score|confidence)[\"']\s*:", re.I)),
+    # Imitations of the prompt's own framing: a section delimiter, or a segment tag on a new line.
+    (
+        "delimiter_spoofing",
+        re.compile(
+            r"={2,}\s*(?:begin|end)\s+(?:untrusted|transcript)|(?:^|\n)\s*\[\d+\]\s*\((?:\d+:)?\d{1,2}:\d{2}\)",
+            re.I,
+        ),
+    ),
 ]
 
 
@@ -115,10 +123,18 @@ def scan(
     return findings
 
 
+_SEGMENT_TAG = re.compile(r"\[(\d+)\]")
+_RULE = re.compile(r"={2,}")
+
+
 def neutralize(text: str) -> str:
-    """Make untrusted text unable to form delimiter tags. Look-alike characters keep it readable;
-    evidence verification normalises punctuation, so quotes still verify."""
-    return text.replace("<", "‹").replace(">", "›")
+    """Make untrusted text unable to imitate the prompt's framing: no ``<``/``>`` tags, no line
+    breaks (which could start a fake ``[N] (m:ss)`` segment line), no ``===`` delimiter rules and
+    no ``[N]`` segment tags. Look-alike characters keep it readable; evidence verification
+    normalises punctuation and whitespace, so quotes still verify."""
+    text = " ".join(text.replace("<", "‹").replace(">", "›").split())
+    text = _RULE.sub(lambda m: "═" * len(m.group()), text)
+    return _SEGMENT_TAG.sub(r"⟦\1⟧", text)
 
 
 def nonce_for(*parts: str) -> str:

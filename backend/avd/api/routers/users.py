@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import hmac
 import logging
+import re
 import secrets
 import uuid
 from datetime import UTC, datetime, timedelta
@@ -23,6 +24,9 @@ from avd.services import TranscriptSubmissionError, submit_user_transcript
 log = logging.getLogger(__name__)
 router = APIRouter(prefix="/v1")
 
+# YouTube ids are 11 characters of [A-Za-z0-9_-]; local and test ids are similar but may differ in length.
+_VIDEO_ID = re.compile(r"[A-Za-z0-9_-]{6,32}")
+
 MAX_FEEDBACK_PER_DAY = 500  # per user; far above honest use, bounds spam from one token
 
 
@@ -30,14 +34,14 @@ def _registration_allowed(settings: Settings, invite: str | None, admin: str | N
     if (
         admin
         and settings.admin_token is not None
-        and hmac.compare_digest(admin, settings.admin_token.get_secret_value())
+        and hmac.compare_digest(admin.encode(), settings.admin_token.get_secret_value().encode())
     ):
         return True
     if settings.registration == Registration.OPEN:
         return True
     if settings.registration == Registration.INVITE and invite and settings.invite_codes is not None:
         codes = [c.strip() for c in settings.invite_codes.get_secret_value().split(",") if c.strip()]
-        return any(hmac.compare_digest(invite, c) for c in codes)
+        return any(hmac.compare_digest(invite.encode(), c.encode()) for c in codes)
     return False
 
 
@@ -189,7 +193,7 @@ def submit_transcript(
     session: Session = Depends(db, scope="function"),
     settings: Settings = Depends(get_settings),
 ) -> dict[str, Any]:
-    if not 6 <= len(video_id) <= 32:
+    if not _VIDEO_ID.fullmatch(video_id):
         raise HTTPException(400, "invalid video id")
     try:
         row, created = submit_user_transcript(
@@ -229,7 +233,7 @@ async def submit_media(
     from avd.content.media import MediaError, available
     from avd.services import MEDIA_TYPES, submit_user_media
 
-    if not 6 <= len(video_id) <= 32:
+    if not _VIDEO_ID.fullmatch(video_id):
         raise HTTPException(400, "invalid video id")
     if not available():
         raise HTTPException(503, "media processing (ffmpeg) is not installed on this server")
@@ -291,14 +295,16 @@ def delete_me(
     user: User = Depends(current_user), session: Session = Depends(db, scope="function")
 ) -> dict[str, Any]:
     """Delete the account and everything tied to it: preferences, feedback, recommendation
-    impressions and transcripts the user submitted. Submitted transcripts are revoked and their
-    text erased, and evaluations derived from them stop being current (rows are kept without the
-    text for audit). Pseudonymous logs outside the database are not affected."""
+    impressions and content the user submitted. Submitted transcripts and media are revoked and
+    erased. Evaluations derived from them stop being current and lose their quotes,
+    justifications and extracted claims (scores and evidence positions are kept for audit);
+    cached model responses containing those quotes are deleted. Pseudonymous logs outside the
+    database and earlier backups are not affected."""
     from datetime import UTC, datetime
 
     from sqlalchemy import delete, select
 
-    from avd.db.models import ContentSource, Evaluation, Feedback, RecommendationImpression
+    from avd.db.models import ContentSource, Feedback, RecommendationImpression
 
     counts: dict[str, int] = {}
     sources = session.scalars(select(ContentSource).where(ContentSource.provided_by_user_id == user.id)).all()
@@ -310,14 +316,12 @@ def delete_me(
         src.transcript = None
         src.provided_by_user_id = None
         src.preprocessing = {**(src.preprocessing or {}), "revocation_reason": "user account deleted"}
-    withdrawn = 0
-    if revoked_ids:
-        for ev in session.scalars(select(Evaluation).where(Evaluation.is_current.is_(True))).all():
-            if revoked_ids & set(ev.content_source_ids or []):
-                ev.is_current = False
-                withdrawn += 1
+    from avd.config import get_settings
+    from avd.datactl import erase_derived_content
+
+    session.flush()
     counts["transcripts_revoked"] = len(sources)
-    counts["evaluations_withdrawn"] = withdrawn
+    counts.update(erase_derived_content(session, revoked_ids, get_settings().media_cache_dir))
     for model, name in (
         (Feedback, "feedback"),
         (RecommendationImpression, "impressions"),

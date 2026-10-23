@@ -37,7 +37,8 @@ or nothing.
 
 **Privacy.** You are identified by a pseudonym. The coordinator knows which person uses which
 pseudonym and keeps that private. The file opens with the full consent text, which explains what
-is recorded, how ratings may be published (in aggregate, and individually under your pseudonym)
+is recorded, that your individual ratings stay private (only aggregates may be published, and
+publishing individual ratings would need your separate agreement), how long files are kept
 and how to withdraw. You can download your ratings only after you have read and agreed to it.
 
 **Returning your file.** Send it only to the coordinator, through <private channel>. **Do not

@@ -19,7 +19,7 @@ import random
 from datetime import UTC, datetime, timedelta
 from typing import Any
 
-from sqlalchemy import func, or_, select
+from sqlalchemy import func, or_, select, update
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
@@ -83,6 +83,22 @@ def enqueue(
     return job, True
 
 
+BUDGET_DEFERRED = "deferred: daily LLM budget exhausted"
+# A claim whose lease expired before any worker started it (a backed-up broker) is not a failed
+# attempt. Re-dispatching it stays free up to this many times, then the job goes dead: no worker
+# is taking work at all.
+MAX_UNDELIVERED = 24
+
+
+def used_attempts(job: PipelineJob) -> int:
+    """Attempts that a worker actually started (claims that never reached one are not counted)."""
+    return job.attempts - int((job.payload or {}).get("undelivered", 0))
+
+
+def started(job: PipelineJob) -> bool:
+    return (job.payload or {}).get("started_attempt") == job.attempts
+
+
 def claim(
     session: Session,
     *,
@@ -92,6 +108,7 @@ def claim(
     job_types: list[str] | None = None,
 ) -> list[PipelineJob]:
     now = _now()
+    remaining = budget.remaining(session) if budget is not None else float("inf")
     q = (
         select(PipelineJob)
         .where(
@@ -106,26 +123,69 @@ def claim(
     )
     if job_types:
         q = q.where(PipelineJob.job_type.in_(job_types))
+    if remaining != float("inf"):
+        # Jobs the budget cannot pay for would otherwise fill the candidate window, so free jobs
+        # behind them were never claimed (with limit=1 the window is only 4 jobs).
+        affordable = PipelineJob.estimated_cost_usd <= max(remaining, 0.0)
+        session.execute(
+            update(PipelineJob)
+            .where(
+                PipelineJob.status == "queued",
+                PipelineJob.next_attempt_at <= now,
+                ~affordable,
+                or_(PipelineJob.last_error.is_(None), PipelineJob.last_error != BUDGET_DEFERRED),
+            )
+            .values(last_error=BUDGET_DEFERRED)
+            .execution_options(synchronize_session=False)
+        )
+        q = q.where(affordable)
     if session.bind is not None and session.bind.dialect.name == "postgresql":
         q = q.with_for_update(skip_locked=True)
     candidates = session.scalars(q).all()
     claimed: list[PipelineJob] = []
     committed_cost = 0.0
-    remaining = budget.remaining(session) if budget is not None else float("inf")
     for job in candidates:
         if len(claimed) >= limit:
             break
         if job.estimated_cost_usd > 0 and committed_cost + job.estimated_cost_usd > remaining:
-            job.last_error = "deferred: daily LLM budget exhausted"
+            job.last_error = BUDGET_DEFERRED
             continue
-        if job.status == "running" and job.attempts >= job.max_attempts:
-            job.status = "dead"
-            job.last_error = (job.last_error or "") + " | lease expired on final attempt"
+        undelivered = job.status == "running" and not started(job)
+        if job.status == "running":
+            n = int((job.payload or {}).get("undelivered", 0))
+            if undelivered and n >= MAX_UNDELIVERED:
+                job.status = "dead"
+                job.last_error = f"no worker started this job after {n} dispatches"
+                continue
+            if not undelivered and used_attempts(job) >= job.max_attempts:
+                job.status = "dead"
+                job.last_error = (job.last_error or "") + " | lease expired on final attempt"
+                continue
+        # Claim with a conditional update: of two workers that read the same job (SQLite has no
+        # SKIP LOCKED), only the one whose update still sees the old state wins.
+        won = session.execute(  # type: ignore[attr-defined]  # rowcount: a CursorResult at runtime
+            update(PipelineJob)
+            .where(
+                PipelineJob.id == job.id,
+                PipelineJob.status == job.status,
+                PipelineJob.attempts == job.attempts,
+            )
+            .values(
+                status="running",
+                attempts=job.attempts + 1,
+                lease_expires_at=now + timedelta(seconds=lease_seconds),
+            )
+            .execution_options(synchronize_session=False)
+        ).rowcount
+        if won != 1:
             continue
+        session.refresh(job)
+        if undelivered:
+            job.payload = {
+                **(job.payload or {}),
+                "undelivered": int((job.payload or {}).get("undelivered", 0)) + 1,
+            }
         committed_cost += job.estimated_cost_usd
-        job.status = "running"
-        job.attempts += 1
-        job.lease_expires_at = now + timedelta(seconds=lease_seconds)
         claimed.append(job)
     session.flush()
     return claimed
@@ -144,8 +204,8 @@ def complete(
 def fail(session: Session, job: PipelineJob, error: str, *, retryable: bool, base_seconds: float) -> None:
     job.last_error = error[:4000]
     job.lease_expires_at = None
-    if retryable and job.attempts < job.max_attempts:
-        delay = base_seconds * (2 ** (job.attempts - 1)) * (1 + random.random() * 0.25)
+    if retryable and used_attempts(job) < job.max_attempts:
+        delay = base_seconds * (2 ** (used_attempts(job) - 1)) * (1 + random.random() * 0.25)
         job.status = "queued"
         job.next_attempt_at = _now() + timedelta(seconds=delay)
     else:

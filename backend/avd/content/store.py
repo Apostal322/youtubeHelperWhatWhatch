@@ -54,6 +54,21 @@ def add_transcript_source(
         )
     )
     if existing is not None:
+        reason = (existing.preprocessing or {}).get("revocation_reason")
+        if existing.status == "revoked" and reason == "user account deleted" and not media_uri:
+            # The account that first submitted this text was deleted. Someone else submitting it
+            # now is a new, attested source (the unique key allows one row per text and video).
+            existing.status = "active"
+            existing.revoked_at = None
+            existing.transcript = transcript.to_json()
+            existing.authorization_basis = authorization_basis
+            existing.license = license
+            existing.provided_by_user_id = provided_by_user_id
+            existing.preprocessing = {
+                k: v for k, v in (existing.preprocessing or {}).items() if k != "revocation_reason"
+            }
+            session.flush()
+            return existing, True
         return existing, False
     modalities = [Modality.TRANSCRIPT.value] + [m.value for m in (extra_modalities or [])]
     row = ContentSource(

@@ -18,6 +18,13 @@ from avd.recsys.recommender import intrinsic_value, video_card
 _TOK = re.compile(r"\w+", re.UNICODE)
 QUALITY_TIEBREAK = 0.15
 TITLE_BOOST = 0.2
+MAX_WINDOW = 5000
+MAX_BONUS = TITLE_BOOST + QUALITY_TIEBREAK  # title_match and quality_norm are at most 1
+# Function words that matched almost every title ("what", "and", "the") and boosted unrelated ones.
+_STOPWORDS = frozenset(
+    "the and for with what how why who are was were can cannot not you your this that from into about "  # noqa: SIM905
+    "have has had will would should could does did its our their there here than then them they".split()
+)
 
 
 def search(
@@ -32,13 +39,39 @@ def search(
     include_synthetic: bool = True,
 ) -> list[dict[str, Any]]:
     qvec = embedder.embed([query])[0]
-    hits = vector_search(
-        session,
-        qvec,
-        limit * 4,
-        embedder.model_id,
-        SearchFilters(genres=genres, languages=languages, include_synthetic=include_synthetic),
-    )
+    filters = SearchFilters(genres=genres, languages=languages, include_synthetic=include_synthetic)
+    q_tokens = {t for t in _TOK.findall(query.lower()) if len(t) > 2 and t not in _STOPWORDS}
+    # Below the embedder's calibrated floor a similarity means "unrelated" (the recommender uses
+    # the same floor). Without it every query, even nonsense, returned the whole catalog.
+    floor = float(getattr(embedder, "relevance_floor", 0.0))
+    blinded = blinded_video_ids(session)
+    # Results are re-ranked after the vector search (filters, title and quality bonuses), so a
+    # fixed window could miss videos that belong on the page: filtered-out videos used it up, or
+    # a video just outside it had a bonus that lifted it above the last one shown. Widen the window
+    # until the page is full and nothing outside the window can outscore its last result (hits come
+    # best first, and no bonus exceeds MAX_BONUS), or until the window covers the whole index.
+    window = limit * 4
+    while True:
+        hits = vector_search(session, qvec, window, embedder.model_id, filters)
+        results = sorted(
+            _score(session, hits, q_tokens, floor, blinded, min_quality), key=lambda r: -r["match"]["score"]
+        )
+        if len(hits) < window or window >= MAX_WINDOW:
+            break
+        if len(results) >= limit and hits[-1][1] + MAX_BONUS <= results[limit - 1]["match"]["score"]:
+            break
+        window *= 4
+    return results[:limit]
+
+
+def _score(
+    session: Session,
+    hits: list[tuple[str, float]],
+    q_tokens: set[str],
+    floor: float,
+    blinded: set[str] | frozenset[str],
+    min_quality: float | None,
+) -> list[dict[str, Any]]:
     if not hits:
         return []
     ids = [h[0] for h in hits]
@@ -49,16 +82,13 @@ def search(
             select(Evaluation).where(Evaluation.video_id.in_(ids), Evaluation.is_current.is_(True))
         ).all()
     }
-    q_tokens = {t for t in _TOK.findall(query.lower()) if len(t) > 2}
-    # Below the embedder's calibrated floor a similarity means "unrelated" (the recommender uses
-    # the same floor). Without it every query, even nonsense, returned the whole catalog.
-    floor = float(getattr(embedder, "relevance_floor", 0.0))
     results: list[dict[str, Any]] = []
-    blinded = blinded_video_ids(session)
+    seen: set[str] = set()
     for vid, sim in hits:
         v, ev = videos.get(vid), evals.get(vid)
-        if v is None or ev is None or vid in blinded:
+        if v is None or ev is None or vid in blinded or vid in seen:
             continue
+        seen.add(vid)
         q = intrinsic_value(ev)
         if min_quality is not None and (q is None or q < min_quality):
             continue
@@ -79,5 +109,4 @@ def search(
                 },
             }
         )
-    results.sort(key=lambda r: -r["match"]["score"])
-    return results[:limit]
+    return results

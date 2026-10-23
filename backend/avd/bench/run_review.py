@@ -138,6 +138,14 @@ def quality_control(doc: dict[str, Any]) -> dict[str, Any]:
     }
 
 
+_CONTROL = re.compile(r"[\x00-\x08\x0b-\x1f\x7f-\x9f]")
+
+
+def _safe(text: Any) -> str:
+    """Titles and model text are untrusted: no escape sequences reach the reviewer's terminal."""
+    return _CONTROL.sub("", str(text))
+
+
 def render_markdown(doc: dict[str, Any]) -> str:
     qc = quality_control(doc)
     lines = [
@@ -156,7 +164,7 @@ def render_markdown(doc: dict[str, Any]) -> str:
         flags = (item.get("support_audit") or {}).get("flags") or {}
         lines += [
             "",
-            f"## {item['video_id']}: {ev['video'].get('title')}",
+            f"## {_safe(item['video_id'])}: {_safe(ev['video'].get('title'))}",
             "",
             f"Source {ev['evaluator_source']} · models {', '.join(ev['models']) or '-'} · genre {ev.get('genre')} · "
             f"overall {ev['overall'].get('score')} · quotes {'included' if ev['rights']['quotes_included'] else 'withheld'}",
@@ -171,7 +179,7 @@ def render_markdown(doc: dict[str, Any]) -> str:
                 for e in ev_list
                 if e.get("segment_index") is not None
             )
-            text = (
+            text = _safe(
                 ((item.get("justifications") or {}).get(d["dimension"]) or "")
                 .replace("|", "/")
                 .replace("\n", " ")

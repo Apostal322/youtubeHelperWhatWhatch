@@ -274,7 +274,12 @@ def _inference_status(s: Any, check: bool) -> dict[str, Any]:
             out["reachable"] = True
         except LLMError as exc:
             out["reachable"] = False
-            out["error"] = str(exc)
+            # The error names the model server's address; a shared server keeps that internal.
+            if s.deployment_mode.value == "server":
+                log.warning("model server check failed", extra={"error": str(exc)})
+                out["error"] = f"{type(exc).__name__} (details in the server log)"
+            else:
+                out["error"] = str(exc)
     return out
 
 
@@ -307,7 +312,9 @@ def install(app: FastAPI, settings: Settings) -> None:
         s = get_settings()
         if not s.metrics_public:
             supplied = request.headers.get("x-admin-token", "")
-            if s.admin_token is None or not hmac.compare_digest(supplied, s.admin_token.get_secret_value()):
+            if s.admin_token is None or not hmac.compare_digest(
+                supplied.encode(), s.admin_token.get_secret_value().encode()
+            ):
                 return JSONResponse(error_body(403, "metrics require the admin token"), status_code=403)
         gauges: dict[tuple[str, tuple[tuple[str, str], ...]], float] = {}
         with get_sessionmaker()() as session:
