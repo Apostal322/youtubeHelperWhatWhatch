@@ -109,3 +109,96 @@ def test_a_late_delivery_of_an_expired_claim_does_not_run_the_job_again(
     assert execute_job(ctx, jid, attempt=1)["outcome"] == "stale_dispatch"
     assert execute_job(ctx, jid, attempt=2)["outcome"] == "succeeded"
     assert calls == [2]  # before: the handler ran once per delivery
+
+
+def test_a_job_running_longer_than_its_lease_is_not_claimed_again(
+    db: DB, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    db.settings.worker_lease_seconds = 1
+    ctx = build_context(settings=db.settings, session_factory=db.sf)
+    started, release = threading.Event(), threading.Event()
+    calls: list[int] = []
+
+    def slow(ctx: Any, session: Any, job: PipelineJob) -> handlers.HandlerResult:
+        calls.append(job.attempts)
+        started.set()
+        release.wait(10)
+        return handlers.HandlerResult({"ok": 1})
+
+    monkeypatch.setitem(runner.HANDLERS, "slow", slow)
+    with db.sf() as s:
+        job, _ = queue.enqueue(s, "slow", "long")
+        s.commit()
+        jid = job.id
+    assert claim_batch(ctx) == [jid]
+    t = threading.Thread(target=execute_job, args=(ctx, jid, 1))
+    t.start()
+    assert started.wait(10)
+    time.sleep(2.5)  # well past the 1 s lease while the handler is still working (a slow local model)
+    second = claim_batch(ctx)
+    release.set()
+    t.join(10)
+    assert second == []  # before: re-claimed, and the new delivery ran the evaluation a second time
+    with db.sf() as s:
+        j = s.get(PipelineJob, jid)
+        assert j is not None and j.status == "succeeded" and calls == [1]
+
+
+def test_a_dispatch_that_never_reached_a_worker_does_not_use_up_attempts(
+    db: DB, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    ctx = build_context(settings=db.settings, session_factory=db.sf)
+    monkeypatch.setitem(runner.HANDLERS, "slow", lambda c, s, j: handlers.HandlerResult({"ok": 1}))
+    with db.sf() as s:
+        job, _ = queue.enqueue(s, "slow", "backlog", max_attempts=2)
+        s.commit()
+        jid = job.id
+    offset = [0.0]
+    monkeypatch.setattr(queue, "_now", lambda: datetime.now(UTC) + timedelta(seconds=offset[0]))
+    for _ in range(4):  # the broker is backed up: each dispatch's lease expires before a worker starts it
+        assert claim_batch(ctx) == [jid]
+        offset[0] += ctx.settings.worker_lease_seconds + 1
+    with db.sf() as s:
+        j = s.get(PipelineJob, jid)
+        assert j is not None and j.status == "running"  # before: dead, though it never ran
+        attempt = j.attempts
+    assert execute_job(ctx, jid, attempt)["outcome"] == "succeeded"  # the latest delivery runs it
+
+
+def test_a_job_no_worker_ever_starts_eventually_dies(db: DB, monkeypatch: pytest.MonkeyPatch) -> None:
+    ctx = build_context(settings=db.settings, session_factory=db.sf)
+    with db.sf() as s:
+        job, _ = queue.enqueue(s, "slow", "nobody")
+        s.commit()
+        jid = job.id
+    offset = [0.0]
+    monkeypatch.setattr(queue, "_now", lambda: datetime.now(UTC) + timedelta(seconds=offset[0]))
+    for _ in range(queue.MAX_UNDELIVERED + 2):
+        claim_batch(ctx)
+        offset[0] += ctx.settings.worker_lease_seconds + 1
+    with db.sf() as s:
+        j = s.get(PipelineJob, jid)
+        assert j is not None and j.status == "dead" and "no worker started" in (j.last_error or "")
+
+
+def test_a_worker_that_died_mid_job_still_uses_up_its_attempts(
+    db: DB, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    ctx = build_context(settings=db.settings, session_factory=db.sf)
+    with db.sf() as s:
+        job, _ = queue.enqueue(s, "slow", "crashy", max_attempts=2)
+        s.commit()
+        jid = job.id
+    offset = [0.0]
+    monkeypatch.setattr(queue, "_now", lambda: datetime.now(UTC) + timedelta(seconds=offset[0]))
+    for _ in range(3):
+        if claim_batch(ctx):
+            with db.sf() as s:  # the worker starts the attempt, then is lost before finishing it
+                j = s.get(PipelineJob, jid)
+                assert j is not None
+                j.payload = {**(j.payload or {}), "started_attempt": j.attempts}
+                s.commit()
+        offset[0] += ctx.settings.worker_lease_seconds + 1
+    with db.sf() as s:
+        j = s.get(PipelineJob, jid)
+        assert j is not None and j.status == "dead" and "final attempt" in (j.last_error or "")
