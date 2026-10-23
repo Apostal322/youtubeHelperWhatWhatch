@@ -231,3 +231,20 @@ def test_search_lists_a_video_once_and_ignores_function_words(demo: DB) -> None:
         rows = search(s, HashingEmbedder(), "what and the", limit=20)
         assert all(r["match"]["title_match"] == 0 for r in rows)  # before: matched most titles
         s.rollback()
+
+
+def test_videos_indexed_with_another_model_are_reported(demo: DB) -> None:
+    from avd.db.models import User, UserPreferences
+    from avd.recsys.recommender import recommend
+
+    class OtherModel(HashingEmbedder):
+        model_id = "another-model"
+
+    with demo.sf() as s:
+        u = User(token_hash="stale-index")
+        u.preferences = UserPreferences(interests=["science"])
+        s.add(u)
+        s.flush()
+        out = recommend(s, u.id, OtherModel(), limit=5, log_impressions=False)
+        s.rollback()
+    assert any("different embedding model" in n for n in out["notes"])  # before: a thin list, no reason

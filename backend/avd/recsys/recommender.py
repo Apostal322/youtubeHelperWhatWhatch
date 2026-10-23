@@ -445,6 +445,18 @@ def recommend(
                 else ""
             )
         )
+    stale = session.scalar(
+        select(func.count())
+        .select_from(Video)
+        .where(Video.embedding.is_not(None), Video.embedding_model != embedder.model_id)
+    )
+    if stale and prof.interests:
+        # Their vectors come from another model, so interest matching leaves them out until they are
+        # re-embedded; without this note the list just looked thin.
+        notes.append(
+            f"{stale} analyzed video(s) are indexed with a different embedding model and are not matched "
+            "to your interests until they are re-embedded (`avd embeddings reindex`)."
+        )
     if prof.genre_weights_source == "intent":
         notes.append(f"Genre priorities come from your stated intent '{prof.intent}' (no genre weights set).")
     return {
