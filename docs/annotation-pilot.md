@@ -202,15 +202,18 @@ reference.
 > I agree to rate the transcripts in this packet for the AI Video Discovery research project. I
 > understand that:
 >
-> * my ratings, notes and citations are stored under the pseudonym I chose, and my e-mail or name
->   is not stored with them;
-> * the ratings may be published in aggregate (for example, agreement between raters), and
->   individually under my pseudonym in the project's public repository;
+> * my ratings, notes and citations are stored under a pseudonym, and my e-mail or name is not
+>   stored with them;
+> * my individual ratings, citations and notes are not published; only aggregates from at least
+>   three raters may be (for example, agreement between raters);
+> * publishing my individual ratings would need my separate, written agreement;
+> * pseudonymous records can sometimes be re-identified (wording of notes, timing, few raters);
 > * the coordinator knows who uses which pseudonym and keeps that private;
 > * the reported time I spent on each item is recorded;
-> * I can withdraw at any time, and ask for my ratings to be excluded from later analyses and
->   exports; aggregates already published are not recalculated, and ratings already published
->   remain in the repository's history;
+> * ratings files and the pseudonym list are deleted at the latest three years after my last
+>   submission (period proposed, to be confirmed by the project owner);
+> * I can withdraw at any time; my file is then deleted and excluded from later analyses, but
+>   aggregates already published are not recalculated;
 > * this is unpaid, voluntary work.
 
 ## What this does not provide
