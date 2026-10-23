@@ -31,6 +31,7 @@ not altered after packing, not who made it. Treat agreement between independent 
 
 from __future__ import annotations
 
+import contextlib
 import hashlib
 import io
 import json
@@ -38,6 +39,7 @@ import re
 import stat
 import subprocess
 import zipfile
+import zlib
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
@@ -91,7 +93,15 @@ ABS_PATH = re.compile(
     r"(?<![\w.:/])(?:/(?:home|Users|root|tmp|var|mnt|media|private|opt|srv|etc|run|data)(?:/[^\s\"'`<>|]*)?"
     r"|[A-Za-z]:\\[^\s\"'`<>|]*|~[/\\][^\s\"'`<>|]*)"
 )
-URL_HOST = re.compile(r"https?://\[?([A-Za-z0-9.\-:]+?)\]?(?::\d+)?(?=[/\s\"'`)>]|$)")
+# Any scheme (http, ws, ...), any case, also through user:password@.
+URL_HOST = re.compile(
+    r"(?i)\b[a-z][a-z0-9+.\-]*://(?:[^@/\s\"'`]*@)?\[?([A-Za-z0-9.\-:]+?)\]?(?::\d+)?(?=[/\s\"'`)>?#]|$)"
+)
+# A private or link-local address on its own ("10.0.0.5:11434"), without a scheme.
+PRIVATE_IP = re.compile(
+    r"(?<![\d.])(?:10\.\d{1,3}|192\.168|172\.(?:1[6-9]|2\d|3[01])|169\.254)\.\d{1,3}\.\d{1,3}(?![\d.])"
+)
+PACK_KEYS = {"format", "format_version", "created_at", "files", "excluded", "transcripts_checked", "note"}
 PUBLIC_HOSTS = {
     "localhost", "127.0.0.1", "::1", "github.com", "raw.githubusercontent.com", "changelog.com",
     "talkpython.fm", "ollama.com", "huggingface.co",
@@ -172,6 +182,10 @@ def _scan_review(name: str, doc: dict[str, Any], text: str, shingles: set[int] |
     findings = []
     all_quotable = True
     for item in doc.get("items", []) if isinstance(doc, dict) else []:
+        if not isinstance(item, dict) or not item.get("video_id"):
+            # Without an id the item escapes the rights check, whatever it claims about quotes.
+            findings.append(f"{name}: review item without a video_id")
+            continue
         ev = item.get("evaluation") or {}
         if (ev.get("rights") or {}).get("quotes_included") is True:
             continue
@@ -195,9 +209,25 @@ def _scan_review(name: str, doc: dict[str, Any], text: str, shingles: set[int] |
     return findings
 
 
+def _strings(obj: Any) -> list[str]:
+    if isinstance(obj, str):
+        return [obj]
+    if isinstance(obj, dict):
+        return [s for k, v in obj.items() for s in (*_strings(k), *_strings(v))]
+    if isinstance(obj, list):
+        return [s for v in obj for s in _strings(v)]
+    return []
+
+
 def scan(name: str, data: bytes, shingles: set[int] | None) -> list[str]:
     """Reasons this file must not be shared (empty when it is fine)."""
-    text = data.decode("utf-8", errors="replace")
+    raw = data.decode("utf-8", errors="replace")
+    text = raw
+    if name.endswith(".json"):
+        # JSON escapes ("\u0040", "\/") would hide e-mail addresses, keys, URLs and transcript
+        # text from patterns run on the raw bytes: check the decoded strings as well.
+        with contextlib.suppress(ValueError):  # invalid JSON is reported below
+            text = raw + "\n" + "\n".join(_strings(json.loads(raw)))
     findings: list[str] = []
     is_review = name.endswith("/review.json")
     for label, rx in SECRETS:
@@ -208,11 +238,18 @@ def scan(name: str, data: bytes, shingles: set[int] | None) -> list[str]:
     for host in URL_HOST.findall(text):
         if host.lower() not in PUBLIC_HOSTS:
             findings.append(f"{name}: contains a network address that is not loopback ({host})")
+    if m := PRIVATE_IP.search(text):
+        findings.append(f"{name}: contains a private network address ({m.group(0)})")
+    if re.search(r"[\x00-\x08\x0b-\x1f\x7f-\x9f]", text.replace("\r", "")):
+        findings.append(f"{name}: contains control characters (could rewrite a reviewer's terminal)")
     if name.endswith(".json"):
         try:
-            doc = json.loads(text)
+            doc = json.loads(raw)
         except ValueError:
             return [*findings, f"{name}: not valid JSON"]
+        if name == "PACK.json" and (not isinstance(doc, dict) or set(doc) - PACK_KEYS):
+            extra = sorted(set(doc) - PACK_KEYS) if isinstance(doc, dict) else "not an object"
+            findings.append(f"{name}: unexpected content ({extra})")
         if is_review:
             findings += _scan_review(name, doc, text, shingles)
         for jpath, key, value in _fields(doc):
@@ -442,11 +479,17 @@ def _read(source: Path) -> tuple[dict[str, Any], dict[str, bytes]]:
             raise CommunityError(f"duplicate entry in pack: {name!r}")
         if info.file_size > MAX_PACK_BYTES:
             raise CommunityError(f"{name} is too large")
-        contents[name] = z.read(info)
+        try:
+            contents[name] = z.read(info)
+        except (zipfile.BadZipFile, zlib.error, EOFError) as exc:
+            raise CommunityError(f"{name} is corrupt ({exc})") from exc
     if "report.json" not in contents:
         raise CommunityError("pack has no report.json")
     if "PACK.json" in contents:
-        listed = json.loads(contents["PACK.json"]).get("files", {})
+        pack = json.loads(contents["PACK.json"])
+        listed = pack.get("files") if isinstance(pack, dict) else None
+        if not isinstance(listed, dict):
+            raise CommunityError("PACK.json has no file list")
         for name, digest in listed.items():
             if name not in contents or _sha(contents[name]) != digest:
                 raise CommunityError(f"{name} does not match the pack manifest")
@@ -470,7 +513,21 @@ def _commit_known(sha: str) -> bool | None:
 
 
 def verify(source: Path, manifest_path: Path | None = None, cache_dir: Path | None = None) -> dict[str, Any]:
-    """Check a contributed report or pack. Returns a verdict; never raises on a failed check."""
+    """Check a contributed report or pack. Returns a verdict; never raises on a failed check or on
+    a malformed file (a pack is untrusted input)."""
+    try:
+        return _verify(source, manifest_path, cache_dir)
+    except (AttributeError, TypeError, KeyError, ValueError) as exc:
+        return {
+            "accepted": False,
+            "status": "refused",
+            "checks": [
+                {"check": "well-formed report", "ok": False, "detail": f"{type(exc).__name__}: {exc}"[:300]}
+            ],
+        }
+
+
+def _verify(source: Path, manifest_path: Path | None, cache_dir: Path | None) -> dict[str, Any]:
     from avd.datasets.pilot import load_manifest
     from avd.evaluation.prompts import get_prompt
 
@@ -543,7 +600,9 @@ def verify(source: Path, manifest_path: Path | None = None, cache_dir: Path | No
         check(f"{name}: runtime version recorded", bool(version) and "mock" not in version, version)
         hw = rt.get("hardware") or {}
         check(f"{name}: hardware recorded", bool(hw.get("cpu_model")) and bool(hw.get("ram_total_gb")))
-        for ctx, w in (entry.get("windows") or {}).items():
+        windows = entry.get("windows") or {}
+        check(f"{name}: at least one measured context window", isinstance(windows, dict) and bool(windows))
+        for ctx, w in (windows if isinstance(windows, dict) else {}).items():
             rates = [w.get(k) for k in ("structured_validity", "citation_correctness", "abstention_rate")]
             sane = all(r is None or 0 <= r <= 1 for r in rates) and w.get("calls", 0) >= 0
             consistent = (w.get("evidence_verified", 0) or 0) <= (w.get("evidence_claimed", 0) or 0)
@@ -567,11 +626,13 @@ def verify(source: Path, manifest_path: Path | None = None, cache_dir: Path | No
                 notes.append(f"{name} ctx={ctx}: no memory measurement (sampling is Linux-only)")
     cache = cache_dir or default_cache_dir()
     shingles, read = transcript_shingles(manifest_path, cache) if cache.exists() else (set(), 0)
-    if not read:
-        notes.append("transcript-text check not run: no pilot cache on this machine")
-    findings = [
-        f for name, data in contents.items() if name != "PACK.json" for f in scan(name, data, shingles)
-    ]
+    # Without the cached transcripts nothing proves the pack holds no transcript text: refuse.
+    check(
+        "transcript-text check ran",
+        read > 0,
+        "" if read else "no pilot cache here: run `avd dataset import` (or pass --cache-dir)",
+    )
+    findings = [f for name, data in contents.items() for f in scan(name, data, shingles)]
     check(
         "no transcript text, credentials, private addresses or local paths", not findings, "; ".join(findings)
     )

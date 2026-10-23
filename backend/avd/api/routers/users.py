@@ -30,14 +30,14 @@ def _registration_allowed(settings: Settings, invite: str | None, admin: str | N
     if (
         admin
         and settings.admin_token is not None
-        and hmac.compare_digest(admin, settings.admin_token.get_secret_value())
+        and hmac.compare_digest(admin.encode(), settings.admin_token.get_secret_value().encode())
     ):
         return True
     if settings.registration == Registration.OPEN:
         return True
     if settings.registration == Registration.INVITE and invite and settings.invite_codes is not None:
         codes = [c.strip() for c in settings.invite_codes.get_secret_value().split(",") if c.strip()]
-        return any(hmac.compare_digest(invite, c) for c in codes)
+        return any(hmac.compare_digest(invite.encode(), c.encode()) for c in codes)
     return False
 
 

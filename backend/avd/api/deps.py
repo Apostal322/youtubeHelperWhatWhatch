@@ -79,7 +79,7 @@ def require_admin(
     if settings.admin_token is None:
         raise HTTPException(status.HTTP_403_FORBIDDEN, "admin API disabled (set AVD_ADMIN_TOKEN)")
     if x_admin_token is None or not hmac.compare_digest(
-        x_admin_token, settings.admin_token.get_secret_value()
+        x_admin_token.encode(), settings.admin_token.get_secret_value().encode()
     ):
         raise HTTPException(status.HTTP_403_FORBIDDEN, "invalid admin token")
 

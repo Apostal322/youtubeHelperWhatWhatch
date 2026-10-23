@@ -236,3 +236,10 @@ def test_off_topic_items_only_fill_a_labelled_exploration_quota(client: TestClie
 def test_status_reports_catalog_size(client: TestClient) -> None:
     catalog = client.get("/v1/status").json()["catalog"]
     assert catalog["videos"] >= 20 and catalog["synthetic"] >= 20 and catalog["evaluated"] >= 20
+
+
+def test_non_ascii_admin_token_is_refused_not_a_server_error(client: TestClient) -> None:
+    # Before: hmac.compare_digest raised TypeError on non-ASCII text -> HTTP 500 with a traceback.
+    r = client.get("/v1/admin/jobs", headers={"X-Admin-Token": "caf\xe9".encode("latin-1")})
+    assert r.status_code == 403
+    assert client.get("/metrics", headers={"X-Admin-Token": "caf\xe9".encode("latin-1")}).status_code in (200, 403)
