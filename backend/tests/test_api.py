@@ -242,4 +242,32 @@ def test_non_ascii_admin_token_is_refused_not_a_server_error(client: TestClient)
     # Before: hmac.compare_digest raised TypeError on non-ASCII text -> HTTP 500 with a traceback.
     r = client.get("/v1/admin/jobs", headers={"X-Admin-Token": "caf\xe9".encode("latin-1")})
     assert r.status_code == 403
-    assert client.get("/metrics", headers={"X-Admin-Token": "caf\xe9".encode("latin-1")}).status_code in (200, 403)
+    assert client.get("/metrics", headers={"X-Admin-Token": "caf\xe9".encode("latin-1")}).status_code in (
+        200,
+        403,
+    )
+
+
+@pytest.mark.parametrize(
+    "path",
+    [
+        "/v1/videos?limit=-1",  # before: SQLite treats LIMIT -1 as "no limit"
+        "/v1/videos?offset=-5",
+        "/v1/search?q=science&limit=-1",
+        "/v1/admin/jobs?limit=-1",
+        "/v1/admin/dead-letters?limit=-1",
+    ],
+)
+def test_negative_page_sizes_are_rejected(client: TestClient, path: str) -> None:
+    assert client.get(path, headers={"X-Admin-Token": "test-admin"}).status_code == 422
+
+
+@pytest.mark.parametrize("video_id", ["a b c d e f", "abc.def.ghi", "abcdef%0A"])
+def test_submissions_for_malformed_video_ids_are_refused(client: TestClient, video_id: str) -> None:
+    body = {
+        "format": "text",
+        "content": "word " * 80,
+        "attestation": "I am the channel owner and authorise this use.",
+    }
+    r = client.post(f"/v1/videos/{video_id}/transcripts", json=body, headers=_user(client))
+    assert r.status_code == 400  # before: 202, creating a catalog entry with that id

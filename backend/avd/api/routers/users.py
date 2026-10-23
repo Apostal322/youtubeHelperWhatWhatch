@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import hmac
 import logging
+import re
 import secrets
 import uuid
 from datetime import UTC, datetime, timedelta
@@ -22,6 +23,9 @@ from avd.services import TranscriptSubmissionError, submit_user_transcript
 
 log = logging.getLogger(__name__)
 router = APIRouter(prefix="/v1")
+
+# YouTube ids are 11 characters of [A-Za-z0-9_-]; local and test ids are similar but may differ in length.
+_VIDEO_ID = re.compile(r"[A-Za-z0-9_-]{6,32}")
 
 MAX_FEEDBACK_PER_DAY = 500  # per user; far above honest use, bounds spam from one token
 
@@ -189,7 +193,7 @@ def submit_transcript(
     session: Session = Depends(db, scope="function"),
     settings: Settings = Depends(get_settings),
 ) -> dict[str, Any]:
-    if not 6 <= len(video_id) <= 32:
+    if not _VIDEO_ID.fullmatch(video_id):
         raise HTTPException(400, "invalid video id")
     try:
         row, created = submit_user_transcript(
@@ -229,7 +233,7 @@ async def submit_media(
     from avd.content.media import MediaError, available
     from avd.services import MEDIA_TYPES, submit_user_media
 
-    if not 6 <= len(video_id) <= 32:
+    if not _VIDEO_ID.fullmatch(video_id):
         raise HTTPException(400, "invalid video id")
     if not available():
         raise HTTPException(503, "media processing (ffmpeg) is not installed on this server")
