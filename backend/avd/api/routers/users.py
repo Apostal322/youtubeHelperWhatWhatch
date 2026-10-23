@@ -291,14 +291,16 @@ def delete_me(
     user: User = Depends(current_user), session: Session = Depends(db, scope="function")
 ) -> dict[str, Any]:
     """Delete the account and everything tied to it: preferences, feedback, recommendation
-    impressions and transcripts the user submitted. Submitted transcripts are revoked and their
-    text erased, and evaluations derived from them stop being current (rows are kept without the
-    text for audit). Pseudonymous logs outside the database are not affected."""
+    impressions and content the user submitted. Submitted transcripts and media are revoked and
+    erased. Evaluations derived from them stop being current and lose their quotes,
+    justifications and extracted claims (scores and evidence positions are kept for audit);
+    cached model responses containing those quotes are deleted. Pseudonymous logs outside the
+    database and earlier backups are not affected."""
     from datetime import UTC, datetime
 
     from sqlalchemy import delete, select
 
-    from avd.db.models import ContentSource, Evaluation, Feedback, RecommendationImpression
+    from avd.db.models import ContentSource, Feedback, RecommendationImpression
 
     counts: dict[str, int] = {}
     sources = session.scalars(select(ContentSource).where(ContentSource.provided_by_user_id == user.id)).all()
@@ -310,14 +312,12 @@ def delete_me(
         src.transcript = None
         src.provided_by_user_id = None
         src.preprocessing = {**(src.preprocessing or {}), "revocation_reason": "user account deleted"}
-    withdrawn = 0
-    if revoked_ids:
-        for ev in session.scalars(select(Evaluation).where(Evaluation.is_current.is_(True))).all():
-            if revoked_ids & set(ev.content_source_ids or []):
-                ev.is_current = False
-                withdrawn += 1
+    from avd.config import get_settings
+    from avd.datactl import erase_derived_content
+
+    session.flush()
     counts["transcripts_revoked"] = len(sources)
-    counts["evaluations_withdrawn"] = withdrawn
+    counts.update(erase_derived_content(session, revoked_ids, get_settings().media_cache_dir))
     for model, name in (
         (Feedback, "feedback"),
         (RecommendationImpression, "impressions"),

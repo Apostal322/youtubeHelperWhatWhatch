@@ -169,3 +169,111 @@ def user_export(session: Session, user_id: str) -> dict[str, Any]:
         ],
         "note": "Your submitted transcripts are listed by hash; their text is yours and not repeated here.",
     }
+
+
+def erase_derived_content(session: Session, source_ids: set[str], media_dir: Path) -> dict[str, int]:
+    """After content sources are revoked (account deletion), erase what was derived from them.
+
+    For every evaluation that used one of the sources, current or not: evidence quotes and
+    justifications are emptied and extracted claims deleted (scores, statuses and evidence
+    positions stay, for audit); the evaluation stops being current. Cached model responses that
+    contain an erased quote are deleted. Media files are deleted unless another active source
+    still uses them (content-addressed files can be shared), and only inside ``media_dir``. The
+    video loses its transcript-derived embedding and, without a current evaluation, its
+    "evaluated" status. Backups made earlier are not touched.
+    """
+    import json
+
+    from avd.db.models import (
+        ContentSource,
+        DimensionScoreRow,
+        Evaluation,
+        EvidenceRow,
+        FactualClaim,
+        LLMCache,
+        Video,
+    )
+
+    counts = {
+        "evaluations_withdrawn": 0,
+        "quotes_erased": 0,
+        "claims_deleted": 0,
+        "cache_entries": 0,
+        "media_files": 0,
+    }
+    if not source_ids:
+        return counts
+    evaluations = [
+        ev
+        for ev in session.scalars(select(Evaluation)).all()
+        if source_ids & set(ev.content_source_ids or [])
+    ]
+    erased_quotes: set[str] = set()
+    videos = set()
+    for ev in evaluations:
+        videos.add(ev.video_id)
+        if ev.is_current:
+            ev.is_current = False
+            counts["evaluations_withdrawn"] += 1
+        for dim in session.scalars(
+            select(DimensionScoreRow).where(DimensionScoreRow.evaluation_id == ev.id)
+        ).all():
+            dim.justification = ""
+            for e in session.scalars(
+                select(EvidenceRow).where(EvidenceRow.dimension_score_id == dim.id)
+            ).all():
+                if e.quote:
+                    erased_quotes.add(e.quote)
+                    counts["quotes_erased"] += 1
+                e.quote = None
+                e.note = None
+        counts["claims_deleted"] += (
+            session.execute(delete(FactualClaim).where(FactualClaim.evaluation_id == ev.id)).rowcount or 0  # type: ignore[attr-defined]
+        )
+    probes = [q for q in erased_quotes if len(q) >= 20]
+    if probes:
+        for row in session.scalars(select(LLMCache)).all():
+            text = json.dumps(row.response, ensure_ascii=False)
+            if any(q in text for q in probes):
+                session.delete(row)
+                counts["cache_entries"] += 1
+    root = media_dir.resolve()
+    revoked = session.scalars(select(ContentSource).where(ContentSource.id.in_(source_ids))).all()
+    for src in revoked:
+        paths = [p for p in (src.media_uri, (src.preprocessing or {}).get("audio_wav")) if p]
+        for raw in paths:
+            still_used = session.scalar(
+                select(func.count())
+                .select_from(ContentSource)
+                .where(ContentSource.status == "active", ContentSource.media_uri == raw)
+            )
+            path = Path(raw).resolve()
+            if still_used or not path.is_relative_to(root):
+                continue
+            if path.is_file():
+                path.unlink()
+                counts["media_files"] += 1
+        src.media_uri = None
+        src.preprocessing = {k: v for k, v in (src.preprocessing or {}).items() if k != "audio_wav"}
+        videos.add(src.video_id)
+    session.flush()
+    for vid in videos:
+        video = session.get(Video, vid)
+        if video is None:
+            continue
+        video.embedding = None
+        video.embedding_content_hash = None
+        if (
+            session.scalar(
+                select(Evaluation.id).where(Evaluation.video_id == vid, Evaluation.is_current.is_(True))
+            )
+            is None
+        ):
+            active = session.scalar(
+                select(func.count())
+                .select_from(ContentSource)
+                .where(ContentSource.video_id == vid, ContentSource.status == "active")
+            )
+            video.status = "content_available" if active else "content_unavailable"
+    session.flush()
+    return counts
