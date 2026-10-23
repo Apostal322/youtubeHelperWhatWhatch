@@ -53,17 +53,17 @@ def _context() -> Any:
 
 
 @app.task(name="avd.execute_job")
-def execute_job_task(job_id: str) -> dict[str, Any]:
+def execute_job_task(job_id: str, attempt: int | None = None) -> dict[str, Any]:
     from avd.workers.runner import execute_job
 
-    return execute_job(_context(), job_id)
+    return execute_job(_context(), job_id, attempt)
 
 
 @app.task(name="avd.execute_deep_job")
-def execute_deep_job_task(job_id: str) -> dict[str, Any]:
+def execute_deep_job_task(job_id: str, attempt: int | None = None) -> dict[str, Any]:
     from avd.workers.runner import execute_job
 
-    return execute_job(_context(), job_id)
+    return execute_job(_context(), job_id, attempt)
 
 
 @app.task(name="avd.dispatch")
@@ -74,10 +74,13 @@ def dispatch_task(limit: int = 32) -> int:
     ctx = _context()
     ids = claim_batch(ctx, limit=limit)
     with ctx.session_factory() as s:
-        types = {j.id: j.job_type for j in s.query(PipelineJob).filter(PipelineJob.id.in_(ids))}
+        claimed = {
+            j.id: (j.job_type, j.attempts) for j in s.query(PipelineJob).filter(PipelineJob.id.in_(ids))
+        }
     for jid in ids:
-        task = execute_deep_job_task if types.get(jid) in DEEP_JOB_TYPES else execute_job_task
-        task.delay(jid)
+        job_type, attempt = claimed.get(jid, (None, None))
+        task = execute_deep_job_task if job_type in DEEP_JOB_TYPES else execute_job_task
+        task.delay(jid, attempt)  # the claim token: a late delivery of an older claim is a no-op
     return len(ids)
 
 

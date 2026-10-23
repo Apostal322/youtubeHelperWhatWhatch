@@ -37,12 +37,16 @@ def _classify(exc: Exception) -> tuple[str, bool]:
     return "error", False
 
 
-def execute_job(ctx: WorkerContext, job_id: str) -> dict[str, Any]:
-    """Run one claimed job in its own transaction and record the outcome."""
+def execute_job(ctx: WorkerContext, job_id: str, attempt: int | None = None) -> dict[str, Any]:
+    """Run one claimed job in its own transaction and record the outcome. ``attempt`` is the
+    attempt number the dispatcher claimed: a task delivered after its lease expired and the job
+    was claimed again (Celery) must not run it a second time."""
     with ctx.session_factory() as session:
         job = session.get(PipelineJob, job_id)
         if job is None or job.status != "running":
             return {"job_id": job_id, "outcome": "not_running"}
+        if attempt is not None and job.attempts != attempt:
+            return {"job_id": job_id, "outcome": "stale_dispatch"}
         handler = HANDLERS.get(job.job_type)
         started = time.monotonic()
         try:
