@@ -19,6 +19,7 @@ _TOK = re.compile(r"\w+", re.UNICODE)
 QUALITY_TIEBREAK = 0.15
 TITLE_BOOST = 0.2
 MAX_WINDOW = 5000
+MAX_BONUS = TITLE_BOOST + QUALITY_TIEBREAK  # title_match and quality_norm are at most 1
 # Function words that matched almost every title ("what", "and", "the") and boosted unrelated ones.
 _STOPWORDS = frozenset(
     "the and for with what how why who are was were can cannot not you your this that from into about "  # noqa: SIM905
@@ -44,17 +45,22 @@ def search(
     # the same floor). Without it every query, even nonsense, returned the whole catalog.
     floor = float(getattr(embedder, "relevance_floor", 0.0))
     blinded = blinded_video_ids(session)
-    # Quality and blinding filters apply after the vector search, so a fixed window could be
-    # used up by filtered-out videos and return fewer (or no) results than a larger limit would.
-    # Widen the window until it yields enough results or covers every indexed video.
+    # Results are re-ranked after the vector search (filters, title and quality bonuses), so a
+    # fixed window could miss videos that belong on the page: filtered-out videos used it up, or
+    # a video just outside it had a bonus that lifted it above the last one shown. Widen the window
+    # until the page is full and nothing outside the window can outscore its last result (hits come
+    # best first, and no bonus exceeds MAX_BONUS), or until the window covers the whole index.
     window = limit * 4
     while True:
         hits = vector_search(session, qvec, window, embedder.model_id, filters)
-        results = _score(session, hits, q_tokens, floor, blinded, min_quality)
-        if len(results) >= limit or len(hits) < window or window >= MAX_WINDOW:
+        results = sorted(
+            _score(session, hits, q_tokens, floor, blinded, min_quality), key=lambda r: -r["match"]["score"]
+        )
+        if len(hits) < window or window >= MAX_WINDOW:
+            break
+        if len(results) >= limit and hits[-1][1] + MAX_BONUS <= results[limit - 1]["match"]["score"]:
             break
         window *= 4
-    results.sort(key=lambda r: -r["match"]["score"])
     return results[:limit]
 
 
