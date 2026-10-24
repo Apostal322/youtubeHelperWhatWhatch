@@ -214,8 +214,12 @@ recorded hardware (`hardware` in `smoke.json` shows the runner's CPU and RAM). S
 for that runner only. Like Option 1, it is operational evidence: valid output, grounded
 citations, latency. It says nothing about whether the scores are right; that needs Part B.
 
-**Status:** the workflow was written and its YAML checked, but it has **not been run yet**: this
-development environment cannot download Ollama or models. The first run is also its test.
+**Status:** the workflow has **not been run yet**: this development environment cannot download
+Ollama or models. Its command sequence was rehearsed on 2026-10-24 against a loopback *protocol
+mock* of the Ollama API (plumbing only, no model): import, doctor, smoke, review, pack and verify
+all ran with the job's paths, and the run was refused as a mock, so the job would have failed as
+intended. The first real run is still the workflow's real test (Ollama install, model download,
+CPU time).
 
 ## Part B: three calibration ratings (about 1 hour each for one episode, estimated)
 
