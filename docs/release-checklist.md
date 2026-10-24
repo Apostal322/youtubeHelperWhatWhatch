@@ -16,9 +16,9 @@ Two different milestones, which must never be confused:
 | Install | one-command local start on Linux | ✅ fresh public clone of `main`: install 35 s, dataset import 6 s, `avd start` ready in ~2 s |
 | Install | Windows / macOS | ❌ untested (instructions written; Windows hardware detection exists but never ran on Windows) |
 | Install | self-hosted Docker Compose | ⚠️ `docker compose config` valid; image built in CI. In the audit environment the build was **blocked** (no package-mirror access inside the build); `up` never run |
-| Real AI | at least one real local-model run reported | ❌ **zero real model calls**: no GPU, runtime or weights here, model registries unreachable. Volunteer workflow tested up to the model call (`docs/first-experiment.md`) |
+| Real AI | at least one real local-model run reported | ❌ **zero real model calls**: no GPU, runtime or weights here, model registries unreachable. Volunteer workflow tested up to the model call; a manual GitHub-runner run (`real-model-smoke.yml`) is ready but not yet started (`docs/first-experiment.md`) |
 | Extension | local and remote backends, consent, recovery, empty catalog, unreachable model | ✅ 34-step Chromium run (`scripts/e2e/full_local.py`) + 50 component tests |
-| Extension | badge across YouTube in-page navigation | ⚠️ 17-step run against a **simulated** YouTube page (`scripts/e2e/youtube_navigation.py`); real youtube.com never loaded (unreachable here). `youtu.be`, `m.` and `music.` URLs are not covered by the extension's host permissions |
+| Extension | badge across YouTube in-page navigation | ⚠️ 17-step run against a **simulated** YouTube page (`scripts/e2e/youtube_navigation.py`); real youtube.com never loaded (unreachable here); live steps in `docs/youtube-live-checklist.md`. `youtu.be`, `m.` and `music.` URLs are not covered by the extension's host permissions |
 | Search | an unmatched query returns nothing | ✅ since Phase 3.5 (relevance floor). ⚠️ default `hashing` embedder still lets collisions through; MiniLM recommended |
 | Security | protections and regression tests; host validation, CORS, loopback binding | ✅ suite + live checks (Phase 3.5 report) |
 | Privacy | no telemetry; export, deletion, backup, restore | ✅ (PostgreSQL restore is manual `pg_restore`) |
