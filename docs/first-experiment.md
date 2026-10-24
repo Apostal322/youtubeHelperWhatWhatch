@@ -21,6 +21,17 @@ What was tested where (2026-10-20):
 
 ## Part A: the model run (about 1–3 hours, mostly unattended)
 
+Two ways, both free and both a genuine model run (Ollama really runs the weights; nothing is
+mocked):
+
+* **Option 1, a volunteer's own computer** (below): any volunteer, not the project owner. Results
+  can be compared across machines.
+* **Option 2, a GitHub-hosted runner** ([see below](#option-2-a-github-hosted-runner-nobodys-computer)):
+  nobody's computer and no permanent server. The run happens on a temporary GitHub machine that is
+  discarded afterwards.
+
+### Option 1: a volunteer's computer
+
 **You need** 16 GB of RAM (8 GB minimum), 10 GB of free disk, internet for the downloads, and a
 free GitHub account to submit.
 
@@ -181,6 +192,31 @@ The import repeats every check and records the result under `benchmarks/communit
 * It is operational evidence (valid output, grounded citations, speed). It says nothing yet
   about whether the scores are *right*: that needs Part B.
 
+### Option 2: a GitHub-hosted runner (nobody's computer)
+
+The workflow `.github/workflows/real-model-smoke.yml` runs the same `smoke`, `review`, `pack` and
+`verify` commands on a GitHub-hosted Linux runner. It installs Ollama inside the job, pulls the
+model, runs it on the runner's CPU and uploads `smoke.zip` with the printed summaries. It starts
+only when someone starts it by hand, has no secrets and only read access to the repository.
+
+1. **Who can start it:** anyone with write access to the repository (Actions → *Real model smoke
+   run (manual)* → *Run workflow*). A volunteer without access can fork the repository, enable
+   Actions in the fork and start it there; GitHub-hosted runners are free for public repositories.
+2. **Inputs:** the model tag (default `qwen3:4b`, a small model a 4-core CPU runner can run) and
+   the per-call timeout (default 3600 s).
+3. **Time:** expect one to several hours on the runner's CPU; the job stops after 5.5 hours.
+4. **Result:** the artifact *real-model-smoke* (kept 90 days by default) holds `smoke.zip`,
+   `smoke.json`, `review.txt`, `verify.json` and the Ollama log. The job fails unless `verify`
+   accepts the run and `smoke` printed no warnings. Submit `smoke.zip` exactly as in Option 1.
+
+**What it proves and what it does not.** It is a real model evaluating one real transcript, on
+recorded hardware (`hardware` in `smoke.json` shows the runner's CPU and RAM). Speed numbers are
+for that runner only. Like Option 1, it is operational evidence: valid output, grounded
+citations, latency. It says nothing about whether the scores are right; that needs Part B.
+
+**Status:** the workflow was written and its YAML checked, but it has **not been run yet**: this
+development environment cannot download Ollama or models. The first run is also its test.
+
 ## Part B: three calibration ratings (about 1 hour each for one episode, estimated)
 
 The coordinator (the project owner) keeps the round privately: packets, the coordinator database
@@ -224,27 +260,11 @@ three are back, the raters' development packets (`avd annotate packet --rater vo
 --items 2 --consent-file rating-consent.txt`) produce the first human labels and relevance
 judgments.
 
-## Part C: one real YouTube check (owner, about 30 minutes; never done yet)
+## Part C: the first real YouTube check (about 30 minutes plus model time; never done yet)
 
-Every extension test so far used a simulated YouTube page. This is the first check on
-youtube.com itself. Use **one video whose transcript you have the right to submit** (for example
-one of your own uploads); nothing is downloaded from YouTube.
-
-1. In `backend/`: `avd start --provider ollama` (after Part A, so the model is installed), or
-   `avd start` for the heuristic evaluator.
-2. `cd ../extension && npm ci && npm run build`, then `chrome://extensions` → *Developer mode* →
-   *Load unpacked* → `extension/dist/`.
-3. Open the video on `https://www.youtube.com/watch?v=…`, open the popup, submit the transcript
-   (text, VTT or SRT) with your attestation.
-4. Wait for the badge (CPU inference can take many minutes), then check, and write down:
-   * the badge and popup show the score with its "AI" or "heuristic" label, and the evidence quotes
-     are really in your transcript;
-   * clicking to another video in the page (YouTube's in-page navigation), Back, Forward and a
-     reload each update the badge to the right video, never the previous one's;
-   * a Short (`/shorts/…`) and a video opened from a playlist are recognised;
-   * stopping `avd` turns the badge to an error, and restarting recovers it.
-5. Report what you saw (screenshots welcome), including anything that did not work. `youtu.be`,
-   `m.youtube.com` and `music.youtube.com` links are outside the extension's permissions by design.
+Every extension test so far ran against a simulated YouTube page. The checklist in
+[`youtube-live-checklist.md`](youtube-live-checklist.md) says which behaviours the simulated tests
+cover, and gives 16 live steps on youtube.com with one video whose transcript you may submit.
 
 ## Nothing here needs an official server or a paid API
 
@@ -254,6 +274,7 @@ one of your own uploads); nothing is downloaded from YouTube.
 | Dataset import | the publishers' GitHub repositories (raw files at pinned commits) | none |
 | Model | the Ollama library, once, for the weights; inference runs on `localhost` | none |
 | Smoke test, pack, verify | none (the dataset cache is used offline; the model is local) | none |
+| Option 2 (GitHub-hosted runner) | GitHub Actions (free for this public repository), the Ollama installer and model library, inside the temporary runner | none |
 | Submission | a GitHub issue (free account) | none |
 | Rating packets | none: the file blocks every network request | none |
 | Coordinator import | none | none |

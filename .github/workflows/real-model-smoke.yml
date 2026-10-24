@@ -1,0 +1,79 @@
+name: Real model smoke run (manual)
+
+# One genuine local-model evaluation on a GitHub-hosted runner: Ollama is installed inside the
+# job, the model runs on the runner's CPU, and everything is discarded when the job ends. No
+# secrets, no paid API, no permanent server. It runs only when someone starts it by hand
+# (Actions -> "Real model smoke run (manual)" -> Run workflow). Result: the same packed,
+# verified archive a volunteer would submit (docs/first-experiment.md, Part A, option 2).
+
+on:
+  workflow_dispatch:
+    inputs:
+      model:
+        description: "Ollama model tag (small instruction model; CPU only)"
+        required: true
+        default: "qwen3:4b"
+      timeout:
+        description: "Seconds per model call (CPU inference is slow)"
+        required: true
+        default: "3600"
+
+permissions:
+  contents: read
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 330
+    defaults:
+      run:
+        working-directory: backend
+    env:
+      AVD_DATABASE_URL: sqlite:///${{ runner.temp }}/avd.db
+      OUT: ${{ runner.temp }}/smoke-run
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install -e .
+      - name: Fetch and verify the licensed pilot transcripts
+        run: |
+          avd migrate
+          avd dataset import
+      - name: Install Ollama and pull the model
+        run: |
+          curl -fsSL https://ollama.com/install.sh | sh
+          # Keep the server on loopback inside the runner.
+          (OLLAMA_HOST=127.0.0.1:11434 ollama serve > "$RUNNER_TEMP/ollama.log" 2>&1 &)
+          for i in $(seq 1 60); do curl -sf http://127.0.0.1:11434/api/version && break; sleep 1; done
+          ollama pull "${{ inputs.model }}"
+          ollama list
+      - name: Hardware and model check
+        run: avd local doctor
+      - name: One real evaluation (Practical AI #178, CC BY-SA 4.0)
+        run: |
+          git status --porcelain
+          avd community smoke --model "${{ inputs.model }}" --out "$OUT" --timeout "${{ inputs.timeout }}" | tee "$RUNNER_TEMP/smoke.json"
+      - name: Review, pack and verify
+        run: |
+          avd community review "$OUT" | tee "$RUNNER_TEMP/review.txt"
+          avd community pack "$OUT" --out "$RUNNER_TEMP/smoke.zip"
+          avd community verify "$RUNNER_TEMP/smoke.zip" | tee "$RUNNER_TEMP/verify.json"
+          # verify prints its verdict and exits 0 either way: fail the job unless it was accepted.
+          python -c "import json,sys; s=json.load(open(sys.argv[1])); v=json.load(open(sys.argv[2])); \
+          sys.exit(0 if v.get('accepted') is True and not s.get('warnings') else f'not accepted: {v.get(\"accepted\")}, warnings: {s.get(\"warnings\")}')" \
+            "$RUNNER_TEMP/smoke.json" "$RUNNER_TEMP/verify.json"
+      # Only the packed archive and printed summaries are uploaded; the run database (which holds
+      # transcript text) stays on the runner and is discarded with it.
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: real-model-smoke
+          path: |
+            ${{ runner.temp }}/smoke.zip
+            ${{ runner.temp }}/smoke.json
+            ${{ runner.temp }}/review.txt
+            ${{ runner.temp }}/verify.json
+            ${{ runner.temp }}/ollama.log
+          if-no-files-found: warn
