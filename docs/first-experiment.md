@@ -205,18 +205,25 @@ only when someone starts it by hand, has no secrets and only read access to the 
 2. **Inputs:** the model tag (default `qwen3:4b`, a small model a 4-core CPU runner can run) and
    the per-call timeout (default 3600 s).
 3. **Time:** expect one to several hours on the runner's CPU; the job stops after 5.5 hours.
-4. **Result:** the artifact *real-model-smoke* (kept 90 days by default) holds `smoke.zip`,
-   `smoke.json`, `review.txt`, `verify.json` and the Ollama log. The job fails unless `verify`
-   accepts the run and `smoke` printed no warnings. Submit `smoke.zip` exactly as in Option 1.
+4. **Result:** the artifact *real-model-smoke* (kept 90 days by default, public like the
+   repository) holds only `smoke.zip` (scanned by `pack`, re-checked by `verify`) and the two
+   summaries `smoke.json` and `verify.json`, which are path-redacted and run through the same
+   scanner before upload; if the scan finds anything, nothing is uploaded. The job fails unless
+   `verify` accepts the run and `smoke` printed no warnings. Submit `smoke.zip` exactly as in
+   Option 1.
 
 **What it proves and what it does not.** It is a real model evaluating one real transcript, on
 recorded hardware (`hardware` in `smoke.json` shows the runner's CPU and RAM). Speed numbers are
 for that runner only. Like Option 1, it is operational evidence: valid output, grounded
 citations, latency. It says nothing about whether the scores are right; that needs Part B.
 
-**Status:** the workflow has **not been run yet**: this development environment cannot download
-Ollama or models. Its command sequence was rehearsed on 2026-10-24 against a loopback *protocol
-mock* of the Ollama API (plumbing only, no model): import, doctor, smoke, review, pack and verify
+**Status:** the workflow has **not run successfully yet**. The first attempt (2026-10-24) was
+rejected by GitHub before starting: `runner.temp` is not allowed in job-level `env`. Fixed, and
+both workflows now pass `actionlint`.
+
+This development environment cannot download Ollama or models, so the command sequence was
+rehearsed on 2026-10-24 against a loopback *protocol mock* of the Ollama API (plumbing only, no
+model): import, doctor, smoke, review, pack and verify
 all ran with the job's paths, and the run was refused as a mock, so the job would have failed as
 intended. The first real run is still the workflow's real test (Ollama install, model download,
 CPU time).
