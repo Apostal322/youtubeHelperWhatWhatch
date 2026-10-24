@@ -29,9 +29,16 @@ jobs:
       run:
         working-directory: backend
     env:
-      AVD_DATABASE_URL: sqlite:///${{ runner.temp }}/avd.db
-      OUT: ${{ runner.temp }}/smoke-run
+      # Inputs reach the shell as environment variables, never spliced into the script.
+      MODEL: ${{ inputs.model }}
+      CALL_TIMEOUT: ${{ inputs.timeout }}
     steps:
+      # The runner context (runner.temp) is not available in job-level env, so paths are set here.
+      - name: Paths outside the checkout
+        working-directory: .
+        run: |
+          echo "AVD_DATABASE_URL=sqlite:///$RUNNER_TEMP/avd.db" >> "$GITHUB_ENV"
+          echo "OUT=$RUNNER_TEMP/smoke-run" >> "$GITHUB_ENV"
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
@@ -47,14 +54,14 @@ jobs:
           # Keep the server on loopback inside the runner.
           (OLLAMA_HOST=127.0.0.1:11434 ollama serve > "$RUNNER_TEMP/ollama.log" 2>&1 &)
           for i in $(seq 1 60); do curl -sf http://127.0.0.1:11434/api/version && break; sleep 1; done
-          ollama pull "${{ inputs.model }}"
+          ollama pull "$MODEL"
           ollama list
       - name: Hardware and model check
         run: avd local doctor
       - name: One real evaluation (Practical AI #178, CC BY-SA 4.0)
         run: |
           git status --porcelain
-          avd community smoke --model "${{ inputs.model }}" --out "$OUT" --timeout "${{ inputs.timeout }}" | tee "$RUNNER_TEMP/smoke.json"
+          avd community smoke --model "$MODEL" --out "$OUT" --timeout "$CALL_TIMEOUT" | tee "$RUNNER_TEMP/smoke.json"
       - name: Review, pack and verify
         run: |
           avd community review "$OUT" | tee "$RUNNER_TEMP/review.txt"
@@ -64,16 +71,42 @@ jobs:
           python -c "import json,sys; s=json.load(open(sys.argv[1])); v=json.load(open(sys.argv[2])); \
           sys.exit(0 if v.get('accepted') is True and not s.get('warnings') else f'not accepted: {v.get(\"accepted\")}, warnings: {s.get(\"warnings\")}')" \
             "$RUNNER_TEMP/smoke.json" "$RUNNER_TEMP/verify.json"
-      # Only the packed archive and printed summaries are uploaded; the run database (which holds
-      # transcript text) stays on the runner and is discarded with it.
-      - uses: actions/upload-artifact@v4
+      # Before anything leaves the runner: redact local paths in the two summaries and run the
+      # same scanner pack uses (secrets, e-mail addresses, non-loopback hosts, transcript text).
+      # smoke.zip was already scanned by pack and re-checked by verify. Nothing else is uploaded:
+      # not the run database (transcript text), not review.txt (its content is inside smoke.zip),
+      # not the Ollama log.
+      - name: Check the summaries before upload
         if: always()
+        run: |
+          python - "$RUNNER_TEMP/smoke.json" "$RUNNER_TEMP/verify.json" <<'PY'
+          import json, sys
+          from pathlib import Path
+          from avd.bench.community import _redact, default_cache_dir, default_manifest, scan, transcript_shingles
+          shingles, read = transcript_shingles(default_manifest(), default_cache_dir())
+          if not read:
+              sys.exit("transcript cache missing: cannot check the summaries for transcript text")
+          bad = {}
+          for p in map(Path, sys.argv[1:]):
+              if not p.exists():
+                  continue
+              clean, _ = _redact(json.loads(p.read_text(encoding="utf-8")))
+              p.write_text(json.dumps(clean, indent=2), encoding="utf-8")
+              if findings := scan(p.name, p.read_bytes(), shingles):
+                  bad[p.name] = findings
+          print(bad or "summaries clean")
+          sys.exit(1 if bad else 0)
+          PY
+          echo "SUMMARIES_CHECKED=1" >> "$GITHUB_ENV"
+      - name: Ollama log tail (only when something failed)
+        if: failure()
+        run: tail -n 60 "$RUNNER_TEMP/ollama.log" || true
+      - uses: actions/upload-artifact@v4
+        if: always() && env.SUMMARIES_CHECKED == '1'
         with:
           name: real-model-smoke
           path: |
             ${{ runner.temp }}/smoke.zip
             ${{ runner.temp }}/smoke.json
-            ${{ runner.temp }}/review.txt
             ${{ runner.temp }}/verify.json
-            ${{ runner.temp }}/ollama.log
           if-no-files-found: warn
