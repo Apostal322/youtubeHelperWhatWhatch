@@ -559,3 +559,24 @@ class TestArchiveHardening:
     def test_malformed_reports_get_a_verdict_not_a_crash(self, tmp_path: Path, report: str) -> None:
         (tmp_path / "r.json").write_text(report)
         assert cm.verify(tmp_path / "r.json")["accepted"] is False
+
+
+def test_quoted_transcript_in_a_review_is_counted_once() -> None:
+    words = [f"w{i}" for i in range(707)]
+    shingles = {hash(" ".join(words[i : i + cm.SHINGLE])) for i in range(len(words) - cm.SHINGLE + 1)}
+    doc = {
+        "items": [
+            {
+                "video_id": "v1",
+                "evaluation": {"rights": {"quotes_included": True}, "dimensions": []},
+                "justifications": {"depth": " ".join(words)},  # 700 matching 8-word runs
+            }
+        ]
+    }
+    data = json.dumps(doc).encode()
+    # Before: raw JSON and decoded strings were both scanned, so 700 runs counted as 1400 > 1000.
+    assert cm.scan("runs/r/review.json", data, shingles) == []
+    doc["items"][0]["justifications"]["depth"] = " ".join(words * 2)  # 1400 real runs
+    assert any(
+        "too much transcript" in f for f in cm.scan("runs/r/review.json", json.dumps(doc).encode(), shingles)
+    )
