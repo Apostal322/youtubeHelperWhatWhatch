@@ -251,7 +251,9 @@ def scan(name: str, data: bytes, shingles: set[int] | None) -> list[str]:
             extra = sorted(set(doc) - PACK_KEYS) if isinstance(doc, dict) else "not an object"
             findings.append(f"{name}: unexpected content ({extra})")
         if is_review:
-            findings += _scan_review(name, doc, text, shingles)
+            # Count quoted transcript once: in the decoded strings. Scanning raw JSON as well (as the
+            # patterns above do) counted every quote twice against MAX_REVIEW_QUOTED_RUNS.
+            findings += _scan_review(name, doc, "\n".join(_strings(doc)), shingles)
         for jpath, key, value in _fields(doc):
             k = key.lower()
             if k in TEXT_KEYS and _has_text(value) and not is_review:
